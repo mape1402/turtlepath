@@ -58,6 +58,11 @@ namespace TurtlePath.Identifier
         /// instance. This property is intended for internal configuration and should be set with caution.</remarks>
         public Func<string, CId> ParseFunction { get; set; }
 
+        /// <summary>
+        /// Gets or sets where identifier values are generated.
+        /// </summary>
+        public CIdGenerationStrategy GenerationStrategy { get; set; } = CIdGenerationStrategy.ClientGenerated;
+
         internal void ValidateAndThrow()
         {
             if(ConvertToDb == null)

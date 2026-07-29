@@ -9,12 +9,7 @@ namespace TurtlePath.Identifier
     [TypeConverter(typeof(CIdTypeConverter))]
     public readonly struct CId : IEquatable<CId>
     {
-        /// <summary>
-        /// Gets a value indicating whether the object is ready for use.
-        /// </summary>
-        /// <remarks>This property reflects the readiness state of the object, which may affect its
-        /// ability to perform operations.</remarks>
-        private readonly bool _isReady;
+        private readonly CIdPart[] _parts;
 
         /// <summary>
         /// Initializes a new <see cref="CId"/> with the specified value.
@@ -22,21 +17,47 @@ namespace TurtlePath.Identifier
         /// <param name="value">The value of the identifier. Must be of the allowed type.</param>
         /// <exception cref="ArgumentException">Thrown if the value is not of the allowed type.</exception>
         public CId(object value)
+            : this(CIdPart.Single(value))
         {
-            if(value == null)
-                throw new ArgumentNullException(nameof(value));
+        }
 
-            if (value.GetType() != CIdMetadata.AllowedType)
-                throw new ArgumentException($"Value must be of type {CIdMetadata.AllowedType}.");
+        /// <summary>
+        /// Initializes a new <see cref="CId"/> with the specified parts.
+        /// </summary>
+        /// <param name="parts">The identifier parts.</param>
+        public CId(params CIdPart[] parts)
+        {
+            if (parts == null)
+                throw new ArgumentNullException(nameof(parts));
 
-            Value = value;
-            _isReady = true;
+            if (parts.Length == 0)
+                throw new ArgumentException("At least one identifier part is required.", nameof(parts));
+
+            if (parts.Any(part => part.Value == null))
+                throw new ArgumentException("Identifier part values cannot be null.", nameof(parts));
+
+            _parts = parts.ToArray();
         }
 
         /// <summary>
         /// Gets the value of the identifier.
         /// </summary>
-        public object Value { get; }
+        public object Value => IsEmpty ? null : _parts[0].Value;
+
+        /// <summary>
+        /// Gets the identifier parts.
+        /// </summary>
+        public IReadOnlyList<CIdPart> Parts => _parts ?? Array.Empty<CIdPart>();
+
+        /// <summary>
+        /// Gets a value indicating whether the identifier has multiple parts.
+        /// </summary>
+        public bool IsComposite => Parts.Count > 1;
+
+        /// <summary>
+        /// Gets a value indicating whether the identifier is empty.
+        /// </summary>
+        public bool IsEmpty => _parts == null || _parts.Length == 0;
 
         /// <summary>
         /// Gets an instance of <see cref="CId"/> that represents an empty identifier.
@@ -53,10 +74,10 @@ namespace TurtlePath.Identifier
         /// <returns>A byte array that represents the current value, or null if the object is not ready or the value is null.</returns>
         public byte[] ToByteArray()
         {
-            if (!_isReady || Value is null)
+            if (IsEmpty || Value is null)
                 return null;
 
-            return CIdMetadata.ToByteArrayFunction(Value);
+            return CIdMetadata.ToByteArrayFunction?.Invoke(Value);
         }
 
         /// <summary>
@@ -105,7 +126,7 @@ namespace TurtlePath.Identifier
         /// <exception cref="InvalidCastException">Thrown if the value cannot be cast to the specified type or the identifier is empty.</exception>
         public T Cast<T>()
         {
-            if (!_isReady || Value is not T castValue)
+            if (IsEmpty || Value is not T castValue)
                 throw new InvalidCastException($"Value cannot be converted to {typeof(T)}.");
 
             return castValue;
@@ -116,7 +137,15 @@ namespace TurtlePath.Identifier
         /// </summary>
         /// <returns>The string representation of the value.</returns>
         public override string ToString()
-            => Value?.ToString();
+        {
+            if (IsEmpty)
+                return string.Empty;
+
+            if (!IsComposite)
+                return Value?.ToString();
+
+            return string.Join(";", Parts.Select(part => $"{part.Name}={part.Value}"));
+        }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current identifier.
@@ -128,16 +157,25 @@ namespace TurtlePath.Identifier
             if (obj is not CId other)
                 return false;
 
-            if (!other._isReady && !_isReady)
+            if (other.IsEmpty && IsEmpty)
                 return true;
 
-            if (Value is null && other.Value is null)
-                return true;
-
-            if((Value is null && other.Value is not null) || (Value is not null && other.Value is null))
+            if (Parts.Count != other.Parts.Count)
                 return false;
 
-            return other.Value.Equals(Value);
+            for (var i = 0; i < Parts.Count; i++)
+            {
+                var left = Parts[i];
+                var right = other.Parts[i];
+
+                if (!string.Equals(left.Name, right.Name, StringComparison.Ordinal))
+                    return false;
+
+                if (!Equals(left.Value, right.Value))
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -153,7 +191,36 @@ namespace TurtlePath.Identifier
         /// </summary>
         /// <returns>A hash code for the identifier.</returns>
         public override int GetHashCode()
-            => !_isReady ? default : Value.GetHashCode();
+        {
+            if (IsEmpty)
+                return default;
+
+            var hash = new HashCode();
+
+            foreach (var part in Parts)
+            {
+                hash.Add(part.Name, StringComparer.Ordinal);
+                hash.Add(part.Value);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        /// <summary>
+        /// Creates an identifier from a single value.
+        /// </summary>
+        /// <param name="value">The underlying value.</param>
+        /// <returns>The identifier.</returns>
+        public static CId From(object value)
+            => new(value);
+
+        /// <summary>
+        /// Creates a composite identifier from named parts.
+        /// </summary>
+        /// <param name="parts">The identifier parts.</param>
+        /// <returns>The composite identifier.</returns>
+        public static CId Composite(params CIdPart[] parts)
+            => new(parts);
 
         /// <summary>
         /// Determines whether two <see cref="CId"/> instances are equal.

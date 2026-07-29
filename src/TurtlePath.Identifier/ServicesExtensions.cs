@@ -1,6 +1,5 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
-    using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
     using TurtlePath.Identifier;
 
     /// <summary>
@@ -29,7 +28,19 @@ namespace Microsoft.Extensions.DependencyInjection
             CIdMetadata.JsonConverter = config.JsonConverter;
             CIdMetadata.NullableJsonConverter = config.NullableJsonConverter;
             CIdMetadata.ParseFunction = config.ParseFunction;
-            CIdMetadata.DbConverter = new ValueConverter<CId, TDbType>(config.ConvertToDb, config.ConvertFromDb);
+
+            var registry = new CIdDefinitionRegistry();
+            registry.Register(new CIdDefinition(
+                CIdDefinition.DefaultContext,
+                typeof(TTargetType),
+                config.DefaultFactory,
+                config.ParseFunction,
+                id => id.ToString(),
+                id => id.ToByteArray(),
+                config.GenerationStrategy));
+
+            services.AddSingleton<ICIdDefinitionRegistry>(registry);
+            services.AddSingleton<ICIdFactory>(registry);
         }
     }
 }

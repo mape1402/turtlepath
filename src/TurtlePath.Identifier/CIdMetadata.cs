@@ -1,7 +1,5 @@
 namespace TurtlePath.Identifier
 {
-    using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-
     /// <summary>
     /// Provides metadata and configuration for the <see cref="CId"/> identifier type.
     /// </summary>
@@ -41,11 +39,6 @@ namespace TurtlePath.Identifier
         public static Func<object, byte[]> ToByteArrayFunction { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the value converter used for database persistence of <see cref="CId"/> values.
-        /// </summary>
-        public static ValueConverter DbConverter { get; internal set; }
-
-        /// <summary>
         /// Gets or sets the function used to convert a JSON string to a <see cref="CId"/> object.
         /// </summary>
         /// <remarks>This property is intended for internal use to facilitate JSON deserialization of <see
@@ -73,7 +66,6 @@ namespace TurtlePath.Identifier
             DbType = null;
             DefaultFactory = () => new CId();
             ToByteArrayFunction = null;
-            DbConverter = null;
             JsonConverter = value => new CId(value);
             NullableJsonConverter = value => new CId(value);
             ParseFunction = value => new CId(value);
