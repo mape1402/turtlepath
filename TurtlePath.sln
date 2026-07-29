@@ -28,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Identifier", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Domain", "src\TurtlePath.Domain\TurtlePath.Domain.csproj", "{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Application", "src\TurtlePath.Application\TurtlePath.Application.csproj", "{AC0E5F7F-C629-4492-B703-AE8BD023D817}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -110,6 +112,18 @@ Global
 		{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586}.Release|x64.Build.0 = Release|Any CPU
 		{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586}.Release|x86.ActiveCfg = Release|Any CPU
 		{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586}.Release|x86.Build.0 = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|x64.Build.0 = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Debug|x86.Build.0 = Debug|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|x64.ActiveCfg = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|x64.Build.0 = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|x86.ActiveCfg = Release|Any CPU
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -121,5 +135,6 @@ Global
 		{7CE57313-D1AC-4ADF-BC49-A9FC6294510F} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{63950133-5DD4-4DEC-B308-918D7BFACF8F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{AC0E5F7F-C629-4492-B703-AE8BD023D817} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

@@ -28,6 +28,18 @@ public class ProjectStructureTests
         Assert.DoesNotContain("Sieve", project);
     }
 
+    [Fact]
+    public void Application_project_does_not_reference_infrastructure_packages()
+    {
+        var root = FindRepositoryRoot();
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Application", "TurtlePath.Application.csproj"));
+
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", project);
+        Assert.DoesNotContain("OctoMap", project);
+        Assert.DoesNotContain("Crabalidator", project);
+        Assert.DoesNotContain("Sieve", project);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
