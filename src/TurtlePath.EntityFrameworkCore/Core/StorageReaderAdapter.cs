@@ -4,8 +4,6 @@ namespace TurtlePath.Core.Infrastructure
     using TurtlePath.Core.Services;
     using TurtlePath.Contracts;
     using TurtlePath.Persistence.Abstractions;
-    using Sieve.Models;
-    using Sieve.Services;
     using System.Linq.Expressions;
 
     /// <summary>
@@ -13,21 +11,21 @@ namespace TurtlePath.Core.Infrastructure
     /// </summary>
     public class StorageReaderAdapter : IStorageReaderAdapter
     {
-        private readonly ISieveProcessor _sieveProcessor;
         private readonly IDbContext _dbContext;
         private readonly IMapperAdapter _mapper;
+        private readonly IEnumerable<IStorageCriteriaApplier> _criteriaAppliers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StorageReaderAdapter"/> class.
         /// </summary>
-        /// <param name="sieveProcessor">The Sieve processor for applying filters and sorts.</param>
         /// <param name="dbContext">The database context for entity access.</param>
         /// <param name="mapper">The mapper adapter for result projection.</param>
-        public StorageReaderAdapter(ISieveProcessor sieveProcessor, IDbContext dbContext, IMapperAdapter mapper)
+        /// <param name="criteriaAppliers">The provider-specific criteria appliers.</param>
+        public StorageReaderAdapter(IDbContext dbContext, IMapperAdapter mapper, IEnumerable<IStorageCriteriaApplier> criteriaAppliers = null)
         {
-            _sieveProcessor = sieveProcessor ?? throw new ArgumentNullException(nameof(sieveProcessor));
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _criteriaAppliers = criteriaAppliers ?? Enumerable.Empty<IStorageCriteriaApplier>();
         }
 
         /// <inheritdoc/>
@@ -96,7 +94,7 @@ namespace TurtlePath.Core.Infrastructure
                 query = query.AsNoTracking();
 
             query = ApplyExpressions(query, criteria);
-            query = ApplySieve(query, criteria);
+            query = ApplyProviderCriteria(query, criteria);
             var pagedQuery = ApplyPaging(query, criteria);
 
             var results = Enumerable.Empty<TExpected>();
@@ -151,25 +149,19 @@ namespace TurtlePath.Core.Infrastructure
         }
 
         /// <summary>
-        /// Applies Sieve-based filtering and sorting to the queryable source.
+        /// Applies provider-specific filtering and sorting to the queryable source.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <param name="source">The queryable source.</param>
         /// <param name="criteria">The criteria containing Sieve filters and sorts.</param>
-        /// <returns>The queryable source with Sieve filters and sorts applied.</returns>
-        private IQueryable<TEntity> ApplySieve<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
+        /// <returns>The queryable source with provider-specific filters and sorts applied.</returns>
+        private IQueryable<TEntity> ApplyProviderCriteria<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
             where TEntity : BaseEntity
         {
-            if (!criteria.UseFilters() && !criteria.UseSorts())
-                return source;
+            foreach (var criteriaApplier in _criteriaAppliers)
+                source = criteriaApplier.Apply(source, criteria);
 
-            var sieveModel = new SieveModel
-            {
-                Filters = criteria.Filters,
-                Sorts = criteria.Sorts
-            };
-
-            return _sieveProcessor.Apply(sieveModel, source, applyPagination: false);
+            return source;
         }
 
         /// <summary>

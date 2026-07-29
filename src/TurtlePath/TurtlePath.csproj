@@ -14,6 +14,7 @@
     <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
     <ProjectReference Include="..\TurtlePath.OctoMap\TurtlePath.OctoMap.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
+    <ProjectReference Include="..\TurtlePath.Sieve\TurtlePath.Sieve.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +22,5 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
     <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
-    <PackageReference Include="Sieve" Version="2.5.5" />
   </ItemGroup>
 </Project>

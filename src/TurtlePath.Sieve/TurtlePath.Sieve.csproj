@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.Sieve</PackageId>
+    <Description>Sieve criteria adapter for TurtlePath persistence abstractions.</Description>
+    <PackageTags>sieve filtering sorting persistence turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
+    <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+    <PackageReference Include="Sieve" Version="2.5.5" />
+  </ItemGroup>
+</Project>

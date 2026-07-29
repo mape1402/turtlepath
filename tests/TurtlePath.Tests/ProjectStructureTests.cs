@@ -59,6 +59,7 @@ public class ProjectStructureTests
         Assert.Contains("Microsoft.EntityFrameworkCore", project);
         Assert.DoesNotContain("OctoMap", project);
         Assert.DoesNotContain("Crabalidator", project);
+        Assert.DoesNotContain("Sieve", project);
     }
 
     [Fact]
@@ -70,6 +71,15 @@ public class ProjectStructureTests
 
         Assert.Contains("OctoMap", octoMapProject);
         Assert.Contains("Crabalidator", crabalidatorProject);
+    }
+
+    [Fact]
+    public void Sieve_project_owns_sieve_reference()
+    {
+        var root = FindRepositoryRoot();
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Sieve", "TurtlePath.Sieve.csproj"));
+
+        Assert.Contains("Sieve", project);
     }
 
     private static string FindRepositoryRoot()

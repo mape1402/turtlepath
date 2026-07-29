@@ -7,7 +7,6 @@ namespace Microsoft.Extensions.DependencyInjection
     using TurtlePath.Core.Services;
     using TurtlePath.MappingProfiles;
     using OctoMap;
-    using Sieve.Services;
     using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
 
@@ -46,7 +45,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 registration.AddMaps(typeof(Constants).Assembly);
             });
 
-            services.AddSingleton<ISieveProcessor, SieveProcessor>();
+            services.AddTurtlePathSieve();
 
             var assembliesToScan = new[] { typeof(Constants).Assembly }
                 .Concat(hookAssemblies ?? Array.Empty<Assembly>())
