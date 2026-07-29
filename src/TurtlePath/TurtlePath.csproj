@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Application\TurtlePath.Application.csproj" />
+    <ProjectReference Include="..\TurtlePath.AspNetCore\TurtlePath.AspNetCore.csproj" />
     <ProjectReference Include="..\TurtlePath.Crabalidator\TurtlePath.Crabalidator.csproj" />
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
     <ProjectReference Include="..\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
@@ -15,6 +16,7 @@
     <ProjectReference Include="..\TurtlePath.OctoMap\TurtlePath.OctoMap.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
     <ProjectReference Include="..\TurtlePath.Sieve\TurtlePath.Sieve.csproj" />
+    <ProjectReference Include="..\TurtlePath.Swagger\TurtlePath.Swagger.csproj" />
   </ItemGroup>
 
   <ItemGroup>

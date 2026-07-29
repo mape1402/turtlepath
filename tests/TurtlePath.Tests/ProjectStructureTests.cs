@@ -82,6 +82,17 @@ public class ProjectStructureTests
         Assert.Contains("Sieve", project);
     }
 
+    [Fact]
+    public void Web_projects_own_web_references()
+    {
+        var root = FindRepositoryRoot();
+        var aspNetCoreProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.AspNetCore", "TurtlePath.AspNetCore.csproj"));
+        var swaggerProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Swagger", "TurtlePath.Swagger.csproj"));
+
+        Assert.Contains("Microsoft.AspNetCore.App", aspNetCoreProject);
+        Assert.Contains("Swashbuckle.AspNetCore.SwaggerGen", swaggerProject);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

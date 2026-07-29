@@ -1,5 +1,6 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.AspNetCore.Json
 {
+    using TurtlePath.Identifier;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
