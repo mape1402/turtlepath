@@ -15,6 +15,19 @@ public class ProjectStructureTests
         Assert.True(File.Exists(Path.Combine(root, path)), $"{path} should exist.");
     }
 
+    [Fact]
+    public void Domain_project_does_not_reference_application_or_infrastructure_packages()
+    {
+        var root = FindRepositoryRoot();
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Domain", "TurtlePath.Domain.csproj"));
+
+        Assert.DoesNotContain("Pelican.Mediator", project);
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", project);
+        Assert.DoesNotContain("OctoMap", project);
+        Assert.DoesNotContain("Crabalidator", project);
+        Assert.DoesNotContain("Sieve", project);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
