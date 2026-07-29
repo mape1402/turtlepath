@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath</PackageId>
+    <Description>TurtlePath provides reusable Pelican handler foundations, hooks, storage adapters, validation, mapping, and entity primitives extracted from the Elysium template.</Description>
+    <PackageTags>pelican mediator handlers cqrs hooks entity-framework octomap crabalidator turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Crabalidator" Version="1.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+    <PackageReference Include="OctoMap" Version="1.0.0" />
+    <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
+    <PackageReference Include="Sieve" Version="2.5.5" />
+  </ItemGroup>
+</Project>
