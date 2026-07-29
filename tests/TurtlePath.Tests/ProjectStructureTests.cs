@@ -50,6 +50,15 @@ public class ProjectStructureTests
         Assert.DoesNotContain("Sieve", project);
     }
 
+    [Fact]
+    public void Entity_framework_project_owns_entity_framework_references()
+    {
+        var root = FindRepositoryRoot();
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.EntityFrameworkCore", "TurtlePath.EntityFrameworkCore.csproj"));
+
+        Assert.Contains("Microsoft.EntityFrameworkCore", project);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

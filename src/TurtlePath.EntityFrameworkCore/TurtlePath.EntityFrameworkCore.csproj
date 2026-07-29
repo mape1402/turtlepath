@@ -1,26 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>TurtlePath</PackageId>
-    <Description>TurtlePath provides reusable Pelican handler foundations, hooks, storage adapters, validation, mapping, and entity primitives extracted from the Elysium template.</Description>
-    <PackageTags>pelican mediator handlers cqrs hooks entity-framework octomap crabalidator turtlepath elysium</PackageTags>
+    <PackageId>TurtlePath.EntityFrameworkCore</PackageId>
+    <Description>Entity Framework Core storage adapters and configuration helpers for TurtlePath.</Description>
+    <PackageTags>entity-framework ef-core persistence storage turtlepath elysium</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Application\TurtlePath.Application.csproj" />
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
-    <ProjectReference Include="..\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Crabalidator" Version="1.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
     <PackageReference Include="OctoMap" Version="1.0.0" />
-    <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
     <PackageReference Include="Sieve" Version="2.5.5" />
   </ItemGroup>
 </Project>

@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Application", "s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Persistence.Abstractions", "src\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj", "{F4751632-A49F-4E30-9CF1-80C7C31256EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.EntityFrameworkCore", "src\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj", "{32DA2040-8772-4D57-9E73-C4DDE49D64EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -138,6 +140,18 @@ Global
 		{F4751632-A49F-4E30-9CF1-80C7C31256EC}.Release|x64.Build.0 = Release|Any CPU
 		{F4751632-A49F-4E30-9CF1-80C7C31256EC}.Release|x86.ActiveCfg = Release|Any CPU
 		{F4751632-A49F-4E30-9CF1-80C7C31256EC}.Release|x86.Build.0 = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|x64.Build.0 = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Debug|x86.Build.0 = Debug|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|x64.ActiveCfg = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|x64.Build.0 = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|x86.ActiveCfg = Release|Any CPU
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,5 +165,6 @@ Global
 		{CE1F9180-1A5B-4D13-9D7F-9690BEDF2586} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{AC0E5F7F-C629-4492-B703-AE8BD023D817} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{F4751632-A49F-4E30-9CF1-80C7C31256EC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{32DA2040-8772-4D57-9E73-C4DDE49D64EE} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

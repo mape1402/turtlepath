@@ -7,7 +7,7 @@ namespace TurtlePath.Core.Infrastructure
     /// <summary>
     /// Provides an implementation of <see cref="IStorageWriterAdapter"/> for saving, updating, and deleting entities using a database context.
     /// </summary>
-    internal class StorageWriterAdapter : IStorageWriterAdapter
+    public class StorageWriterAdapter : IStorageWriterAdapter
     {
         private readonly IDbContext _dbContext;
 

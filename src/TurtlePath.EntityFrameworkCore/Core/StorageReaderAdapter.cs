@@ -12,7 +12,7 @@ namespace TurtlePath.Core.Infrastructure
     /// <summary>
     /// Provides an implementation of <see cref="IStorageReaderAdapter"/> for reading entities from storage with support for filtering, sorting, and paging.
     /// </summary>
-    internal class StorageReaderAdapter : IStorageReaderAdapter
+    public class StorageReaderAdapter : IStorageReaderAdapter
     {
         private readonly ISieveProcessor _sieveProcessor;
         private readonly IDbContext _dbContext;
