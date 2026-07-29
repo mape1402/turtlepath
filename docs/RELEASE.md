@@ -7,3 +7,17 @@ TurtlePath follows the OctoMap release workflow shape.
 3. Run the `Release to NuGet` workflow manually.
 
 The workflow validates the branch name and changelog entry, builds, tests, packs, tags, creates a GitHub release, and publishes packages through NuGet trusted publishing.
+
+The solution now contains multiple packable projects. `dotnet pack` should produce package artifacts for:
+
+- `TurtlePath`
+- `TurtlePath.Identifier`
+- `TurtlePath.Domain`
+- `TurtlePath.Application`
+- `TurtlePath.Persistence.Abstractions`
+- `TurtlePath.EntityFrameworkCore`
+- `TurtlePath.OctoMap`
+- `TurtlePath.Crabalidator`
+- `TurtlePath.Sieve`
+- `TurtlePath.AspNetCore`
+- `TurtlePath.Swagger`

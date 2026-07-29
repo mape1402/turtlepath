@@ -10,3 +10,4 @@ All notable changes to TurtlePath will be documented in this file.
 - Extracted the reusable Pelican handler foundation from the Elysium template.
 - Added base tests, CI, release workflow, README, changelog, samples, and benchmark project placeholders.
 - Documented compatibility surface before package splitting.
+- Split the extracted surface into focused packages for identifier, domain, application, persistence, EF Core, mapping, validation, filtering, ASP.NET Core, and Swagger concerns.

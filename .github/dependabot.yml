@@ -6,6 +6,54 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
 
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Application"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.AspNetCore"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Crabalidator"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.EntityFrameworkCore"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Identifier"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.OctoMap"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Sieve"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Swagger"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
