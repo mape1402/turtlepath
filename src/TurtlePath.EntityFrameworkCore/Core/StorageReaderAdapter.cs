@@ -4,7 +4,6 @@ namespace TurtlePath.Core.Infrastructure
     using TurtlePath.Core.Services;
     using TurtlePath.Contracts;
     using TurtlePath.Persistence.Abstractions;
-    using OctoMap;
     using Sieve.Models;
     using Sieve.Services;
     using System.Linq.Expressions;
@@ -16,15 +15,15 @@ namespace TurtlePath.Core.Infrastructure
     {
         private readonly ISieveProcessor _sieveProcessor;
         private readonly IDbContext _dbContext;
-        private readonly IOctoMapper _mapper;
+        private readonly IMapperAdapter _mapper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StorageReaderAdapter"/> class.
         /// </summary>
         /// <param name="sieveProcessor">The Sieve processor for applying filters and sorts.</param>
         /// <param name="dbContext">The database context for entity access.</param>
-        /// <param name="mapper">The OctoMap instance for projection.</param>
-        public StorageReaderAdapter(ISieveProcessor sieveProcessor, IDbContext dbContext, IOctoMapper mapper)
+        /// <param name="mapper">The mapper adapter for result projection.</param>
+        public StorageReaderAdapter(ISieveProcessor sieveProcessor, IDbContext dbContext, IMapperAdapter mapper)
         {
             _sieveProcessor = sieveProcessor ?? throw new ArgumentNullException(nameof(sieveProcessor));
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
@@ -68,7 +67,11 @@ namespace TurtlePath.Core.Infrastructure
                 return entity as TExpected;
             }
 
-            return await query.ProjectTo<TExpected>(_mapper.ProjectionBuilder).FirstOrDefaultAsync(cancellationToken);
+            var source = await query.FirstOrDefaultAsync(cancellationToken);
+
+            return source == null
+                ? null
+                : await _mapper.MapAsync<TEntity, TExpected>(source, cancellationToken);
         }
 
         /// <summary>
@@ -104,7 +107,15 @@ namespace TurtlePath.Core.Infrastructure
                 results = entities.Cast<TExpected>();
             }
             else
-                results = await pagedQuery.query.ProjectTo<TExpected>(_mapper.ProjectionBuilder).ToListAsync(cancellationToken);
+            {
+                var entities = await pagedQuery.query.ToListAsync(cancellationToken);
+                var mapped = new List<TExpected>(entities.Count);
+
+                foreach (var entity in entities)
+                    mapped.Add(await _mapper.MapAsync<TEntity, TExpected>(entity, cancellationToken));
+
+                results = mapped;
+            }
 
             return new BatchResult<TExpected>
             {

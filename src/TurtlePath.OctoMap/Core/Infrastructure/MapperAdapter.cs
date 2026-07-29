@@ -6,7 +6,7 @@ namespace TurtlePath.Core.Infrastructure
     /// <summary>
     /// Provides an implementation of <see cref="IMapperAdapter"/> using OctoMap for object mapping.
     /// </summary>
-    internal class MapperAdapter : IMapperAdapter
+    public class MapperAdapter : IMapperAdapter
     {
         private readonly IOctoMapper _mapper;
 

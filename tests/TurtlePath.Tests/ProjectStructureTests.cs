@@ -57,6 +57,19 @@ public class ProjectStructureTests
         var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.EntityFrameworkCore", "TurtlePath.EntityFrameworkCore.csproj"));
 
         Assert.Contains("Microsoft.EntityFrameworkCore", project);
+        Assert.DoesNotContain("OctoMap", project);
+        Assert.DoesNotContain("Crabalidator", project);
+    }
+
+    [Fact]
+    public void Adapter_projects_own_mapping_and_validation_references()
+    {
+        var root = FindRepositoryRoot();
+        var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
+        var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
+
+        Assert.Contains("OctoMap", octoMapProject);
+        Assert.Contains("Crabalidator", crabalidatorProject);
     }
 
     private static string FindRepositoryRoot()

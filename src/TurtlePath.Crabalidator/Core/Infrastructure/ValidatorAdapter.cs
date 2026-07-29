@@ -8,7 +8,7 @@ namespace TurtlePath.Core.Infrastructure
     /// <summary>
     /// Provides an implementation of <see cref="IValidatorAdapter"/> using Crabalidator for model validation.
     /// </summary>
-    internal class ValidatorAdapter : IValidatorAdapter
+    public class ValidatorAdapter : IValidatorAdapter
     {
         private readonly IServiceProvider _serviceProvider;
 

@@ -18,7 +18,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
-    <PackageReference Include="OctoMap" Version="1.0.0" />
     <PackageReference Include="Sieve" Version="2.5.5" />
   </ItemGroup>
 </Project>
