@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace TurtlePath.Core.Exceptions
+namespace TurtlePath.AspNetCore.Exceptions
 {
     /// <summary>
     /// Exception thrown when a user attempts to access a resource they are not allowed to access.

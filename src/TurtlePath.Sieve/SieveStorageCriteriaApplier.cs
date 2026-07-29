@@ -3,7 +3,7 @@ namespace TurtlePath.Sieve
     using global::Sieve.Models;
     using global::Sieve.Services;
     using TurtlePath.Contracts;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Persistence;
 
     /// <summary>
     /// Applies Sieve filters and sorts to storage queries.

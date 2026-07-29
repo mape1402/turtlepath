@@ -1,11 +1,9 @@
-using System.Net;
-
-namespace TurtlePath.Core.Exceptions
+namespace TurtlePath.Application.Errors
 {
     /// <summary>
     /// Exception thrown when a requested resource is not found.
     /// </summary>
-    public sealed class NotFoundException : HttpException
+    public sealed class NotFoundException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="NotFoundException"/> class for a specific resource and key.
@@ -20,7 +18,7 @@ namespace TurtlePath.Core.Exceptions
         /// Initializes a new instance of the <see cref="NotFoundException"/> class with a specified message.
         /// </summary>
         /// <param name="message">The message that describes the error.</param>
-        public NotFoundException(string message) : base(HttpStatusCode.NotFound, message)
+        public NotFoundException(string message) : base(message)
         {
         }
     }

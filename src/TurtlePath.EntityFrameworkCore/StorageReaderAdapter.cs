@@ -1,9 +1,9 @@
-namespace TurtlePath.Core.Infrastructure
+namespace TurtlePath.EntityFrameworkCore
 {
     using Microsoft.EntityFrameworkCore;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Mapping;
+    using TurtlePath.Persistence;
     using TurtlePath.Contracts;
-    using TurtlePath.Persistence.Abstractions;
     using System.Linq.Expressions;
 
     /// <summary>

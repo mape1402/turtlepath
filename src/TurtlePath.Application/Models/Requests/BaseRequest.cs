@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Models.Requests
+namespace TurtlePath.Application.Models.Requests
 {
     using TurtlePath.Identifier;
 

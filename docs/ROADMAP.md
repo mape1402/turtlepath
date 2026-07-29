@@ -96,8 +96,9 @@ EF Core adapter package.
 Dependencies:
 
 - `Microsoft.EntityFrameworkCore`
-- `TurtlePath.Application`
 - `TurtlePath.Domain`
+- `TurtlePath.Identifier`
+- `TurtlePath.Mapping.Abstractions`
 - `TurtlePath.Persistence.Abstractions`
 
 No OctoMap or Crabalidator dependency unless a separate convenience package intentionally composes them.
@@ -143,7 +144,7 @@ Mapping adapter package.
 Dependencies:
 
 - `OctoMap`
-- `TurtlePath.Application`
+- `TurtlePath.Mapping.Abstractions`
 
 ### TurtlePath.Crabalidator
 
@@ -155,7 +156,7 @@ Validation adapter package.
 Dependencies:
 
 - `Crabalidator`
-- `TurtlePath.Application`
+- `TurtlePath.Validation.Abstractions`
 
 ### TurtlePath.Sieve
 
@@ -341,10 +342,12 @@ Allowed dependency direction:
 Identifier
 Domain -> Identifier
 Persistence.Abstractions -> Domain
-Application -> Domain, Persistence.Abstractions
-EntityFrameworkCore -> Application, Domain, Persistence.Abstractions, Identifier.EntityFrameworkCore
-OctoMap -> Application
-Crabalidator -> Application
+Mapping.Abstractions
+Validation.Abstractions
+Application -> Domain, Mapping.Abstractions, Persistence.Abstractions, Validation.Abstractions
+EntityFrameworkCore -> Domain, Identifier, Mapping.Abstractions, Persistence.Abstractions
+OctoMap -> Mapping.Abstractions
+Crabalidator -> Validation.Abstractions
 Sieve -> Persistence.Abstractions
 AspNetCore -> Identifier, Application
 Swagger -> Identifier, AspNetCore

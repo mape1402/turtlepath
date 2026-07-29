@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
-using TurtlePath.Core.Hooks;
+using TurtlePath.Application.Hooks;
 
 namespace TurtlePath.Benchmarks;
 

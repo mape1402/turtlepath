@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Hooks
+namespace TurtlePath.Application.Hooks
 {
     /// <summary>
     /// Runs before a command response is built.

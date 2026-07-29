@@ -51,6 +51,38 @@ public class ProjectStructureTests
     }
 
     [Fact]
+    public void Mapping_and_validation_contracts_have_their_own_abstraction_packages()
+    {
+        var root = FindRepositoryRoot();
+        var applicationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Application", "TurtlePath.Application.csproj"));
+        var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
+        var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
+
+        Assert.Contains("TurtlePath.Mapping.Abstractions", applicationProject);
+        Assert.Contains("TurtlePath.Validation.Abstractions", applicationProject);
+        Assert.DoesNotContain("TurtlePath.Application", octoMapProject);
+        Assert.DoesNotContain("TurtlePath.Application", crabalidatorProject);
+    }
+
+    [Theory]
+    [InlineData("Core")]
+    [InlineData("Services")]
+    [InlineData("Infrastructure")]
+    public void Source_projects_do_not_use_generic_bucket_folders(string folderName)
+    {
+        var root = FindRepositoryRoot();
+        var src = Path.Combine(root, "src");
+
+        var matches = Directory
+            .EnumerateDirectories(src, folderName, SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
+                           !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .ToArray();
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
     public void Entity_framework_project_owns_entity_framework_references()
     {
         var root = FindRepositoryRoot();

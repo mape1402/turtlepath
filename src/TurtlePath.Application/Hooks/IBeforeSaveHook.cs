@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Hooks
+namespace TurtlePath.Application.Hooks
 {
     /// <summary>
     /// Runs before an entity is saved.

@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Services
+namespace TurtlePath.Validation
 {
     /// <summary>
     /// Defines an abstraction for validating request objects.

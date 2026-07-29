@@ -1,24 +1,10 @@
-namespace TurtlePath.Core.Infrastructure
+namespace TurtlePath.Mapping
 {
-    using OctoMap;
-    using TurtlePath.Core.Services;
-
     /// <summary>
-    /// Provides an implementation of <see cref="IMapperAdapter"/> using OctoMap for object mapping.
+    /// Defines an abstraction for mapping objects between types.
     /// </summary>
-    public class MapperAdapter : IMapperAdapter
+    public interface IMapperAdapter
     {
-        private readonly IOctoMapper _mapper;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MapperAdapter"/> class.
-        /// </summary>
-        /// <param name="mapper">The OctoMap instance to use for mapping.</param>
-        public MapperAdapter(IOctoMapper mapper)
-        {
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-        }
-
         /// <summary>
         /// Asynchronously maps the source object to a new destination object of the specified type.
         /// </summary>
@@ -27,10 +13,9 @@ namespace TurtlePath.Core.Infrastructure
         /// <param name="source">The source object to map.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous operation, with the mapped destination object as the result.</returns>
-        public ValueTask<TDestination> MapAsync<TSource, TDestination>(TSource source, CancellationToken cancellationToken = default)
+        ValueTask<TDestination> MapAsync<TSource, TDestination>(TSource source, CancellationToken cancellationToken = default)
             where TSource : class
-            where TDestination : class
-            => ValueTask.FromResult(_mapper.Map<TSource, TDestination>(source));
+            where TDestination : class;
 
         /// <summary>
         /// Asynchronously maps the source object onto an existing destination object, updating its values.
@@ -41,12 +26,8 @@ namespace TurtlePath.Core.Infrastructure
         /// <param name="destination">The destination object to update.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous operation.</returns>
-        public ValueTask UpdateMapAsync<TSource, TDestination>(TSource source, TDestination destination, CancellationToken cancellationToken = default)
+        ValueTask UpdateMapAsync<TSource, TDestination>(TSource source, TDestination destination, CancellationToken cancellationToken = default)
             where TSource : class
-            where TDestination : class
-        {
-            _mapper.Map(source, destination);
-            return ValueTask.CompletedTask;
-        }
+            where TDestination : class;
     }
 }

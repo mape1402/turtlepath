@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TurtlePath.Application\TurtlePath.Application.csproj" />
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
     <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
+    <ProjectReference Include="..\TurtlePath.Mapping.Abstractions\TurtlePath.Mapping.Abstractions.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
   </ItemGroup>
 

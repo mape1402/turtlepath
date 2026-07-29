@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Hooks
+namespace TurtlePath.Application.Hooks
 {
     /// <summary>
     /// Provides shared data for query hooks during a single handler execution.

@@ -1,6 +1,6 @@
-namespace TurtlePath.Core.Queries
+namespace TurtlePath.Application.Queries
 {
-    using TurtlePath.Core.Models.Responses;
+    using TurtlePath.Application.Models.Responses;
     using TurtlePath.Contracts;
     using TurtlePath.Identifier;
     using System;

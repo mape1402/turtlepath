@@ -1,9 +1,8 @@
-namespace TurtlePath.Core.Infrastructure
+namespace TurtlePath.Crabalidator
 {
-    using Crabalidator;
+    using global::Crabalidator;
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Core.Exceptions;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Validation;
 
     /// <summary>
     /// Provides an implementation of <see cref="IValidatorAdapter"/> using Crabalidator for model validation.
@@ -40,7 +39,7 @@ namespace TurtlePath.Core.Infrastructure
             var result = await validator.ValidateAsync(model, cancellationToken);
 
             if (!result.IsValid)
-                throw new ModelValidationException(result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));
+                throw new ValidationException(result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));
         }
     }
 }

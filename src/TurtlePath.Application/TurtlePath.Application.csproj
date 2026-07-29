@@ -2,14 +2,16 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.Application</PackageId>
-    <Description>Application-layer handler foundations, hooks, request/response models, and adapter contracts for TurtlePath.</Description>
+    <Description>Application-layer handler foundations, hooks, request/response models, and application errors for TurtlePath.</Description>
     <PackageTags>application cqrs handlers pelican hooks turtlepath elysium</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
     <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
+    <ProjectReference Include="..\TurtlePath.Mapping.Abstractions\TurtlePath.Mapping.Abstractions.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
+    <ProjectReference Include="..\TurtlePath.Validation.Abstractions\TurtlePath.Validation.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

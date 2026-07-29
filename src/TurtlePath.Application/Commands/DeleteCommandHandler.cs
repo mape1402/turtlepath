@@ -1,10 +1,12 @@
-namespace TurtlePath.Core.Commands
+namespace TurtlePath.Application.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Core.Exceptions;
-    using TurtlePath.Core.Hooks;
-    using TurtlePath.Core.Models.Requests;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Application.Errors;
+    using TurtlePath.Application.Hooks;
+    using TurtlePath.Application.Models.Requests;
+    using TurtlePath.Persistence;
+    using TurtlePath.Validation;
+    using TurtlePath.Mapping;
     using TurtlePath.Contracts;
     using Pelican.Mediator;
 

@@ -1,12 +1,15 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
-    using Crabalidator.DependencyInjection;
+    using global::Crabalidator.DependencyInjection;
     using TurtlePath;
-    using TurtlePath.Core.Hooks;
-    using TurtlePath.Core.Infrastructure;
-    using TurtlePath.Core.Services;
-    using TurtlePath.MappingProfiles;
-    using OctoMap;
+    using TurtlePath.Application.Hooks;
+    using TurtlePath.Crabalidator;
+    using TurtlePath.EntityFrameworkCore;
+    using TurtlePath.Mapping;
+    using TurtlePath.Validation;
+    using TurtlePath.Persistence;
+    using TurtlePath.OctoMap;
+    using global::OctoMap;
     using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
 
@@ -35,19 +38,18 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddScoped<IMapperAdapter, MapperAdapter>();
             services.AddScoped<IValidatorAdapter, ValidatorAdapter>();
 
-            services.AddCrabalidator(typeof(Constants).Assembly);
+            services.AddCrabalidator(typeof(AssemblyReference).Assembly);
 
             services.AddOctoMap(registration =>
             {
                 registration.Options.EnableRuntimeImplicitMaps = true;
                 registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
-                registration.AddProfile<MappingProfile>();
-                registration.AddMaps(typeof(Constants).Assembly);
+                registration.AddMaps(typeof(AssemblyReference).Assembly);
             });
 
             services.AddTurtlePathSieve();
 
-            var assembliesToScan = new[] { typeof(Constants).Assembly }
+            var assembliesToScan = new[] { typeof(AssemblyReference).Assembly }
                 .Concat(hookAssemblies ?? Array.Empty<Assembly>())
                 .ToArray();
 

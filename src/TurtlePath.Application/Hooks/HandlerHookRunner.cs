@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Hooks
+namespace TurtlePath.Application.Hooks
 {
     using Microsoft.Extensions.DependencyInjection;
 

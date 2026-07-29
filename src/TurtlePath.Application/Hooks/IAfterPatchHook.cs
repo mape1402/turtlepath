@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Hooks
+namespace TurtlePath.Application.Hooks
 {
     /// <summary>
     /// Runs after a patch is applied to an entity.

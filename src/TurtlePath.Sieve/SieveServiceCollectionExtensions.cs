@@ -1,7 +1,7 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
     using global::Sieve.Services;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Persistence;
     using TurtlePath.Sieve;
 
     /// <summary>

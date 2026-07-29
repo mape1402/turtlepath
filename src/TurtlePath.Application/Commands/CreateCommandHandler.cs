@@ -1,9 +1,11 @@
-namespace TurtlePath.Core.Commands
+namespace TurtlePath.Application.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Core.Hooks;
-    using TurtlePath.Core.Models.Responses;
-    using TurtlePath.Core.Services;
+    using TurtlePath.Application.Hooks;
+    using TurtlePath.Application.Models.Responses;
+    using TurtlePath.Persistence;
+    using TurtlePath.Validation;
+    using TurtlePath.Mapping;
     using TurtlePath.Contracts;
     using Pelican.Mediator;
     using System;

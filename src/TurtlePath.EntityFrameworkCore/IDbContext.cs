@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 
-namespace TurtlePath.Persistence.Abstractions
+namespace TurtlePath.EntityFrameworkCore
 {
     /// <summary>
     /// Represents an abstraction for the application's database context, providing methods for querying and saving data.

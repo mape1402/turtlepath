@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Services
+namespace TurtlePath.Persistence
 {
     using TurtlePath.Contracts;
     using System.Linq.Expressions;

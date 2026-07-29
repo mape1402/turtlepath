@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Exceptions
+namespace TurtlePath.AspNetCore.Exceptions
 {
     /// <summary>
     /// Exception thrown when a request is unauthorized.

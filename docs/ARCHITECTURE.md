@@ -6,7 +6,9 @@ The library is intentionally organized around the same boundaries as the origina
 
 - `TurtlePath.Identifier` provides opaque identifier primitives.
 - `TurtlePath.Domain` provides domain entity contracts.
-- `TurtlePath.Application` provides Pelican handler base classes, hooks, request/response primitives, exceptions, and adapter contracts.
+- `TurtlePath.Application` provides Pelican handler base classes, hooks, request/response primitives, and application errors.
+- `TurtlePath.Mapping.Abstractions` provides provider-neutral mapping contracts.
+- `TurtlePath.Validation.Abstractions` provides provider-neutral validation contracts and validation errors.
 - `TurtlePath.Persistence.Abstractions` provides provider-neutral read/write contracts.
 - `TurtlePath.EntityFrameworkCore` provides EF Core storage adapters and entity configuration helpers.
 - `TurtlePath.OctoMap`, `TurtlePath.Crabalidator`, and `TurtlePath.Sieve` provide optional stack adapters.
@@ -22,10 +24,10 @@ The intended dependency flow is:
 Identifier
 Domain -> Identifier
 Persistence.Abstractions -> Domain
-Application -> Domain, Persistence.Abstractions
-EntityFrameworkCore -> Application, Domain, Persistence.Abstractions
-OctoMap -> Application
-Crabalidator -> Application
+Application -> Domain, Mapping.Abstractions, Persistence.Abstractions, Validation.Abstractions
+EntityFrameworkCore -> Domain, Identifier, Mapping.Abstractions, Persistence.Abstractions
+OctoMap -> Mapping.Abstractions
+Crabalidator -> Validation.Abstractions
 Sieve -> Persistence.Abstractions
 AspNetCore -> Identifier, Application
 Swagger -> Identifier

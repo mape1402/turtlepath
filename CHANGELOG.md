@@ -11,3 +11,4 @@ All notable changes to TurtlePath will be documented in this file.
 - Added base tests, CI, release workflow, README, changelog, samples, and benchmark project placeholders.
 - Documented compatibility surface before package splitting.
 - Split the extracted surface into focused packages for identifier, domain, application, persistence, EF Core, mapping, validation, filtering, ASP.NET Core, and Swagger concerns.
+- Moved mapping and validation contracts into dedicated abstraction packages, removed generic bucket folders from source projects, and separated application errors from ASP.NET Core HTTP exceptions.

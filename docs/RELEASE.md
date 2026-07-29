@@ -14,6 +14,8 @@ The solution now contains multiple packable projects. `dotnet pack` should produ
 - `TurtlePath.Identifier`
 - `TurtlePath.Domain`
 - `TurtlePath.Application`
+- `TurtlePath.Mapping.Abstractions`
+- `TurtlePath.Validation.Abstractions`
 - `TurtlePath.Persistence.Abstractions`
 - `TurtlePath.EntityFrameworkCore`
 - `TurtlePath.OctoMap`

@@ -1,8 +1,8 @@
-namespace TurtlePath.Core.Infrastructure
+namespace TurtlePath.EntityFrameworkCore
 {
-    using TurtlePath.Core.Services;
+    using TurtlePath.Persistence;
     using TurtlePath.Contracts;
-    using TurtlePath.Persistence.Abstractions;
+    using TurtlePath.EntityFrameworkCore;
 
     /// <summary>
     /// Provides an implementation of <see cref="IStorageWriterAdapter"/> for saving, updating, and deleting entities using a database context.

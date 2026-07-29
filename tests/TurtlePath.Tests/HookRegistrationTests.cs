@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using TurtlePath.Core.Hooks;
+using TurtlePath.Application.Hooks;
 
 namespace TurtlePath.Tests;
 

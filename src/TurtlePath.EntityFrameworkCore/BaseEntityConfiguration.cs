@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TurtlePath.Contracts;
 using TurtlePath.Identifier;
 
-namespace TurtlePath.Persistence.Configurations
+namespace TurtlePath.EntityFrameworkCore
 {
     /// <summary>
     /// Provides a base configuration for entities using <see cref="BaseEntity"/> identifiers.

@@ -1,6 +1,6 @@
 using Pelican.Mediator;
 
-namespace TurtlePath.Core.Commands
+namespace TurtlePath.Application.Commands
 {
     /// <summary>
     /// Provides a base implementation for handling commands with a request and response.

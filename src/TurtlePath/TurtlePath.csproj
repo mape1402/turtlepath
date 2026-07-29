@@ -13,10 +13,12 @@
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
     <ProjectReference Include="..\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
+    <ProjectReference Include="..\TurtlePath.Mapping.Abstractions\TurtlePath.Mapping.Abstractions.csproj" />
     <ProjectReference Include="..\TurtlePath.OctoMap\TurtlePath.OctoMap.csproj" />
     <ProjectReference Include="..\TurtlePath.Persistence.Abstractions\TurtlePath.Persistence.Abstractions.csproj" />
     <ProjectReference Include="..\TurtlePath.Sieve\TurtlePath.Sieve.csproj" />
     <ProjectReference Include="..\TurtlePath.Swagger\TurtlePath.Swagger.csproj" />
+    <ProjectReference Include="..\TurtlePath.Validation.Abstractions\TurtlePath.Validation.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace TurtlePath.Core.Models.Responses
+namespace TurtlePath.Application.Models.Responses
 {
     /// <summary>
     /// Represents the result of a paged query, including pagination details and the result set.
