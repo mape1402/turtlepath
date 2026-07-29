@@ -40,6 +40,16 @@ public class ProjectStructureTests
         Assert.DoesNotContain("Sieve", project);
     }
 
+    [Fact]
+    public void Persistence_abstractions_project_does_not_reference_entity_framework()
+    {
+        var root = FindRepositoryRoot();
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Persistence.Abstractions", "TurtlePath.Persistence.Abstractions.csproj"));
+
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", project);
+        Assert.DoesNotContain("Sieve", project);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
