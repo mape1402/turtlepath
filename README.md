@@ -38,6 +38,18 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
 - Configurable `CId` identifier, JSON converters, EF value generator, and base entity configuration.
 
+## Compatibility Surface
+
+This initial package intentionally preserves the extracted template surface so existing template behavior can be validated before splitting the library into focused packages.
+
+The following APIs are temporary compatibility surface and are planned to move into dedicated packages:
+
+- EF Core abstractions and implementations will move to `TurtlePath.EntityFrameworkCore`.
+- OctoMap mapping infrastructure will move to `TurtlePath.OctoMap`.
+- Crabalidator validation infrastructure will move to `TurtlePath.Crabalidator`.
+- Sieve filtering integration will move to `TurtlePath.Sieve`.
+- Identifier infrastructure will move to `TurtlePath.Identifier` and related integration packages.
+
 ## Build
 
 ```powershell
