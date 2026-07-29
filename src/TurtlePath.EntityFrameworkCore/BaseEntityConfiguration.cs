@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TurtlePath.Contracts;
 using TurtlePath.Identifier;
+using TurtlePath.Identifier.EntityFrameworkCore;
 
 namespace TurtlePath.EntityFrameworkCore
 {

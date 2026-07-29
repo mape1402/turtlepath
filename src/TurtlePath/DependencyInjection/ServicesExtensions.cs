@@ -14,46 +14,71 @@ namespace Microsoft.Extensions.DependencyInjection
     using System.Reflection;
 
     /// <summary>
-    /// Provides dependency injection extensions for the business layer.
+    /// Provides dependency injection extensions for the TurtlePath composition package.
     /// </summary>
     [ExcludeFromCodeCoverage]
     public static class ServicesExtensions
     {
         /// <summary>
-        /// Registers business-layer services.
+        /// Registers the default TurtlePath stack.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        public static void AddBusiness(this IServiceCollection services)
-            => services.AddBusiness(Array.Empty<Assembly>());
+        /// <returns>The service collection.</returns>
+        public static IServiceCollection AddTurtlePath(this IServiceCollection services)
+            => services.AddTurtlePath(_ => { });
 
         /// <summary>
-        /// Registers business-layer services and discovers handler hooks from the specified assemblies.
+        /// Registers the default TurtlePath stack.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        /// <param name="hookAssemblies">The assemblies to scan for handler hooks.</param>
-        public static void AddBusiness(this IServiceCollection services, params Assembly[] hookAssemblies)
+        /// <param name="configure">The registration options.</param>
+        /// <returns>The service collection.</returns>
+        public static IServiceCollection AddTurtlePath(this IServiceCollection services, Action<TurtlePathOptions> configure)
         {
+            var options = new TurtlePathOptions();
+            configure?.Invoke(options);
+
             services.AddScoped<IStorageReaderAdapter, StorageReaderAdapter>();
             services.AddScoped<IStorageWriterAdapter, StorageWriterAdapter>();
             services.AddScoped<IMapperAdapter, MapperAdapter>();
             services.AddScoped<IValidatorAdapter, ValidatorAdapter>();
 
-            services.AddCrabalidator(typeof(AssemblyReference).Assembly);
+            var assembliesToScan = new[] { typeof(AssemblyReference).Assembly }
+                .Concat(options.ApplicationAssemblies)
+                .Distinct()
+                .ToArray();
+
+            services.AddCrabalidator(assembliesToScan);
 
             services.AddOctoMap(registration =>
             {
                 registration.Options.EnableRuntimeImplicitMaps = true;
                 registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
-                registration.AddMaps(typeof(AssemblyReference).Assembly);
+                foreach (var assembly in assembliesToScan)
+                    registration.AddMaps(assembly);
             });
 
             services.AddTurtlePathSieve();
-
-            var assembliesToScan = new[] { typeof(AssemblyReference).Assembly }
-                .Concat(hookAssemblies ?? Array.Empty<Assembly>())
-                .ToArray();
-
             services.AddHandlerHooksFromAssemblies(assembliesToScan);
+
+            return services;
         }
+
+        /// <summary>
+        /// Registers the default TurtlePath stack.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        [Obsolete("Use AddTurtlePath instead.")]
+        public static void AddBusiness(this IServiceCollection services)
+            => services.AddTurtlePath();
+
+        /// <summary>
+        /// Registers the default TurtlePath stack and discovers handler hooks from the specified assemblies.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="hookAssemblies">The assemblies to scan for handler hooks.</param>
+        [Obsolete("Use AddTurtlePath(options => options.AddApplicationAssemblies(...)) instead.")]
+        public static void AddBusiness(this IServiceCollection services, params Assembly[] hookAssemblies)
+            => services.AddTurtlePath(options => options.AddApplicationAssemblies(hookAssemblies));
     }
 }

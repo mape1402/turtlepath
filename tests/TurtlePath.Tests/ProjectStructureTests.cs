@@ -41,27 +41,43 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Persistence_abstractions_project_does_not_reference_entity_framework()
+    public void Abstractions_project_does_not_reference_infrastructure_packages()
     {
         var root = FindRepositoryRoot();
-        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Persistence.Abstractions", "TurtlePath.Persistence.Abstractions.csproj"));
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Abstractions", "TurtlePath.Abstractions.csproj"));
 
         Assert.DoesNotContain("Microsoft.EntityFrameworkCore", project);
+        Assert.DoesNotContain("OctoMap", project);
+        Assert.DoesNotContain("Crabalidator", project);
         Assert.DoesNotContain("Sieve", project);
     }
 
     [Fact]
-    public void Mapping_and_validation_contracts_have_their_own_abstraction_packages()
+    public void Mapping_validation_and_persistence_contracts_share_the_abstractions_package()
     {
         var root = FindRepositoryRoot();
         var applicationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Application", "TurtlePath.Application.csproj"));
         var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
         var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
+        var sieveProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Sieve", "TurtlePath.Sieve.csproj"));
 
-        Assert.Contains("TurtlePath.Mapping.Abstractions", applicationProject);
-        Assert.Contains("TurtlePath.Validation.Abstractions", applicationProject);
+        Assert.Contains("TurtlePath.Abstractions", applicationProject);
+        Assert.Contains("TurtlePath.Abstractions", octoMapProject);
+        Assert.Contains("TurtlePath.Abstractions", crabalidatorProject);
+        Assert.Contains("TurtlePath.Abstractions", sieveProject);
         Assert.DoesNotContain("TurtlePath.Application", octoMapProject);
         Assert.DoesNotContain("TurtlePath.Application", crabalidatorProject);
+    }
+
+    [Fact]
+    public void Identifier_entity_framework_project_owns_identifier_ef_integration()
+    {
+        var root = FindRepositoryRoot();
+        var identifierProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier", "TurtlePath.Identifier.csproj"));
+        var identifierEfProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier.EntityFrameworkCore", "TurtlePath.Identifier.EntityFrameworkCore.csproj"));
+
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", identifierProject);
+        Assert.Contains("Microsoft.EntityFrameworkCore", identifierEfProject);
     }
 
     [Theory]

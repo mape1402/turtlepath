@@ -7,13 +7,13 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
-    directory: "/src/TurtlePath.Application"
+    directory: "/src/TurtlePath.Abstractions"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
-    directory: "/src/TurtlePath.AspNetCore"
+    directory: "/src/TurtlePath.Application"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -37,7 +37,7 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
-    directory: "/src/TurtlePath.Mapping.Abstractions"
+    directory: "/src/TurtlePath.Identifier.EntityFrameworkCore"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -61,7 +61,7 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
-    directory: "/src/TurtlePath.Validation.Abstractions"
+    directory: "/src/TurtlePath.AspNetCore"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

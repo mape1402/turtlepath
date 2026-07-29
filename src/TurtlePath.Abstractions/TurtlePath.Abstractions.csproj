@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>TurtlePath.Persistence.Abstractions</PackageId>
-    <Description>Provider-neutral persistence abstractions for TurtlePath.</Description>
-    <PackageTags>persistence storage abstractions repository turtlepath elysium</PackageTags>
+    <PackageId>TurtlePath.Abstractions</PackageId>
+    <Description>Provider-neutral mapping, validation, and persistence contracts for TurtlePath.</Description>
+    <PackageTags>abstractions mapping validation persistence turtlepath elysium</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

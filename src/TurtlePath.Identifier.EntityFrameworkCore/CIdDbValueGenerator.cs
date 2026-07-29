@@ -1,7 +1,8 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Identifier.EntityFrameworkCore
 {
     using Microsoft.EntityFrameworkCore.ChangeTracking;
     using Microsoft.EntityFrameworkCore.ValueGeneration;
+    using TurtlePath.Identifier;
 
     /// <summary>
     /// Generates values for <see cref="CId"/> properties when saving entities to the database.

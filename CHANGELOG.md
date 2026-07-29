@@ -12,3 +12,4 @@ All notable changes to TurtlePath will be documented in this file.
 - Documented compatibility surface before package splitting.
 - Split the extracted surface into focused packages for identifier, domain, application, persistence, EF Core, mapping, validation, filtering, ASP.NET Core, and Swagger concerns.
 - Moved mapping and validation contracts into dedicated abstraction packages, removed generic bucket folders from source projects, and separated application errors from ASP.NET Core HTTP exceptions.
+- Consolidated mapping, validation, and persistence contracts into `TurtlePath.Abstractions`, moved CId EF integration into `TurtlePath.Identifier.EntityFrameworkCore`, and promoted the root `TurtlePath` package to a real composition API.

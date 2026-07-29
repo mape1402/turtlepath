@@ -72,14 +72,17 @@ Dependencies:
 
 No EF Core, OctoMap, Crabalidator, Sieve, JSON, or Swagger dependencies.
 
-### TurtlePath.Persistence.Abstractions
+### TurtlePath.Abstractions
 
-Storage contracts that are not tied to EF Core.
+Shared contracts that are not tied to EF Core or any mapping/validation implementation.
 
 - unit of work abstractions
 - read/write set abstractions
 - query criteria abstractions
 - paging contracts
+- mapper adapter contract
+- validator adapter contract
+- validation error contract
 
 This package should avoid exposing `DbContext`, `DbSet`, `IEntityTypeConfiguration`, `DatabaseFacade`, or `ChangeTracker`.
 
@@ -98,8 +101,8 @@ Dependencies:
 - `Microsoft.EntityFrameworkCore`
 - `TurtlePath.Domain`
 - `TurtlePath.Identifier`
-- `TurtlePath.Mapping.Abstractions`
-- `TurtlePath.Persistence.Abstractions`
+- `TurtlePath.Identifier.EntityFrameworkCore`
+- `TurtlePath.Abstractions`
 
 No OctoMap or Crabalidator dependency unless a separate convenience package intentionally composes them.
 
@@ -144,7 +147,7 @@ Mapping adapter package.
 Dependencies:
 
 - `OctoMap`
-- `TurtlePath.Mapping.Abstractions`
+- `TurtlePath.Abstractions`
 
 ### TurtlePath.Crabalidator
 
@@ -156,7 +159,7 @@ Validation adapter package.
 Dependencies:
 
 - `Crabalidator`
-- `TurtlePath.Validation.Abstractions`
+- `TurtlePath.Abstractions`
 
 ### TurtlePath.Sieve
 
@@ -168,7 +171,7 @@ Query filtering and sorting adapter package.
 Dependencies:
 
 - `Sieve`
-- `TurtlePath.Persistence.Abstractions`
+- `TurtlePath.Abstractions`
 
 ### TurtlePath.AspNetCore
 
@@ -257,10 +260,10 @@ Done criteria:
 
 - `TurtlePath.Application` does not reference EF Core, OctoMap, Crabalidator, or Sieve.
 
-### Phase 5: Split Persistence Abstractions
+### Phase 5: Consolidate Abstractions
 
-- Create `src/TurtlePath.Persistence.Abstractions`.
-- Move storage contracts that do not require EF Core.
+- Create `src/TurtlePath.Abstractions`.
+- Move storage, mapping, and validation contracts that do not require implementations.
 - Remove `BaseEntity` assumptions where practical.
 - Prefer key-agnostic abstractions or `IEntity<TKey>` constraints.
 
@@ -341,14 +344,13 @@ Allowed dependency direction:
 ```text
 Identifier
 Domain -> Identifier
-Persistence.Abstractions -> Domain
-Mapping.Abstractions
-Validation.Abstractions
-Application -> Domain, Mapping.Abstractions, Persistence.Abstractions, Validation.Abstractions
-EntityFrameworkCore -> Domain, Identifier, Mapping.Abstractions, Persistence.Abstractions
-OctoMap -> Mapping.Abstractions
-Crabalidator -> Validation.Abstractions
-Sieve -> Persistence.Abstractions
+Identifier.EntityFrameworkCore -> Identifier
+Abstractions -> Domain
+Application -> Domain, Identifier, Abstractions
+EntityFrameworkCore -> Domain, Identifier, Identifier.EntityFrameworkCore, Abstractions
+OctoMap -> Abstractions
+Crabalidator -> Abstractions
+Sieve -> Abstractions
 AspNetCore -> Identifier, Application
 Swagger -> Identifier, AspNetCore
 ```
