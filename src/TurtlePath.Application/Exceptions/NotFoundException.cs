@@ -1,4 +1,4 @@
-namespace TurtlePath.Application.Errors
+namespace TurtlePath.Application.Exceptions
 {
     /// <summary>
     /// Exception thrown when a requested resource is not found.

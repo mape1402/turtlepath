@@ -93,7 +93,6 @@ EF Core adapter package.
 - EF-backed storage reader/writer adapters
 - EF-specific `IDbContext` if still useful
 - entity configurations
-- CId value conversion integration through `TurtlePath.Identifier.EntityFrameworkCore`
 - DI extensions for EF-backed TurtlePath services
 
 Dependencies:
@@ -101,41 +100,9 @@ Dependencies:
 - `Microsoft.EntityFrameworkCore`
 - `TurtlePath.Domain`
 - `TurtlePath.Identifier`
-- `TurtlePath.Identifier.EntityFrameworkCore`
 - `TurtlePath.Abstractions`
 
 No OctoMap or Crabalidator dependency unless a separate convenience package intentionally composes them.
-
-### TurtlePath.Identifier.EntityFrameworkCore
-
-EF Core integration for identifiers.
-
-- `ValueConverter<CId, TValue>`
-- support for client-generated and store-generated IDs
-- property configuration helpers
-- composite key configuration helpers
-
-Examples to support:
-
-```csharp
-builder.UseCId<Customer>(x => x.Id, id =>
-{
-    id.HasValueType<int>();
-    id.ValueGeneratedOnAdd();
-});
-
-builder.UseCId<Order>(x => x.Id, id =>
-{
-    id.HasValueType<Guid>();
-    id.HasClientFactory(Guid.NewGuid);
-});
-
-builder.UseCompositeCId<OrderLine>(id =>
-{
-    id.HasPart(x => x.OrderId, "OrderId", Guid.Parse);
-    id.HasPart(x => x.LineNumber, "LineNumber", int.Parse);
-});
-```
 
 ### TurtlePath.OctoMap
 
@@ -173,9 +140,9 @@ Dependencies:
 - `Sieve`
 - `TurtlePath.Abstractions`
 
-### TurtlePath.AspNetCore
+### TurtlePath.Serialization
 
-ASP.NET integration package.
+Serialization package.
 
 - JSON converter registration helpers
 - model binding helpers for `CId`
@@ -244,17 +211,8 @@ Done criteria:
 
 - Create `src/TurtlePath.Application`.
 - Move handler bases, hooks, contexts, request/response primitives, exceptions, and adapter contracts.
-- Rename `AddBusiness` to a TurtlePath-specific registration API.
-- Keep old extension names temporarily only if compatibility matters.
+- Keep package composition in the consumer application instead of adding a root composition package.
 
-Preferred API:
-
-```csharp
-services.AddTurtlePathApplication(options =>
-{
-    options.AddHooksFromAssemblyContaining<AppMarker>();
-});
-```
 
 Done criteria:
 
@@ -277,7 +235,7 @@ Done criteria:
 - Move EF-specific storage adapters.
 - Move EF-specific `IDbContext`.
 - Move entity configurations.
-- Wire EF configuration against `TurtlePath.Identifier.EntityFrameworkCore`.
+- Do not add a CId EF value generator package until identifier generation strategy is settled.
 
 Done criteria:
 
@@ -307,15 +265,15 @@ Done criteria:
 - EF Core adapter can read generic criteria without requiring Sieve.
 - Sieve is opt-in.
 
-### Phase 9: Add ASP.NET And Swagger Integrations
+### Phase 9: Add Serialization And Swagger Integrations
 
-- Create `src/TurtlePath.AspNetCore`.
+- Create `src/TurtlePath.Serialization`.
 - Create `src/TurtlePath.Swagger`.
-- Move JSON converters, model binding, and schema filters out of identifier/domain.
+- Move JSON converters and schema filters out of identifier/domain.
 
 Done criteria:
 
-- API projects can opt into web concerns explicitly.
+- API projects can opt into serialization and OpenAPI concerns explicitly.
 - Domain and identifier packages remain web-framework agnostic.
 
 ### Phase 10: Samples, Docs, And Package Release
@@ -344,15 +302,14 @@ Allowed dependency direction:
 ```text
 Identifier
 Domain -> Identifier
-Identifier.EntityFrameworkCore -> Identifier
 Abstractions -> Domain
 Application -> Domain, Identifier, Abstractions
-EntityFrameworkCore -> Domain, Identifier, Identifier.EntityFrameworkCore, Abstractions
+EntityFrameworkCore -> Domain, Identifier, Abstractions
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
 Sieve -> Abstractions
-AspNetCore -> Identifier, Application
-Swagger -> Identifier, AspNetCore
+Serialization -> Identifier
+Swagger -> Identifier
 ```
 
 Forbidden:

@@ -6,17 +6,15 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 
 ## Projects
 
-- `src/TurtlePath`: compatibility package that composes the extracted stack.
 - `src/TurtlePath.Abstractions`: provider-neutral mapping, validation, and persistence contracts.
 - `src/TurtlePath.Identifier`: opaque identifiers, single-part IDs, composite IDs, and identifier definitions.
-- `src/TurtlePath.Identifier.EntityFrameworkCore`: EF Core integration for identifier generation.
 - `src/TurtlePath.Domain`: entity contracts and domain base types.
 - `src/TurtlePath.Application`: Pelican handler bases, hooks, request/response models, and application errors.
 - `src/TurtlePath.EntityFrameworkCore`: EF Core context abstraction, storage adapters, and entity configuration helper.
 - `src/TurtlePath.OctoMap`: OctoMap mapper adapter.
 - `src/TurtlePath.Crabalidator`: Crabalidator validator adapter.
 - `src/TurtlePath.Sieve`: Sieve criteria adapter.
-- `src/TurtlePath.AspNetCore`: JSON and ASP.NET Core integration helpers.
+- `src/TurtlePath.Serialization`: System.Text.Json converters for identifiers.
 - `src/TurtlePath.Swagger`: OpenAPI schema helpers.
 - `tests/TurtlePath.Tests`: unit tests for extracted primitives and registration behavior.
 - `samples/TurtlePath.Samples.Basic`: small usage-oriented sample.
@@ -25,22 +23,27 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 ## Install
 
 ```powershell
-dotnet add package TurtlePath
+dotnet add package TurtlePath.Application
 ```
 
 ## Basic Usage
 
-Register the base services from your application composition root:
+Install the focused packages your application actually uses. For example, a typical handler stack may use:
 
-```csharp
-services.AddTurtlePath(options => options.AddApplicationAssemblies(typeof(MyApplicationMarker).Assembly));
+```powershell
+dotnet add package TurtlePath.Application
+dotnet add package TurtlePath.EntityFrameworkCore
+dotnet add package TurtlePath.OctoMap
+dotnet add package TurtlePath.Crabalidator
+dotnet add package TurtlePath.Sieve
+dotnet add package TurtlePath.Serialization
 ```
 
-Prefer explicit packages for new applications:
+Register each implementation package from your application composition root:
 
 ```csharp
 services.AddTurtlePathSieve();
-services.AddTurtlePath(options => options.AddApplicationAssemblies(typeof(MyApplicationMarker).Assembly));
+services.AddHandlerHooksFromAssemblies(typeof(MyApplicationMarker).Assembly);
 ```
 
 Then derive your Pelican handlers from the provided base handlers, for example `CreateCommandHandler<TRequest, TResponse, TEntity>`, `UpdateCommandHandler<TRequest, TResponse, TEntity>`, `DeleteCommandHandler<TRequest, TResponse, TEntity>`, `GetOneQueryHandler<TQuery, TValue, TEntity, TResponse>`, or `GetPagedInfoQueryHandler<TQuery, TEntity, TResponse>`.
@@ -52,11 +55,9 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - Storage reader/writer adapter contracts and default EF Core adapters.
 - Mapping contract plus an OctoMap-backed adapter.
 - Validation contract plus a Crabalidator-backed adapter.
-- Application errors separated from ASP.NET Core HTTP exceptions.
+- Application exceptions used by the handler base classes.
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
-- Configurable `CId` identifier, JSON converters, EF identifier value generator, and base entity configuration.
-
-The root `TurtlePath` package remains as a compatibility composition package. New consumers should prefer the smallest focused packages that match their stack.
+- Configurable `CId` identifier, JSON converters, and base entity configuration.
 
 ## Build
 

@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TurtlePath.Contracts;
-using TurtlePath.Identifier;
-using TurtlePath.Identifier.EntityFrameworkCore;
 
 namespace TurtlePath.EntityFrameworkCore
 {
@@ -19,7 +17,7 @@ namespace TurtlePath.EntityFrameworkCore
         public virtual void Configure(EntityTypeBuilder<TEntity> builder)
         {
             builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).ValueGeneratedOnAdd().HasValueGenerator(typeof(CIdDbValueGenerator));
+            builder.Property(e => e.Id).ValueGeneratedOnAdd();
         }
     }
 }

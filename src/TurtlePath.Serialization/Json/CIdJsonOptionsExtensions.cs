@@ -1,7 +1,6 @@
-namespace TurtlePath.AspNetCore.Json
+namespace TurtlePath.Serialization.Json
 {
     using System.Text.Json;
-    using Microsoft.Extensions.DependencyInjection;
 
     /// <summary>
     /// Provides JSON registration helpers for TurtlePath identifiers.
@@ -21,12 +20,5 @@ namespace TurtlePath.AspNetCore.Json
             return options;
         }
 
-        /// <summary>
-        /// Adds TurtlePath identifier converters to MVC JSON options.
-        /// </summary>
-        /// <param name="builder">The MVC builder.</param>
-        /// <returns>The same MVC builder.</returns>
-        public static IMvcBuilder AddTurtlePathCIdJson(this IMvcBuilder builder)
-            => builder.AddJsonOptions(options => options.JsonSerializerOptions.AddTurtlePathCIdConverters());
     }
 }

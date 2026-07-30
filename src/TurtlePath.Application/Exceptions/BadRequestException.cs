@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace TurtlePath.AspNetCore.Exceptions
+namespace TurtlePath.Application.Exceptions
 {
     /// <summary>
     /// Exception thrown when a bad request is made.

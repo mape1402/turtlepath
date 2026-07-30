@@ -1,7 +1,7 @@
 namespace TurtlePath.Application.Queries
 {
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Application.Errors;
+    using TurtlePath.Application.Exceptions;
     using TurtlePath.Application.Hooks;
     using TurtlePath.Application.Models.Responses;
     using TurtlePath.Persistence;

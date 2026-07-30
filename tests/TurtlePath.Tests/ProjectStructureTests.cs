@@ -70,14 +70,23 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Identifier_entity_framework_project_owns_identifier_ef_integration()
+    public void Identifier_project_does_not_reference_entity_framework()
     {
         var root = FindRepositoryRoot();
         var identifierProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier", "TurtlePath.Identifier.csproj"));
-        var identifierEfProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier.EntityFrameworkCore", "TurtlePath.Identifier.EntityFrameworkCore.csproj"));
 
         Assert.DoesNotContain("Microsoft.EntityFrameworkCore", identifierProject);
-        Assert.Contains("Microsoft.EntityFrameworkCore", identifierEfProject);
+    }
+
+    [Theory]
+    [InlineData("TurtlePath")]
+    [InlineData("TurtlePath.AspNetCore")]
+    [InlineData("TurtlePath.Identifier.EntityFrameworkCore")]
+    public void Removed_packages_do_not_exist(string projectName)
+    {
+        var root = FindRepositoryRoot();
+
+        Assert.False(Directory.Exists(Path.Combine(root, "src", projectName)));
     }
 
     [Theory]
@@ -131,13 +140,13 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Web_projects_own_web_references()
+    public void Serialization_and_swagger_projects_own_integration_references()
     {
         var root = FindRepositoryRoot();
-        var aspNetCoreProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.AspNetCore", "TurtlePath.AspNetCore.csproj"));
+        var serializationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Serialization", "TurtlePath.Serialization.csproj"));
         var swaggerProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Swagger", "TurtlePath.Swagger.csproj"));
 
-        Assert.Contains("Microsoft.AspNetCore.App", aspNetCoreProject);
+        Assert.DoesNotContain("Microsoft.AspNetCore.App", serializationProject);
         Assert.Contains("Swashbuckle.AspNetCore.SwaggerGen", swaggerProject);
     }
 

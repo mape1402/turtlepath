@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace TurtlePath.AspNetCore.Exceptions
+namespace TurtlePath.Application.Exceptions
 {
     /// <summary>
     /// Represents errors that occur during HTTP operations and includes an associated HTTP status code.

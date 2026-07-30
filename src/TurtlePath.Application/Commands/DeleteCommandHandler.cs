@@ -1,7 +1,7 @@
 namespace TurtlePath.Application.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Application.Errors;
+    using TurtlePath.Application.Exceptions;
     using TurtlePath.Application.Hooks;
     using TurtlePath.Application.Models.Requests;
     using TurtlePath.Persistence;
