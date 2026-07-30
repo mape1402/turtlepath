@@ -12,9 +12,10 @@ The solution now contains multiple packable projects. `dotnet pack` should produ
 
 - `TurtlePath.Abstractions`
 - `TurtlePath.Domain`
-- `TurtlePath.Application`
+- `TurtlePath`
 - `TurtlePath.EntityFrameworkCore`
 - `TurtlePath.OctoMap`
 - `TurtlePath.Crabalidator`
 - `TurtlePath.Sieve`
+
 

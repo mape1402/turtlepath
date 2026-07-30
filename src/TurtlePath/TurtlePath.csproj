@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath</PackageId>
+    <Description>Main TurtlePath package with handler foundations, hooks, request/response models, and application errors.</Description>
+    <PackageTags>application cqrs handlers pelican hooks turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
+    <ProjectReference Include="..\TurtlePath.Abstractions\TurtlePath.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+    <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
+  </ItemGroup>
+</Project>
+
+

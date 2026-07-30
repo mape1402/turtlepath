@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TurtlePath.Application\TurtlePath.Application.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath\TurtlePath.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -13,3 +13,4 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
   </ItemGroup>
 </Project>
+

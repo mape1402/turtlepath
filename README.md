@@ -8,7 +8,7 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 
 - `src/TurtlePath.Abstractions`: provider-neutral mapping, validation, and persistence contracts.
 - `src/TurtlePath.Domain`: opaque identifiers, entity contracts, and domain base types.
-- `src/TurtlePath.Application`: Pelican handler bases, hooks, request/response models, and application errors.
+- `src/TurtlePath`: Pelican handler bases, hooks, request/response models, and application errors.
 - `src/TurtlePath.EntityFrameworkCore`: EF Core context abstraction, storage adapters, and entity configuration helper.
 - `src/TurtlePath.OctoMap`: OctoMap mapper adapter.
 - `src/TurtlePath.Crabalidator`: Crabalidator validator adapter.
@@ -20,7 +20,7 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 ## Install
 
 ```powershell
-dotnet add package TurtlePath.Application
+dotnet add package TurtlePath
 ```
 
 ## Basic Usage
@@ -28,7 +28,7 @@ dotnet add package TurtlePath.Application
 Install the focused packages your application actually uses. For example, a typical handler stack may use:
 
 ```powershell
-dotnet add package TurtlePath.Application
+dotnet add package TurtlePath
 dotnet add package TurtlePath.EntityFrameworkCore
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
@@ -62,4 +62,5 @@ dotnet restore
 dotnet build --configuration Release
 dotnet test --configuration Release --no-build
 ```
+
 

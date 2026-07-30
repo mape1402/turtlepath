@@ -40,9 +40,9 @@ Design direction:
 - Composite IDs compare by stable part names and values.
 - ID generation should be resolved by context, not by one global static metadata object.
 
-### TurtlePath.Application
+### TurtlePath
 
-Application handler foundation.
+Main application handler foundation package.
 
 - Pelican command/query handler base classes
 - hook contexts
@@ -182,16 +182,16 @@ Done criteria:
 
 - A consumer domain project can reference `TurtlePath.Domain` without getting Pelican, EF Core, OctoMap, Crabalidator, or Sieve.
 
-### Phase 4: Split Application
+### Phase 4: Create Main TurtlePath Package
 
-- Create `src/TurtlePath.Application`.
+- Create `src/TurtlePath`.
 - Move handler bases, hooks, contexts, request/response primitives, exceptions, and adapter contracts.
 - Keep package composition in the consumer application instead of adding a root composition package.
 
 
 Done criteria:
 
-- `TurtlePath.Application` does not reference EF Core, OctoMap, Crabalidator, or Sieve.
+- `TurtlePath` does not reference EF Core, OctoMap, Crabalidator, or Sieve.
 
 ### Phase 5: Consolidate Abstractions
 
@@ -214,7 +214,7 @@ Done criteria:
 
 Done criteria:
 
-- No EF types appear in `TurtlePath.Application` or `TurtlePath.Domain`.
+- No EF types appear in `TurtlePath` or `TurtlePath.Domain`.
 
 ### Phase 7: Split Mapping And Validation Adapters
 
@@ -276,7 +276,7 @@ Allowed dependency direction:
 
 ```text
 Abstractions -> Domain
-Application -> Domain, Abstractions
+TurtlePath -> Domain, Abstractions
 EntityFrameworkCore -> Domain, Abstractions
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
@@ -285,10 +285,10 @@ Sieve -> Abstractions
 
 Forbidden:
 
-- Domain depending on Application.
+- Domain depending on the main `TurtlePath` package.
 - Domain depending on EF Core, Pelican, OctoMap, Crabalidator, Sieve, ASP.NET, or Swagger.
 - Domain identifier code depending on EF Core, ASP.NET, Swagger, mapping, validation, or mediator packages.
-- Application depending on EF Core, OctoMap, Crabalidator, or Sieve implementations.
+- Main `TurtlePath` package depending on EF Core, OctoMap, Crabalidator, or Sieve implementations.
 - EF Core package depending directly on OctoMap or Crabalidator.
 
 ## Open Decisions
@@ -302,4 +302,5 @@ Forbidden:
 ## Near-Term Next Step
 
 Start with `TurtlePath.Domain/Identifier`, because it is the most foundational area and directly affects domain, EF Core, JSON, routing, and composite-key support.
+
 

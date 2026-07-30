@@ -29,10 +29,10 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Application_project_does_not_reference_infrastructure_packages()
+    public void Main_project_does_not_reference_infrastructure_packages()
     {
         var root = FindRepositoryRoot();
-        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Application", "TurtlePath.Application.csproj"));
+        var project = File.ReadAllText(Path.Combine(root, "src", "TurtlePath", "TurtlePath.csproj"));
 
         Assert.DoesNotContain("Microsoft.EntityFrameworkCore", project);
         Assert.DoesNotContain("OctoMap", project);
@@ -56,7 +56,7 @@ public class ProjectStructureTests
     public void Mapping_validation_and_persistence_contracts_share_the_abstractions_package()
     {
         var root = FindRepositoryRoot();
-        var applicationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Application", "TurtlePath.Application.csproj"));
+        var applicationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath", "TurtlePath.csproj"));
         var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
         var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
         var sieveProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Sieve", "TurtlePath.Sieve.csproj"));
@@ -65,8 +65,8 @@ public class ProjectStructureTests
         Assert.Contains("TurtlePath.Abstractions", octoMapProject);
         Assert.Contains("TurtlePath.Abstractions", crabalidatorProject);
         Assert.Contains("TurtlePath.Abstractions", sieveProject);
-        Assert.DoesNotContain("TurtlePath.Application", octoMapProject);
-        Assert.DoesNotContain("TurtlePath.Application", crabalidatorProject);
+        Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", octoMapProject);
+        Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", crabalidatorProject);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class ProjectStructureTests
     }
 
     [Theory]
-    [InlineData("TurtlePath")]
     [InlineData("TurtlePath.AspNetCore")]
+    [InlineData("TurtlePath.Application")]
     [InlineData("TurtlePath.Identifier")]
     [InlineData("TurtlePath.Domain.Identifier")]
     [InlineData("TurtlePath.Identifier.EntityFrameworkCore")]
@@ -175,4 +175,5 @@ public class ProjectStructureTests
         throw new InvalidOperationException("Repository root could not be found.");
     }
 }
+
 

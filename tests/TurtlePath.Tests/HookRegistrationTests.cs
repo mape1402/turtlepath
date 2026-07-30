@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using TurtlePath.Application.Hooks;
+using TurtlePath.Hooks;
 
 namespace TurtlePath.Tests;
 
@@ -73,3 +73,4 @@ public class HookRegistrationTests
         }
     }
 }
+

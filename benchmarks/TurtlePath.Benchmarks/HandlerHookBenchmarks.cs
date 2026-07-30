@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
-using TurtlePath.Application.Hooks;
+using TurtlePath.Hooks;
 
 namespace TurtlePath.Benchmarks;
 
@@ -33,3 +33,4 @@ public class HandlerHookBenchmarks
             => ValueTask.CompletedTask;
     }
 }
+
