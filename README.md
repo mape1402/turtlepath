@@ -38,8 +38,20 @@ dotnet add package TurtlePath.Sieve
 Register each implementation package from your application composition root:
 
 ```csharp
+services.AddTurtlePath<Guid, string>(
+    config =>
+    {
+        config.DefaultFactory = () => new CId(Guid.NewGuid());
+        config.ConvertToDb = id => id.ToString();
+        config.ConvertFromDb = value => CId.Parse(value);
+        config.JsonConverter = value => CId.Parse(value);
+        config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
+        config.ParseFunction = value => new CId(Guid.Parse(value));
+        config.ToByteArrayFunction = value => value.ToByteArray();
+    },
+    typeof(MyApplicationMarker).Assembly);
+
 services.AddTurtlePathSieve();
-services.AddHandlerHooksFromAssemblies(typeof(MyApplicationMarker).Assembly);
 ```
 
 Then derive your Pelican handlers from the provided base handlers, for example `CreateCommandHandler<TRequest, TResponse, TEntity>`, `UpdateCommandHandler<TRequest, TResponse, TEntity>`, `DeleteCommandHandler<TRequest, TResponse, TEntity>`, `GetOneQueryHandler<TQuery, TValue, TEntity, TResponse>`, or `GetPagedInfoQueryHandler<TQuery, TEntity, TResponse>`.

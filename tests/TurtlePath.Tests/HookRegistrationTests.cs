@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TurtlePath.Domain.Identifier;
 using TurtlePath.Hooks;
 
 namespace TurtlePath.Tests;
@@ -35,6 +36,34 @@ public class HookRegistrationTests
             hook => hook.BeforeValidationAsync(context));
 
         Assert.Equal(["first", "second"], calls);
+    }
+
+    [Fact]
+    public void AddTurtlePath_registers_identifier_configuration_and_discovered_hooks()
+    {
+        CIdMetadata.Reset();
+        var services = new ServiceCollection();
+        services.AddSingleton(new List<string>());
+
+        services.AddTurtlePath<Guid, string>(
+            config =>
+            {
+                config.DefaultFactory = () => CId.From(Guid.Parse("f8cb21f2-35d7-419b-9f58-90d1c82154f0"));
+                config.ConvertToDb = id => id.ToString();
+                config.ConvertFromDb = value => CId.Parse(value);
+                config.JsonConverter = value => CId.Parse(value);
+                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
+                config.ParseFunction = value => CId.From(Guid.Parse(value));
+                config.ToByteArrayFunction = value => value.ToByteArray();
+            },
+            typeof(SampleBeforeValidationHook).Assembly);
+
+        using var provider = services.BuildServiceProvider();
+        var idFactory = provider.GetRequiredService<ICIdFactory>();
+        var hooks = provider.GetServices<IBeforeValidationHook<SampleRequest, SampleEntity>>().ToArray();
+
+        Assert.Equal("f8cb21f2-35d7-419b-9f58-90d1c82154f0", idFactory.New().ToString());
+        Assert.Contains(hooks, hook => hook is SampleBeforeValidationHook);
     }
 
     private sealed class SampleRequest

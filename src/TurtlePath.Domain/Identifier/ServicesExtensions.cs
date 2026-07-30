@@ -14,8 +14,14 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <typeparam name="TDbType">The database storage type used for the identifier value.</typeparam>
     /// <param name="services">The service collection to configure.</param>
     /// <param name="setup">The action that configures the <see cref="CIdConfiguration{TTargetType, TDbType}"/> options.</param>
-        public static void UseCId<TTargetType, TDbType>(this IServiceCollection services, Action<CIdConfiguration<TTargetType, TDbType>> setup)
+        public static IServiceCollection UseCId<TTargetType, TDbType>(this IServiceCollection services, Action<CIdConfiguration<TTargetType, TDbType>> setup)
         {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            if (setup == null)
+                throw new ArgumentNullException(nameof(setup));
+
             var config = new CIdConfiguration<TTargetType, TDbType>();
             setup(config);
 
@@ -41,6 +47,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddSingleton<ICIdDefinitionRegistry>(registry);
             services.AddSingleton<ICIdFactory>(registry);
+
+            return services;
         }
     }
 }
