@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Describes where an identifier value is generated.
@@ -16,3 +16,4 @@ namespace TurtlePath.Identifier
         StoreGenerated
     }
 }
+

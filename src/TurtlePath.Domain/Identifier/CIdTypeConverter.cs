@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     using System.ComponentModel;
 
@@ -27,3 +27,4 @@ namespace TurtlePath.Identifier
             => value is string str ? CId.Parse(str) : base.ConvertFrom(context, culture, value);
     }
 }
+

@@ -13,4 +13,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Split the extracted surface into focused packages for identifier, domain, application, persistence, EF Core, mapping, validation, and filtering concerns.
 - Moved mapping and validation contracts into dedicated abstraction packages, removed generic bucket folders from source projects, and separated application errors from ASP.NET Core HTTP exceptions.
 - Consolidated mapping, validation, and persistence contracts into `TurtlePath.Abstractions`.
-- Removed the root composition package, CId EF value generator package, serialization package, and Swagger package; identifier JSON helpers now live in `TurtlePath.Identifier`.
+- Removed the root composition package, standalone identifier package, CId EF value generator package, serialization package, and Swagger package; identifiers now live under `TurtlePath.Domain.Identifier`.
+

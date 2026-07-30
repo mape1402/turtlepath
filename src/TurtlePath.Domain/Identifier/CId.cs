@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
@@ -241,3 +241,4 @@ namespace TurtlePath.Identifier
             => !left.Equals(right);
     }
 }
+

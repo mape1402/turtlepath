@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier.Json
+namespace TurtlePath.Domain.Identifier.Json
 {
     using System.Text.Json;
 
@@ -22,3 +22,4 @@ namespace TurtlePath.Identifier.Json
 
     }
 }
+

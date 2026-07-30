@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
-    <ProjectReference Include="..\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
     <ProjectReference Include="..\TurtlePath.Abstractions\TurtlePath.Abstractions.csproj" />
   </ItemGroup>
 
@@ -19,3 +18,4 @@
     <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
   </ItemGroup>
 </Project>
+

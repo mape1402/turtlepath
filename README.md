@@ -7,8 +7,7 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 ## Projects
 
 - `src/TurtlePath.Abstractions`: provider-neutral mapping, validation, and persistence contracts.
-- `src/TurtlePath.Identifier`: opaque identifiers, single-part IDs, composite IDs, identifier definitions, and JSON converters.
-- `src/TurtlePath.Domain`: entity contracts and domain base types.
+- `src/TurtlePath.Domain`: opaque identifiers, entity contracts, and domain base types.
 - `src/TurtlePath.Application`: Pelican handler bases, hooks, request/response models, and application errors.
 - `src/TurtlePath.EntityFrameworkCore`: EF Core context abstraction, storage adapters, and entity configuration helper.
 - `src/TurtlePath.OctoMap`: OctoMap mapper adapter.
@@ -63,3 +62,4 @@ dotnet restore
 dotnet build --configuration Release
 dotnet test --configuration Release --no-build
 ```
+

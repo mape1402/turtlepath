@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using TurtlePath.Identifier;
+using TurtlePath.Domain.Identifier;
 
 var services = new ServiceCollection();
 
@@ -15,3 +15,4 @@ services.UseCId<Guid, string>(config =>
 });
 
 Console.WriteLine($"Generated TurtlePath CId: {CId.New()}");
+

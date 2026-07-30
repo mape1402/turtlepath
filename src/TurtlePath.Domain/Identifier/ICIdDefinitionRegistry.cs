@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Stores identifier definitions by context.
@@ -19,3 +19,4 @@ namespace TurtlePath.Identifier
         CIdDefinition Get(string context = CIdDefinition.DefaultContext);
     }
 }
+

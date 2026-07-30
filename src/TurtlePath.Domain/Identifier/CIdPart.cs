@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Represents a named part of an opaque identifier.
@@ -14,3 +14,4 @@ namespace TurtlePath.Identifier
             => new("Value", value);
     }
 }
+

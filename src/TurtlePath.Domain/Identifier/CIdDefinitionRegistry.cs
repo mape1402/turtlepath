@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Default in-memory identifier definition registry.
@@ -30,3 +30,4 @@ namespace TurtlePath.Identifier
             => Get(context).Factory();
     }
 }
+

@@ -1,6 +1,6 @@
 namespace TurtlePath.Application.Models.Requests
 {
-    using TurtlePath.Identifier;
+    using TurtlePath.Domain.Identifier;
 
     /// <summary>
     /// Represents the base request model containing a unique identifier.
@@ -13,3 +13,4 @@ namespace TurtlePath.Application.Models.Requests
         public CId Id { get; set; }
     }
 }
+

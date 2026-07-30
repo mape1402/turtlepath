@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Creates opaque identifiers for configured contexts.
@@ -13,3 +13,4 @@ namespace TurtlePath.Identifier
         CId New(string context = CIdDefinition.DefaultContext);
     }
 }
+

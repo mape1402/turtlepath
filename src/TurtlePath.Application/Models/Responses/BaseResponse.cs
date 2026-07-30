@@ -1,6 +1,6 @@
 namespace TurtlePath.Application.Models.Responses
 {
-    using TurtlePath.Identifier;
+    using TurtlePath.Domain.Identifier;
 
     /// <summary>
     /// Represents the base response model containing a unique identifier.
@@ -13,3 +13,4 @@ namespace TurtlePath.Application.Models.Responses
         public CId Id { get; set; }
     }
 }
+

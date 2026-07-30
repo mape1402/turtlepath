@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Describes how an opaque identifier is created, parsed, and formatted in a specific context.
@@ -74,3 +74,4 @@ namespace TurtlePath.Identifier
         public CIdGenerationStrategy GenerationStrategy { get; }
     }
 }
+

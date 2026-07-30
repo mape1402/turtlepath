@@ -11,10 +11,10 @@ The workflow validates the branch name and changelog entry, builds, tests, packs
 The solution now contains multiple packable projects. `dotnet pack` should produce package artifacts for:
 
 - `TurtlePath.Abstractions`
-- `TurtlePath.Identifier`
 - `TurtlePath.Domain`
 - `TurtlePath.Application`
 - `TurtlePath.EntityFrameworkCore`
 - `TurtlePath.OctoMap`
 - `TurtlePath.Crabalidator`
 - `TurtlePath.Sieve`
+

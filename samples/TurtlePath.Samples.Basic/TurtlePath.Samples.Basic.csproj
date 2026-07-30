@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.Domain\TurtlePath.Domain.csproj" />
   </ItemGroup>
 </Project>
+

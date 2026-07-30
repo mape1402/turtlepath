@@ -5,8 +5,7 @@ TurtlePath contains the reusable application-handler foundation extracted from t
 The library is intentionally organized around the same boundaries as the original template core:
 
 - `TurtlePath.Abstractions` provides provider-neutral mapping, validation, and persistence contracts.
-- `TurtlePath.Identifier` provides opaque identifier primitives and JSON converters for those identifiers.
-- `TurtlePath.Domain` provides domain entity contracts.
+- `TurtlePath.Domain` provides opaque identifier primitives, JSON converters for identifiers, and domain entity contracts.
 - `TurtlePath.Application` provides Pelican handler base classes, hooks, request/response primitives, and application errors.
 - `TurtlePath.EntityFrameworkCore` provides EF Core storage adapters and entity configuration helpers.
 - `TurtlePath.OctoMap`, `TurtlePath.Crabalidator`, and `TurtlePath.Sieve` provide optional stack adapters.
@@ -18,12 +17,11 @@ Applications keep their domain-specific handlers, entities, validators, maps, co
 The intended dependency flow is:
 
 ```text
-Identifier
-Domain -> Identifier
 Abstractions -> Domain
-Application -> Abstractions, Domain, Identifier
-EntityFrameworkCore -> Abstractions, Domain, Identifier
+Application -> Abstractions, Domain
+EntityFrameworkCore -> Abstractions, Domain
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
 Sieve -> Abstractions
 ```
+

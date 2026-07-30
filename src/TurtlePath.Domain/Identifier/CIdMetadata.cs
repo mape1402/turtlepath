@@ -1,4 +1,4 @@
-namespace TurtlePath.Identifier
+namespace TurtlePath.Domain.Identifier
 {
     /// <summary>
     /// Provides metadata and configuration for the <see cref="CId"/> identifier type.
@@ -72,3 +72,4 @@ namespace TurtlePath.Identifier
         }
     }
 }
+

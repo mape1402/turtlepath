@@ -1,6 +1,6 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
-    using TurtlePath.Identifier;
+    using TurtlePath.Domain.Identifier;
 
     /// <summary>
     /// Provides extension methods for configuring CId identifier services in the dependency injection container.
@@ -44,3 +44,4 @@ namespace Microsoft.Extensions.DependencyInjection
         }
     }
 }
+

@@ -1,6 +1,6 @@
-namespace TurtlePath.Identifier.Json
+namespace TurtlePath.Domain.Identifier.Json
 {
-    using TurtlePath.Identifier;
+    using TurtlePath.Domain.Identifier;
     using System.Text.Json;
     using System.Text.Json.Serialization;
 
@@ -35,3 +35,4 @@ namespace TurtlePath.Identifier.Json
         }
     }
 }
+

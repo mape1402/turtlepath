@@ -70,18 +70,23 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Identifier_project_does_not_reference_entity_framework()
+    public void Domain_project_owns_identifiers_without_entity_framework_references()
     {
         var root = FindRepositoryRoot();
-        var identifierProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier", "TurtlePath.Identifier.csproj"));
+        var domainProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Domain", "TurtlePath.Domain.csproj"));
+        var identifier = Path.Combine(root, "src", "TurtlePath.Domain", "Identifier", "CId.cs");
 
-        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", identifierProject);
+        Assert.True(File.Exists(identifier));
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore", domainProject);
     }
 
     [Theory]
     [InlineData("TurtlePath")]
     [InlineData("TurtlePath.AspNetCore")]
+    [InlineData("TurtlePath.Identifier")]
+    [InlineData("TurtlePath.Domain.Identifier")]
     [InlineData("TurtlePath.Identifier.EntityFrameworkCore")]
+    [InlineData("TurtlePath.Domain.Identifier.EntityFrameworkCore")]
     [InlineData("TurtlePath.Serialization")]
     [InlineData("TurtlePath.Swagger")]
     public void Removed_packages_do_not_exist(string projectName)
@@ -142,17 +147,17 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Identifier_project_owns_identifier_json_converters_without_openapi_references()
+    public void Domain_identifier_folder_owns_identifier_json_converters_without_openapi_references()
     {
         var root = FindRepositoryRoot();
-        var identifierProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier", "TurtlePath.Identifier.csproj"));
-        var converter = Path.Combine(root, "src", "TurtlePath.Identifier", "Json", "CIdJsonConverter.cs");
-        var nullableConverter = Path.Combine(root, "src", "TurtlePath.Identifier", "Json", "CIdNullableJsonConverter.cs");
+        var domainProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Domain", "TurtlePath.Domain.csproj"));
+        var converter = Path.Combine(root, "src", "TurtlePath.Domain", "Identifier", "Json", "CIdJsonConverter.cs");
+        var nullableConverter = Path.Combine(root, "src", "TurtlePath.Domain", "Identifier", "Json", "CIdNullableJsonConverter.cs");
 
         Assert.True(File.Exists(converter));
         Assert.True(File.Exists(nullableConverter));
-        Assert.DoesNotContain("Swashbuckle", identifierProject);
-        Assert.DoesNotContain("Microsoft.AspNetCore.App", identifierProject);
+        Assert.DoesNotContain("Swashbuckle", domainProject);
+        Assert.DoesNotContain("Microsoft.AspNetCore.App", domainProject);
     }
 
     private static string FindRepositoryRoot()
@@ -170,3 +175,4 @@ public class ProjectStructureTests
         throw new InvalidOperationException("Repository root could not be found.");
     }
 }
+

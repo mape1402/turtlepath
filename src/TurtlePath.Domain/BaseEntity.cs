@@ -1,4 +1,4 @@
-using TurtlePath.Identifier;
+using TurtlePath.Domain.Identifier;
 
 namespace TurtlePath.Contracts
 {
@@ -13,3 +13,4 @@ namespace TurtlePath.Contracts
         public CId Id { get; set; }
     }
 }
+

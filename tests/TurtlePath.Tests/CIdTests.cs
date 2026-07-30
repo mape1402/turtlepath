@@ -1,4 +1,4 @@
-using TurtlePath.Identifier;
+using TurtlePath.Domain.Identifier;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace TurtlePath.Tests;
@@ -77,3 +77,4 @@ public class CIdTests
         Assert.Equal("e76768cb-ece0-4985-901e-c4c0e434b3fb", registry.New("Order").ToString());
     }
 }
+

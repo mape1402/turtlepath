@@ -2,7 +2,7 @@ namespace TurtlePath.Application.Queries
 {
     using TurtlePath.Application.Models.Responses;
     using TurtlePath.Contracts;
-    using TurtlePath.Identifier;
+    using TurtlePath.Domain.Identifier;
     using System;
     using System.Linq.Expressions;
 
@@ -47,3 +47,4 @@ namespace TurtlePath.Application.Queries
             => e => e.Id == request.Value;
     }
 }
+

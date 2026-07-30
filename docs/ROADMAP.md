@@ -12,9 +12,11 @@ This roadmap describes how TurtlePath should evolve from the extracted template 
 
 ## Package Shape
 
-### TurtlePath.Identifier
+### TurtlePath.Domain
 
-Opaque identity primitives.
+Domain primitives, including identifiers and entity base types.
+
+`Identifier` lives as a folder and namespace inside `TurtlePath.Domain`, not as a standalone package.
 
 - `CId`
 - `CIdPart`
@@ -24,6 +26,10 @@ Opaque identity primitives.
 - parsing and formatting contracts
 - JSON converter registration helpers
 - equality and comparison semantics
+- `IEntity<TKey>`
+- `IEntity`
+- `BaseEntity<TKey>`
+- optional `BaseEntity : BaseEntity<CId>`
 
 No EF Core, ASP.NET, Swagger, mapping, validation, or mediator dependencies.
 
@@ -33,21 +39,6 @@ Design direction:
 - Single-part IDs remain ergonomic through helpers such as `CId.From(value)`.
 - Composite IDs compare by stable part names and values.
 - ID generation should be resolved by context, not by one global static metadata object.
-
-### TurtlePath.Domain
-
-Domain primitives only.
-
-- `IEntity<TKey>`
-- `IEntity`
-- `BaseEntity<TKey>`
-- optional `BaseEntity : BaseEntity<CId>`
-
-Dependencies:
-
-- `TurtlePath.Identifier` only if `CId` is the preferred default identity type.
-
-No handlers, DI, EF Core, validators, mappers, storage adapters, or mediator contracts.
 
 ### TurtlePath.Application
 
@@ -100,7 +91,6 @@ Dependencies:
 
 - `Microsoft.EntityFrameworkCore`
 - `TurtlePath.Domain`
-- `TurtlePath.Identifier`
 - `TurtlePath.Abstractions`
 
 No OctoMap or Crabalidator dependency unless a separate convenience package intentionally composes them.
@@ -145,7 +135,7 @@ Dependencies:
 
 Swagger/OpenAPI support should stay out of TurtlePath until there is a concrete consumer need.
 
-If it is needed later, add it as a separate adapter package instead of coupling it to `TurtlePath.Identifier`.
+If it is needed later, add it as a separate adapter package instead of coupling it to `TurtlePath.Domain`.
 
 ## Migration Plan
 
@@ -162,10 +152,10 @@ Done criteria:
 - Build and tests pass for `net8.0`, `net9.0`, and `net10.0`.
 - The README states which APIs are temporary compatibility surface.
 
-### Phase 2: Extract Identifier
+### Phase 2: Extract Domain Identifier
 
-- Create `src/TurtlePath.Identifier`.
-- Move `CId` into the identifier package.
+- Create `src/TurtlePath.Domain/Identifier`.
+- Move `CId` into the domain identifier namespace.
 - Replace `CIdMetadata` global state with registry/factory abstractions.
 - Support single-part IDs first.
 - Design `CId` internally as part-based so composite IDs can be added without rewriting equality.
@@ -178,10 +168,10 @@ Done criteria:
 
 Done criteria:
 
-- `TurtlePath.Identifier` has no infrastructure dependencies.
+- `TurtlePath.Domain` has no infrastructure dependencies.
 - Multiple ID definitions can coexist.
 
-### Phase 3: Split Domain
+### Phase 3: Complete Domain
 
 - Create `src/TurtlePath.Domain`.
 - Move `IEntity<TKey>`, `IEntity`, and base entity types.
@@ -224,7 +214,7 @@ Done criteria:
 
 Done criteria:
 
-- No EF types appear in `TurtlePath.Application`, `TurtlePath.Domain`, or `TurtlePath.Identifier`.
+- No EF types appear in `TurtlePath.Application` or `TurtlePath.Domain`.
 
 ### Phase 7: Split Mapping And Validation Adapters
 
@@ -252,14 +242,14 @@ Done criteria:
 
 ### Phase 9: Stabilize Identifier JSON
 
-- Keep `CId` JSON converters inside `src/TurtlePath.Identifier`.
+- Keep `CId` JSON converters inside `src/TurtlePath.Domain/Identifier`.
 - Add tests for primitive, nullable, and composite ID JSON round-trips.
 - Avoid adding Swagger/OpenAPI integration until a consumer needs it.
 
 Done criteria:
 
 - API projects can use identifier JSON support without an extra TurtlePath package.
-- Identifier remains web-framework and OpenAPI agnostic.
+- Domain remains web-framework and OpenAPI agnostic.
 
 ### Phase 10: Samples, Docs, And Package Release
 
@@ -285,11 +275,9 @@ Done criteria:
 Allowed dependency direction:
 
 ```text
-Identifier
-Domain -> Identifier
 Abstractions -> Domain
-Application -> Domain, Identifier, Abstractions
-EntityFrameworkCore -> Domain, Identifier, Abstractions
+Application -> Domain, Abstractions
+EntityFrameworkCore -> Domain, Abstractions
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
 Sieve -> Abstractions
@@ -299,7 +287,7 @@ Forbidden:
 
 - Domain depending on Application.
 - Domain depending on EF Core, Pelican, OctoMap, Crabalidator, Sieve, ASP.NET, or Swagger.
-- Identifier depending on EF Core, ASP.NET, Swagger, mapping, validation, or mediator packages.
+- Domain identifier code depending on EF Core, ASP.NET, Swagger, mapping, validation, or mediator packages.
 - Application depending on EF Core, OctoMap, Crabalidator, or Sieve implementations.
 - EF Core package depending directly on OctoMap or Crabalidator.
 
@@ -313,4 +301,5 @@ Forbidden:
 
 ## Near-Term Next Step
 
-Start with `TurtlePath.Identifier`, because it is the most foundational piece and directly affects domain, EF Core, JSON, routing, and composite-key support.
+Start with `TurtlePath.Domain/Identifier`, because it is the most foundational area and directly affects domain, EF Core, JSON, routing, and composite-key support.
+

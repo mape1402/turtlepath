@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TurtlePath.Application\TurtlePath.Application.csproj" />
-    <ProjectReference Include="..\..\src\TurtlePath.Identifier\TurtlePath.Identifier.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.Domain\TurtlePath.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,3 +17,4 @@
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>
+
