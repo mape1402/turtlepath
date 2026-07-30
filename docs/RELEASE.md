@@ -18,5 +18,3 @@ The solution now contains multiple packable projects. `dotnet pack` should produ
 - `TurtlePath.OctoMap`
 - `TurtlePath.Crabalidator`
 - `TurtlePath.Sieve`
-- `TurtlePath.Serialization`
-- `TurtlePath.Swagger`

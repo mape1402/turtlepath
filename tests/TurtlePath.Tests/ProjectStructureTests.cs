@@ -82,6 +82,8 @@ public class ProjectStructureTests
     [InlineData("TurtlePath")]
     [InlineData("TurtlePath.AspNetCore")]
     [InlineData("TurtlePath.Identifier.EntityFrameworkCore")]
+    [InlineData("TurtlePath.Serialization")]
+    [InlineData("TurtlePath.Swagger")]
     public void Removed_packages_do_not_exist(string projectName)
     {
         var root = FindRepositoryRoot();
@@ -140,14 +142,17 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Serialization_and_swagger_projects_own_integration_references()
+    public void Identifier_project_owns_identifier_json_converters_without_openapi_references()
     {
         var root = FindRepositoryRoot();
-        var serializationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Serialization", "TurtlePath.Serialization.csproj"));
-        var swaggerProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Swagger", "TurtlePath.Swagger.csproj"));
+        var identifierProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Identifier", "TurtlePath.Identifier.csproj"));
+        var converter = Path.Combine(root, "src", "TurtlePath.Identifier", "Json", "CIdJsonConverter.cs");
+        var nullableConverter = Path.Combine(root, "src", "TurtlePath.Identifier", "Json", "CIdNullableJsonConverter.cs");
 
-        Assert.DoesNotContain("Microsoft.AspNetCore.App", serializationProject);
-        Assert.Contains("Swashbuckle.AspNetCore.SwaggerGen", swaggerProject);
+        Assert.True(File.Exists(converter));
+        Assert.True(File.Exists(nullableConverter));
+        Assert.DoesNotContain("Swashbuckle", identifierProject);
+        Assert.DoesNotContain("Microsoft.AspNetCore.App", identifierProject);
     }
 
     private static string FindRepositoryRoot()

@@ -75,7 +75,7 @@ namespace TurtlePath.Identifier
                 throw new InvalidOperationException("JsonConverter must be set.");
 
             if(NullableJsonConverter == null)
-                throw new InvalidOperationException("NulleableJsonConverter must be set.");
+                throw new InvalidOperationException("NullableJsonConverter must be set.");
 
             if(DefaultFactory == null)
                 throw new InvalidOperationException("DefaultFactory must be set.");

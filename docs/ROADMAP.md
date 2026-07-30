@@ -22,9 +22,10 @@ Opaque identity primitives.
 - `ICIdDefinitionRegistry`
 - `ICIdFactory`
 - parsing and formatting contracts
+- JSON converter registration helpers
 - equality and comparison semantics
 
-No EF Core, JSON, ASP.NET, Swagger, mapping, validation, or mediator dependencies.
+No EF Core, ASP.NET, Swagger, mapping, validation, or mediator dependencies.
 
 Design direction:
 
@@ -70,7 +71,7 @@ Dependencies:
 - `TurtlePath.Domain`
 - `Microsoft.Extensions.DependencyInjection.Abstractions`, only for DI helpers and current handler construction style.
 
-No EF Core, OctoMap, Crabalidator, Sieve, JSON, or Swagger dependencies.
+No EF Core, OctoMap, Crabalidator, Sieve, or Swagger dependencies.
 
 ### TurtlePath.Abstractions
 
@@ -140,27 +141,11 @@ Dependencies:
 - `Sieve`
 - `TurtlePath.Abstractions`
 
-### TurtlePath.Serialization
+### OpenAPI Integration
 
-Serialization package.
+Swagger/OpenAPI support should stay out of TurtlePath until there is a concrete consumer need.
 
-- JSON converter registration helpers
-- model binding helpers for `CId`
-- route value parsing
-- exception-to-response helpers if desired
-
-No EF Core dependency.
-
-### TurtlePath.Swagger
-
-OpenAPI integration package.
-
-- schema filters for `CId`
-- schema filters for composite IDs
-
-Dependencies:
-
-- Swashbuckle or other OpenAPI package only here.
+If it is needed later, add it as a separate adapter package instead of coupling it to `TurtlePath.Identifier`.
 
 ## Migration Plan
 
@@ -265,16 +250,16 @@ Done criteria:
 - EF Core adapter can read generic criteria without requiring Sieve.
 - Sieve is opt-in.
 
-### Phase 9: Add Serialization And Swagger Integrations
+### Phase 9: Stabilize Identifier JSON
 
-- Create `src/TurtlePath.Serialization`.
-- Create `src/TurtlePath.Swagger`.
-- Move JSON converters and schema filters out of identifier/domain.
+- Keep `CId` JSON converters inside `src/TurtlePath.Identifier`.
+- Add tests for primitive, nullable, and composite ID JSON round-trips.
+- Avoid adding Swagger/OpenAPI integration until a consumer needs it.
 
 Done criteria:
 
-- API projects can opt into serialization and OpenAPI concerns explicitly.
-- Domain and identifier packages remain web-framework agnostic.
+- API projects can use identifier JSON support without an extra TurtlePath package.
+- Identifier remains web-framework and OpenAPI agnostic.
 
 ### Phase 10: Samples, Docs, And Package Release
 
@@ -308,15 +293,13 @@ EntityFrameworkCore -> Domain, Identifier, Abstractions
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
 Sieve -> Abstractions
-Serialization -> Identifier
-Swagger -> Identifier
 ```
 
 Forbidden:
 
 - Domain depending on Application.
 - Domain depending on EF Core, Pelican, OctoMap, Crabalidator, Sieve, ASP.NET, or Swagger.
-- Identifier depending on EF Core, JSON, ASP.NET, or Swagger.
+- Identifier depending on EF Core, ASP.NET, Swagger, mapping, validation, or mediator packages.
 - Application depending on EF Core, OctoMap, Crabalidator, or Sieve implementations.
 - EF Core package depending directly on OctoMap or Crabalidator.
 

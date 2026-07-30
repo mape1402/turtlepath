@@ -1,4 +1,4 @@
-namespace TurtlePath.Serialization.Json
+namespace TurtlePath.Identifier.Json
 {
     using System.Text.Json;
 
@@ -15,7 +15,7 @@ namespace TurtlePath.Serialization.Json
         public static JsonSerializerOptions AddTurtlePathCIdConverters(this JsonSerializerOptions options)
         {
             options.Converters.Add(new CIdJsonConverter());
-            options.Converters.Add(new CIdNulleableJsonConverter());
+            options.Converters.Add(new CIdNullableJsonConverter());
 
             return options;
         }

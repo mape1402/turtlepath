@@ -7,15 +7,13 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 ## Projects
 
 - `src/TurtlePath.Abstractions`: provider-neutral mapping, validation, and persistence contracts.
-- `src/TurtlePath.Identifier`: opaque identifiers, single-part IDs, composite IDs, and identifier definitions.
+- `src/TurtlePath.Identifier`: opaque identifiers, single-part IDs, composite IDs, identifier definitions, and JSON converters.
 - `src/TurtlePath.Domain`: entity contracts and domain base types.
 - `src/TurtlePath.Application`: Pelican handler bases, hooks, request/response models, and application errors.
 - `src/TurtlePath.EntityFrameworkCore`: EF Core context abstraction, storage adapters, and entity configuration helper.
 - `src/TurtlePath.OctoMap`: OctoMap mapper adapter.
 - `src/TurtlePath.Crabalidator`: Crabalidator validator adapter.
 - `src/TurtlePath.Sieve`: Sieve criteria adapter.
-- `src/TurtlePath.Serialization`: System.Text.Json converters for identifiers.
-- `src/TurtlePath.Swagger`: OpenAPI schema helpers.
 - `tests/TurtlePath.Tests`: unit tests for extracted primitives and registration behavior.
 - `samples/TurtlePath.Samples.Basic`: small usage-oriented sample.
 - `benchmarks/TurtlePath.Benchmarks`: BenchmarkDotNet entry point placeholder following the OctoMap repository shape.
@@ -36,7 +34,6 @@ dotnet add package TurtlePath.EntityFrameworkCore
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
 dotnet add package TurtlePath.Sieve
-dotnet add package TurtlePath.Serialization
 ```
 
 Register each implementation package from your application composition root:
@@ -57,7 +54,7 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - Validation contract plus a Crabalidator-backed adapter.
 - Application exceptions used by the handler base classes.
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
-- Configurable `CId` identifier, JSON converters, and base entity configuration.
+- Configurable `CId` identifier, identifier JSON converters, and base entity configuration.
 
 ## Build
 
