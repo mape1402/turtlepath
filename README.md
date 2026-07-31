@@ -32,14 +32,14 @@ Install the focused packages your application actually uses. For example, a typi
 ```powershell
 dotnet add package TurtlePath
 dotnet add package TurtlePath.EntityFrameworkCore
-dotnet add package TurtlePath.OctoMap
-dotnet add package TurtlePath.AutoMapper
-dotnet add package TurtlePath.Crabalidator
-dotnet add package TurtlePath.FluentValidation
 dotnet add package TurtlePath.Sieve
+dotnet add package TurtlePath.AutoMapper
+dotnet add package TurtlePath.FluentValidation
 ```
 
-Register each implementation package from your application composition root:
+Use one mapper adapter package, such as `TurtlePath.AutoMapper` or `TurtlePath.OctoMap`, and one validation adapter package, such as `TurtlePath.FluentValidation` or `TurtlePath.Crabalidator`.
+
+Register TurtlePath and chain each implementation package from your application composition root:
 
 ```csharp
 services
@@ -62,9 +62,16 @@ services
         ApplyCIdConverters = true,
         ConfigurationAssemblies = [typeof(MyPersistenceMarker).Assembly]
     })
-    .UseOctoMap()
-    .UseCrabalidator()
+    .UseAutoMapper()
+    .UseFluentValidation()
     .UseSieve();
+```
+
+`UseEntityFrameworkCore<TDbContext>()` maps your context to `IDbContext` and registers the default EF-backed `IStorageReaderAdapter` and `IStorageWriterAdapter`. Register your `DbContext` itself with the normal EF Core APIs:
+
+```csharp
+services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
 ```
 
 `UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. Put legacy or mixed-schema overrides in a profile:
