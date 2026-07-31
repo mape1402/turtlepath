@@ -65,68 +65,73 @@ namespace Microsoft.Extensions.DependencyInjection
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            AddCIdDefinition(builder.Services, CIdDefinition.DefaultContext, null, CIdDefinition.DefaultPropertyName, configureIdentifier);
+            var profileBuilder = new CIdProfileBuilder(GetOrCreateRegistry(builder.Services));
+            profileBuilder.UseCId(configureIdentifier);
 
             return builder;
         }
 
         /// <summary>
-        /// Configures TurtlePath identifiers for a specific entity on the current registration pipeline.
+        /// Configures TurtlePath identifiers from a profile.
         /// </summary>
-        /// <typeparam name="TEntity">The entity type.</typeparam>
-        /// <typeparam name="TTargetType">The domain identifier value type.</typeparam>
-        /// <typeparam name="TDbType">The database identifier value type.</typeparam>
+        /// <typeparam name="TProfile">The CId profile type.</typeparam>
         /// <param name="builder">The TurtlePath builder.</param>
-        /// <param name="configureIdentifier">The CId configuration callback.</param>
-        /// <param name="propertyName">The identifier property name.</param>
         /// <returns>The same TurtlePath builder.</returns>
-        public static ITurtlePathBuilder UseCIdFor<TEntity, TTargetType, TDbType>(
-            this ITurtlePathBuilder builder,
-            Action<CIdConfiguration<TTargetType, TDbType>> configureIdentifier,
-            string propertyName = CIdDefinition.DefaultPropertyName)
+        public static ITurtlePathBuilder UseCIdProfile<TProfile>(this ITurtlePathBuilder builder)
+            where TProfile : ICIdProfile, new()
+        {
+            return builder.UseCIdProfile(new TProfile());
+        }
+
+        /// <summary>
+        /// Configures TurtlePath identifiers from a profile instance.
+        /// </summary>
+        /// <param name="builder">The TurtlePath builder.</param>
+        /// <param name="profile">The CId profile.</param>
+        /// <returns>The same TurtlePath builder.</returns>
+        public static ITurtlePathBuilder UseCIdProfile(this ITurtlePathBuilder builder, ICIdProfile profile)
         {
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            AddCIdDefinition(
-                builder.Services,
-                CreateEntityContext(typeof(TEntity), propertyName),
-                typeof(TEntity),
-                propertyName,
-                configureIdentifier);
+            if (profile == null)
+                throw new ArgumentNullException(nameof(profile));
+
+            profile.Configure(new CIdProfileBuilder(GetOrCreateRegistry(builder.Services)));
 
             return builder;
         }
 
-        private static void AddCIdDefinition<TTargetType, TDbType>(
-            IServiceCollection services,
-            string context,
-            Type entityType,
-            string propertyName,
-            Action<CIdConfiguration<TTargetType, TDbType>> setup)
+        /// <summary>
+        /// Discovers and configures TurtlePath identifier profiles from the supplied assemblies.
+        /// </summary>
+        /// <param name="builder">The TurtlePath builder.</param>
+        /// <param name="profileAssemblies">Assemblies that contain CId profiles.</param>
+        /// <returns>The same TurtlePath builder.</returns>
+        public static ITurtlePathBuilder UseCIdProfiles(this ITurtlePathBuilder builder, params Assembly[] profileAssemblies)
         {
-            if (setup == null)
-                throw new ArgumentNullException(nameof(setup));
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
 
-            var config = new CIdConfiguration<TTargetType, TDbType>();
-            setup(config);
-            config.ValidateAndThrow();
+            if (profileAssemblies == null || profileAssemblies.Length == 0)
+                return builder;
 
-            var registry = GetOrCreateRegistry(services);
-            registry.Register(new CIdDefinition(
-                context,
-                entityType,
-                propertyName,
-                typeof(TTargetType),
-                config.DefaultFactory,
-                config.ParseFunction,
-                id => id.ToString(),
-                id => config.ToByteArrayFunction((TTargetType)id.Value),
-                config.GenerationStrategy,
-                typeof(TDbType),
-                config.DbType,
-                config.ConvertToDb,
-                config.ConvertFromDb));
+            var profiles = profileAssemblies
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(type =>
+                    typeof(ICIdProfile).IsAssignableFrom(type) &&
+                    !type.IsAbstract &&
+                    type.GetConstructor(
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                        null,
+                        Type.EmptyTypes,
+                        null) != null)
+                .Select(type => (ICIdProfile)Activator.CreateInstance(type, nonPublic: true));
+
+            foreach (var profile in profiles)
+                builder.UseCIdProfile(profile);
+
+            return builder;
         }
 
         private static CIdDefinitionRegistry GetOrCreateRegistry(IServiceCollection services)
@@ -146,8 +151,5 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return registry;
         }
-
-        private static string CreateEntityContext(Type entityType, string propertyName)
-            => $"{entityType.FullName}.{propertyName ?? CIdDefinition.DefaultPropertyName}";
     }
 }

@@ -50,16 +50,7 @@ services
         config.ParseFunction = value => CId.From(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
-    .UseCIdFor<LegacyCustomer, int, int>(config =>
-    {
-        config.DefaultFactory = () => CId.From(0);
-        config.ConvertToDb = id => id.Cast<int>();
-        config.ConvertFromDb = value => CId.From(value);
-        config.JsonConverter = value => CId.From(int.Parse(value));
-        config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
-        config.ParseFunction = value => CId.From(int.Parse(value));
-        config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
-    })
+    .UseCIdProfile<LegacyIdentifierProfile>()
     .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
@@ -72,7 +63,28 @@ services
     .UseSieve();
 ```
 
-`UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. `UseCIdFor<TEntity, TValue, TDbValue>()` overrides that definition for legacy or mixed-schema entities.
+`UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. Put legacy or mixed-schema overrides in a profile:
+
+```csharp
+public sealed class LegacyIdentifierProfile : CIdProfile
+{
+    public override void Configure(CIdProfileBuilder builder)
+    {
+        builder.UseCIdFor<LegacyCustomer, int, int>(config =>
+        {
+            config.DefaultFactory = () => CId.From(0);
+            config.ConvertToDb = id => id.Cast<int>();
+            config.ConvertFromDb = value => CId.From(value);
+            config.JsonConverter = value => CId.From(int.Parse(value));
+            config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
+            config.ParseFunction = value => CId.From(int.Parse(value));
+            config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
+        });
+    }
+}
+```
+
+Use `UseCIdProfiles(typeof(MyPersistenceMarker).Assembly)` when you prefer assembly discovery instead of registering each profile explicitly.
 
 An EF Core context can receive the registered TurtlePath options through DI:
 

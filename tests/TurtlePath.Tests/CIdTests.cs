@@ -106,21 +106,37 @@ public class CIdTests
                 config.ParseFunction = value => CId.From(Guid.Parse(value));
                 config.ToByteArrayFunction = value => value.ToByteArray();
             })
-            .UseCIdFor<LegacyEntity, int, int>(config =>
-            {
-                config.DefaultFactory = () => CId.From(0);
-                config.ConvertToDb = id => id.Cast<int>();
-                config.ConvertFromDb = value => CId.From(value);
-                config.JsonConverter = value => CId.From(int.Parse(value));
-                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
-                config.ParseFunction = value => CId.From(int.Parse(value));
-                config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
-            });
+            .UseCIdProfile<LegacyIdentifierProfile>();
 
         using var provider = services.BuildServiceProvider();
         var registry = provider.GetRequiredService<ICIdDefinitionRegistry>();
 
         Assert.Equal(typeof(Guid), registry.Get(typeof(CustomerEntity)).ValueType);
+        Assert.Equal(typeof(int), registry.Get(typeof(LegacyEntity)).ValueType);
+    }
+
+    [Fact]
+    public void Registration_discovers_identifier_profiles_from_assemblies()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePath()
+            .UseCId<Guid, string>(config =>
+            {
+                config.DefaultFactory = () => CId.From(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+                config.ConvertToDb = id => id.ToString();
+                config.ConvertFromDb = value => CId.From(Guid.Parse(value));
+                config.JsonConverter = value => CId.From(Guid.Parse(value));
+                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(Guid.Parse(value));
+                config.ParseFunction = value => CId.From(Guid.Parse(value));
+                config.ToByteArrayFunction = value => value.ToByteArray();
+            })
+            .UseCIdProfiles(typeof(CIdTests).Assembly);
+
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<ICIdDefinitionRegistry>();
+
         Assert.Equal(typeof(int), registry.Get(typeof(LegacyEntity)).ValueType);
     }
 
@@ -134,6 +150,23 @@ public class CIdTests
 
     private sealed class LegacyEntity
     {
+    }
+
+    private sealed class LegacyIdentifierProfile : CIdProfile
+    {
+        public override void Configure(CIdProfileBuilder builder)
+        {
+            builder.UseCIdFor<LegacyEntity, int, int>(config =>
+            {
+                config.DefaultFactory = () => CId.From(0);
+                config.ConvertToDb = id => id.Cast<int>();
+                config.ConvertFromDb = value => CId.From(value);
+                config.JsonConverter = value => CId.From(int.Parse(value));
+                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
+                config.ParseFunction = value => CId.From(int.Parse(value));
+                config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
+            });
+        }
     }
 }
 

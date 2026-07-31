@@ -23,4 +23,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Added default and per-entity `CId` definitions so clean schemas can share one identifier type while legacy schemas can override individual entities.
 - Removed the static `CIdMetadata` configuration surface.
 - Removed `CId.New()` so generated identifiers always come from the configured `ICIdFactory`.
+- Added `CIdProfile` configuration so per-entity identifier overrides can be grouped outside the DI registration chain.
 
