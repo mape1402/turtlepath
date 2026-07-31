@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Pelican.Mediator;
+using TurtlePath.Automations;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Mapping;
@@ -42,6 +43,7 @@ services
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
     .UseCIdProfiles(sampleAssembly)
+    .UseAutomations(sampleAssembly)
     .UseSieve()
     .UseEntityFrameworkCore<CommerceDbContext>(options => options with
     {
