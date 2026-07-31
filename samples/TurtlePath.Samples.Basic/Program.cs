@@ -6,7 +6,9 @@ using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Mapping;
 using TurtlePath.Persistence;
+using TurtlePath.Queries;
 using TurtlePath.Validation;
+using TurtlePath.Samples.Basic.Application.Queries;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Infrastructure;
 using TurtlePath.Samples.Basic.Infrastructure.Adapters;
@@ -18,6 +20,7 @@ await sqliteConnection.OpenAsync();
 
 var services = new ServiceCollection();
 
+services.AddOptions();
 services.AddSingleton(sqliteConnection);
 services.AddSingleton<SampleAuditLog>();
 services.AddScoped<IMapperAdapter, SampleMapperAdapter>();
@@ -42,6 +45,7 @@ services
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
     .UseCIdProfiles(sampleAssembly)
+    .UseSieve()
     .UseEntityFrameworkCore<CommerceDbContext>(options => options with
     {
         ConfigurationAssemblies = [sampleAssembly]
@@ -59,24 +63,69 @@ var idFactory = scopedProvider.GetRequiredService<ICIdFactory>();
 var auditLog = scopedProvider.GetRequiredService<SampleAuditLog>();
 var mediator = scopedProvider.GetRequiredService<IMediator>();
 
-var customerRequest = new CreateCustomerRequest("Ada Lovelace", "ADA@EXAMPLE.COM");
-var customer = await mediator.Send(customerRequest);
+var ada = await mediator.Send(new CreateCustomerRequest("Ada Lovelace", "ADA@EXAMPLE.COM"));
+var grace = await mediator.Send(new CreateCustomerRequest("Grace Hopper", "GRACE@EXAMPLE.COM"));
+
+var updatedAda = await mediator.Send(new UpdateCustomerRequest
+{
+    Id = ada.Id,
+    Name = "Ada Byron",
+    Email = "ADA.BYRON@EXAMPLE.COM"
+});
+
+var patchedAda = await mediator.Send(new PatchCustomerEmailRequest
+{
+    Id = updatedAda.Id,
+    Email = "ada@turtlepath.dev"
+});
 
 var orderRequest = new CreateTenantOrderRequest(
-    customer.Id,
+    patchedAda.Id,
     189.95m);
 var order = await mediator.Send(orderRequest);
+
+var deletedOrder = await mediator.Send(new DeleteTenantOrderRequest
+{
+    Id = order.Id
+});
+
+var shipment = await mediator.Send(new CreateLegacyShipmentRequest(
+    42,
+    "LegacyCarrier",
+    "TRACK-00042"));
+
+var customerById = await mediator.Send(new GetCustomerByIdQuery(patchedAda.Id));
+var matchingCustomers = (await mediator.Send(new GetCustomersQuery
+{
+    Search = "ada",
+    Filters = "Email@=*turtlepath.dev",
+    Sorts = "Name"
+})).ToList();
+var customerPage = await mediator.Send(new GetCustomersPageQuery(new PagedSettings
+{
+    PageNumber = 1,
+    PageSize = 1,
+    Sorts = "Name"
+}));
+var legacyShipment = await mediator.Send(new GetLegacyShipmentByIdQuery(shipment.Id));
 
 var persistedCustomers = await dbContext.Customers.CountAsync();
 var persistedOrders = await dbContext.TenantOrders.CountAsync();
 var persistedInvoices = await dbContext.LegacyInvoices.CountAsync();
+var persistedShipments = await dbContext.LegacyShipments.CountAsync();
 
 Console.WriteLine("TurtlePath commerce sample");
-Console.WriteLine($"Default customer CId: {customer.Id}");
+Console.WriteLine($"Default customer CId: {ada.Id}");
 Console.WriteLine($"Generated customer CId from factory: {idFactory.New()}");
+Console.WriteLine($"Updated customer: {updatedAda.Name} <{updatedAda.Email}>");
+Console.WriteLine($"Patched customer email: {customerById.Email}");
 Console.WriteLine($"Order CId: {order.Id}");
 Console.WriteLine($"Legacy invoice CId: {order.LegacyInvoiceId}");
-Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}");
+Console.WriteLine($"Deleted resource: {deletedOrder.Resource} {deletedOrder.Id}");
+Console.WriteLine($"Generic int-key shipment: {legacyShipment.Id} {legacyShipment.Carrier} {legacyShipment.TrackingNumber}");
+Console.WriteLine($"Filtered customers: {matchingCustomers.Count}");
+Console.WriteLine($"Paged customers: page={customerPage.CurrentPage}/{customerPage.PageCount}, rows={customerPage.RowCount}, first={customerPage.Results.First().Name}");
+Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}, shipments={persistedShipments}");
 Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");
 
 foreach (var entry in auditLog.Entries)

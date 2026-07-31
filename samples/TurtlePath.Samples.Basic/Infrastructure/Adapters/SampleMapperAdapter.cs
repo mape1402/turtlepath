@@ -20,6 +20,12 @@ public sealed class SampleMapperAdapter : IMapperAdapter
                 Name = request.Name,
                 Email = request.Email
             },
+            CreateLegacyShipmentRequest request when typeof(TDestination) == typeof(LegacyShipment) => new LegacyShipment
+            {
+                Id = request.Id,
+                Carrier = request.Carrier,
+                TrackingNumber = request.TrackingNumber
+            },
             Customer customer when typeof(TDestination) == typeof(CustomerResponse) => new CustomerResponse
             {
                 Id = customer.Id,
@@ -37,6 +43,12 @@ public sealed class SampleMapperAdapter : IMapperAdapter
                 CustomerId = order.CustomerId,
                 Total = order.Total
             },
+            LegacyShipment shipment when typeof(TDestination) == typeof(LegacyShipmentResponse) => new LegacyShipmentResponse
+            {
+                Id = shipment.Id,
+                Carrier = shipment.Carrier,
+                TrackingNumber = shipment.TrackingNumber
+            },
             _ => throw new InvalidOperationException($"No sample mapping exists from {typeof(TSource).Name} to {typeof(TDestination).Name}.")
         };
 
@@ -49,5 +61,15 @@ public sealed class SampleMapperAdapter : IMapperAdapter
         CancellationToken cancellationToken = default)
         where TSource : class
         where TDestination : class
-        => throw new NotSupportedException("The sample only demonstrates create command handlers.");
+    {
+        switch (source, destination)
+        {
+            case (UpdateCustomerRequest request, Customer customer):
+                customer.Name = request.Name;
+                customer.Email = request.Email.Trim().ToLowerInvariant();
+                return ValueTask.CompletedTask;
+            default:
+                throw new InvalidOperationException($"No sample update mapping exists from {typeof(TSource).Name} to {typeof(TDestination).Name}.");
+        }
+    }
 }

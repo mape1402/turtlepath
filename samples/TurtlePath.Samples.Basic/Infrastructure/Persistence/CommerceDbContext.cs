@@ -18,4 +18,5 @@ public sealed class CommerceDbContext : BaseDbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<TenantOrder> TenantOrders => Set<TenantOrder>();
     public DbSet<LegacyInvoice> LegacyInvoices => Set<LegacyInvoice>();
+    public DbSet<LegacyShipment> LegacyShipments => Set<LegacyShipment>();
 }
