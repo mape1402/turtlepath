@@ -7,7 +7,7 @@ namespace TurtlePath.EntityFrameworkCore
     /// <summary>
     /// Provides an implementation of <see cref="IStorageWriterAdapter"/> for saving, updating, and deleting entities using a database context.
     /// </summary>
-    public class StorageWriterAdapter : IStorageWriterAdapter
+    public sealed class StorageWriterAdapter : IStorageWriterAdapter
     {
         private readonly IDbContext _dbContext;
 

@@ -7,15 +7,15 @@ namespace TurtlePath.FluentValidation
     /// <summary>
     /// Provides an implementation of <see cref="IValidatorAdapter"/> using FluentValidation for model validation.
     /// </summary>
-    public class ValidatorAdapter : IValidatorAdapter
+    public sealed class FluentValidationAdapter : IValidatorAdapter
     {
         private readonly IServiceProvider serviceProvider;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ValidatorAdapter"/> class.
+        /// Initializes a new instance of the <see cref="FluentValidationAdapter"/> class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve validators.</param>
-        public ValidatorAdapter(IServiceProvider serviceProvider)
+        public FluentValidationAdapter(IServiceProvider serviceProvider)
         {
             this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }

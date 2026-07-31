@@ -7,15 +7,15 @@ namespace TurtlePath.Crabalidator
     /// <summary>
     /// Provides an implementation of <see cref="IValidatorAdapter"/> using Crabalidator for model validation.
     /// </summary>
-    public class ValidatorAdapter : IValidatorAdapter
+    public sealed class CrabalidatorAdapter : IValidatorAdapter
     {
         private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ValidatorAdapter"/> class.
+        /// Initializes a new instance of the <see cref="CrabalidatorAdapter"/> class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve validators.</param>
-        public ValidatorAdapter(IServiceProvider serviceProvider)
+        public CrabalidatorAdapter(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }

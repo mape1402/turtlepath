@@ -9,7 +9,7 @@ namespace TurtlePath.EntityFrameworkCore
     /// <summary>
     /// Provides an implementation of <see cref="IStorageReaderAdapter"/> for reading entities from storage with support for filtering, sorting, and paging.
     /// </summary>
-    public class StorageReaderAdapter : IStorageReaderAdapter
+    public sealed class StorageReaderAdapter : IStorageReaderAdapter
     {
         private readonly IDbContext _dbContext;
         private readonly IMapperAdapter _mapper;

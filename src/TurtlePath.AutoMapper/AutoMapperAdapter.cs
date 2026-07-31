@@ -6,15 +6,15 @@ namespace TurtlePath.AutoMapper
     /// <summary>
     /// Provides an implementation of <see cref="IMapperAdapter"/> using AutoMapper for object mapping.
     /// </summary>
-    public class MapperAdapter : IMapperAdapter
+    public sealed class AutoMapperAdapter : IMapperAdapter
     {
         private readonly IMapper mapper;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MapperAdapter"/> class.
+        /// Initializes a new instance of the <see cref="AutoMapperAdapter"/> class.
         /// </summary>
         /// <param name="mapper">The AutoMapper instance to use for mapping.</param>
-        public MapperAdapter(IMapper mapper)
+        public AutoMapperAdapter(IMapper mapper)
         {
             this.mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }

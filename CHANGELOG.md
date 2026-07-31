@@ -35,3 +35,10 @@ All notable changes to TurtlePath will be documented in this file.
 - Restored no-response create, update, patch, and delete command handlers for both generic-key and BaseEntity/CId flows.
 - Grouped generic response and no-response command handlers by operation and kept the same `Generic...CommandHandler` names with different generic arity.
 
+### Changed
+
+- Cleaned the public API surface by renaming concrete adapter implementations to provider-specific names: `AutoMapperAdapter`, `OctoMapAdapter`, `FluentValidationAdapter`, and `CrabalidatorAdapter`.
+- Renamed builder extension types for EF Core and Sieve, keeping the public registration flow centered on `AddTurtlePath(...).Use...()` chaining.
+- Made EF Core register `IStorageReaderAdapter` and `IStorageWriterAdapter` by default when `UseEntityFrameworkCore<TDbContext>()` is used.
+- Hid the default hook runner implementation behind `IHandlerHookRunner`.
+- Made `NotFoundException` inherit `HttpException` with HTTP 404 semantics.

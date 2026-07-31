@@ -19,7 +19,7 @@ namespace TurtlePath.AutoMapper
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            builder.Services.TryAddSingleton<IMapperAdapter, MapperAdapter>();
+            builder.Services.TryAddSingleton<IMapperAdapter, AutoMapperAdapter>();
 
             return builder;
         }

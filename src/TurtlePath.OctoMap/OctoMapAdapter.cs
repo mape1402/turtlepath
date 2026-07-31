@@ -6,15 +6,15 @@ namespace TurtlePath.OctoMap
     /// <summary>
     /// Provides an implementation of <see cref="IMapperAdapter"/> using OctoMap for object mapping.
     /// </summary>
-    public class MapperAdapter : IMapperAdapter
+    public sealed class OctoMapAdapter : IMapperAdapter
     {
         private readonly IOctoMapper _mapper;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MapperAdapter"/> class.
+        /// Initializes a new instance of the <see cref="OctoMapAdapter"/> class.
         /// </summary>
         /// <param name="mapper">The OctoMap instance to use for mapping.</param>
-        public MapperAdapter(IOctoMapper mapper)
+        public OctoMapAdapter(IOctoMapper mapper)
         {
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }

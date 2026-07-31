@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.EntityFrameworkCore.Conventions;
 using TurtlePath.Domain.Identifier;
+using TurtlePath.Mapping;
+using TurtlePath.Persistence;
 
 namespace TurtlePath.Tests;
 
@@ -118,6 +120,25 @@ public class EntityFrameworkCoreRegistrationTests
         Assert.Contains(conventions, convention => convention is CIdModelConvention);
     }
 
+    [Fact]
+    public void UseEntityFrameworkCore_registers_storage_adapters()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
+        services.AddSingleton<IMapperAdapter, EmptyMapperAdapter>();
+
+        services
+            .AddTurtlePath()
+            .UseEntityFrameworkCore<SampleDbContext>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        Assert.IsType<StorageReaderAdapter>(scope.ServiceProvider.GetRequiredService<IStorageReaderAdapter>());
+        Assert.IsType<StorageWriterAdapter>(scope.ServiceProvider.GetRequiredService<IStorageWriterAdapter>());
+    }
+
     private sealed class SampleDbContext : BaseDbContext
     {
         public SampleDbContext(
@@ -127,5 +148,18 @@ public class EntityFrameworkCoreRegistrationTests
             : base(options, turtlePathOptions, modelConventions)
         {
         }
+    }
+
+    private sealed class EmptyMapperAdapter : IMapperAdapter
+    {
+        public ValueTask<TDestination> MapAsync<TSource, TDestination>(TSource source, CancellationToken cancellationToken = default)
+            where TSource : class
+            where TDestination : class
+            => throw new NotSupportedException();
+
+        public ValueTask UpdateMapAsync<TSource, TDestination>(TSource source, TDestination destination, CancellationToken cancellationToken = default)
+            where TSource : class
+            where TDestination : class
+            => throw new NotSupportedException();
     }
 }

@@ -30,7 +30,7 @@ public class AdapterRegistrationTests
 
         var result = await adapter.MapAsync<SourceModel, DestinationModel>(new SourceModel { Name = "Ada" });
 
-        Assert.IsType<TurtlePath.AutoMapper.MapperAdapter>(adapter);
+        Assert.IsType<TurtlePath.AutoMapper.AutoMapperAdapter>(adapter);
         Assert.Equal("Ada", result.Name);
     }
 
@@ -42,7 +42,7 @@ public class AdapterRegistrationTests
             config.CreateMap<SourceModel, DestinationModel>();
         }, NullLoggerFactory.Instance);
 
-        var adapter = new TurtlePath.AutoMapper.MapperAdapter(mapperConfiguration.CreateMapper());
+        var adapter = new TurtlePath.AutoMapper.AutoMapperAdapter(mapperConfiguration.CreateMapper());
         var destination = new DestinationModel();
 
         await adapter.UpdateMapAsync(new SourceModel { Name = "Grace" }, destination);
@@ -65,7 +65,7 @@ public class AdapterRegistrationTests
 
         await adapter.ValidateAsync(new ValidationModel { Name = "Ada" });
 
-        Assert.IsType<TurtlePath.FluentValidation.ValidatorAdapter>(adapter);
+        Assert.IsType<TurtlePath.FluentValidation.FluentValidationAdapter>(adapter);
     }
 
     [Fact]

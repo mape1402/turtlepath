@@ -18,7 +18,7 @@ namespace TurtlePath.Hooks
     }
 
     /// <inheritdoc />
-    public sealed class HandlerHookRunner : IHandlerHookRunner
+    internal sealed class HandlerHookRunner : IHandlerHookRunner
     {
         private readonly IServiceProvider serviceProvider;
 

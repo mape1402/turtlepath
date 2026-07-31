@@ -19,7 +19,7 @@ namespace TurtlePath.OctoMap
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            builder.Services.TryAddSingleton<IMapperAdapter, MapperAdapter>();
+            builder.Services.TryAddSingleton<IMapperAdapter, OctoMapAdapter>();
 
             return builder;
         }

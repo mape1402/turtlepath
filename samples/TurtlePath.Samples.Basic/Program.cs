@@ -5,7 +5,6 @@ using Pelican.Mediator;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Mapping;
-using TurtlePath.Persistence;
 using TurtlePath.Queries;
 using TurtlePath.Validation;
 using TurtlePath.Samples.Basic.Application.Queries;
@@ -25,8 +24,6 @@ services.AddSingleton(sqliteConnection);
 services.AddSingleton<SampleAuditLog>();
 services.AddScoped<IMapperAdapter, SampleMapperAdapter>();
 services.AddScoped<IValidatorAdapter, SampleValidatorAdapter>();
-services.AddScoped<IStorageWriterAdapter, StorageWriterAdapter>();
-services.AddScoped<IStorageReaderAdapter, StorageReaderAdapter>();
 services.AddPelican(sampleAssembly);
 services.AddDbContext<CommerceDbContext>((provider, options) =>
     options.UseSqlite(provider.GetRequiredService<SqliteConnection>()));

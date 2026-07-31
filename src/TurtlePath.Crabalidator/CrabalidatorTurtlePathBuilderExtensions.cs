@@ -19,7 +19,7 @@ namespace TurtlePath.Crabalidator
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            builder.Services.TryAddSingleton<IValidatorAdapter, ValidatorAdapter>();
+            builder.Services.TryAddSingleton<IValidatorAdapter, CrabalidatorAdapter>();
 
             return builder;
         }

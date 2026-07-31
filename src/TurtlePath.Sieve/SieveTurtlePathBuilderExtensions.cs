@@ -8,24 +8,8 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <summary>
     /// Provides Sieve registration helpers for TurtlePath.
     /// </summary>
-    public static class SieveServiceCollectionExtensions
+    public static class SieveTurtlePathBuilderExtensions
     {
-        /// <summary>
-        /// Registers Sieve criteria support for TurtlePath storage abstractions.
-        /// </summary>
-        /// <param name="services">The service collection.</param>
-        /// <returns>The same service collection.</returns>
-        public static IServiceCollection AddTurtlePathSieve(this IServiceCollection services)
-        {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.AddSingleton<ISieveProcessor, SieveProcessor>();
-            services.AddSingleton<IStorageCriteriaApplier, SieveStorageCriteriaApplier>();
-
-            return services;
-        }
-
         /// <summary>
         /// Registers Sieve criteria support on the current TurtlePath pipeline.
         /// </summary>
@@ -39,6 +23,14 @@ namespace Microsoft.Extensions.DependencyInjection
             builder.Services.AddTurtlePathSieve();
 
             return builder;
+        }
+
+        private static IServiceCollection AddTurtlePathSieve(this IServiceCollection services)
+        {
+            services.AddSingleton<ISieveProcessor, SieveProcessor>();
+            services.AddSingleton<IStorageCriteriaApplier, SieveStorageCriteriaApplier>();
+
+            return services;
         }
     }
 }

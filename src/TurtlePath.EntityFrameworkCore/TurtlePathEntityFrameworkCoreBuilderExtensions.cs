@@ -6,11 +6,12 @@ namespace Microsoft.Extensions.DependencyInjection
     using TurtlePath;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.DependencyInjection.Extensions;
+    using TurtlePath.Persistence;
 
     /// <summary>
     /// Provides registration helpers for TurtlePath Entity Framework Core integration.
     /// </summary>
-    public static class TurtlePathEntityFrameworkCoreServiceCollectionExtensions
+    public static class TurtlePathEntityFrameworkCoreBuilderExtensions
     {
         /// <summary>
         /// Registers TurtlePath Entity Framework Core options and maps the concrete context to <see cref="IDbContext"/>.
@@ -29,6 +30,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             AddTurtlePathEntityFrameworkCore(builder.Services, configure);
             builder.Services.AddScoped<IDbContext>(provider => provider.GetRequiredService<TDbContext>());
+            builder.Services.TryAddScoped<IStorageReaderAdapter, StorageReaderAdapter>();
+            builder.Services.TryAddScoped<IStorageWriterAdapter, StorageWriterAdapter>();
 
             return builder;
         }
