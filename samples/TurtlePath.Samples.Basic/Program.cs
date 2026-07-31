@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using TurtlePath.Domain.Identifier;
+using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Hooks;
 
 var services = new ServiceCollection();
@@ -17,12 +19,19 @@ services.AddTurtlePath<Guid, string>(
     },
     typeof(CreateTodoAuditHook).Assembly);
 
+services.AddTurtlePathEntityFrameworkCore(options => options with
+{
+    ConfigurationAssemblies = [typeof(CreateTodoAuditHook).Assembly]
+});
+
 using var provider = services.BuildServiceProvider();
 var idFactory = provider.GetRequiredService<ICIdFactory>();
 var hooks = provider.GetServices<IBeforeValidationHook<CreateTodoRequest, Todo>>().ToArray();
+var dbContextOptions = provider.GetRequiredService<TurtlePathDbContextOptions>();
 
 Console.WriteLine($"Generated TurtlePath CId: {idFactory.New()}");
 Console.WriteLine($"Registered TurtlePath hooks: {hooks.Length}");
+Console.WriteLine($"Registered TurtlePath EF configuration assemblies: {dbContextOptions.ConfigurationAssemblies.Count}");
 
 public sealed class CreateTodoRequest
 {
@@ -33,6 +42,16 @@ public sealed class Todo
 {
     public CId Id { get; set; } = CId.New();
     public string Title { get; set; } = string.Empty;
+}
+
+public sealed class TodoDbContext : BaseDbContext
+{
+    public TodoDbContext(DbContextOptions<TodoDbContext> options, TurtlePathDbContextOptions turtlePathOptions)
+        : base(options, turtlePathOptions)
+    {
+    }
+
+    public DbSet<Todo> Todos => Set<Todo>();
 }
 
 public sealed class CreateTodoAuditHook : IBeforeValidationHook<CreateTodoRequest, Todo>

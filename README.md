@@ -51,7 +51,27 @@ services.AddTurtlePath<Guid, string>(
     },
     typeof(MyApplicationMarker).Assembly);
 
+services.AddTurtlePathEntityFrameworkCore(options => options with
+{
+    ApplyConfigurations = true,
+    ApplyBaseEntityConventions = true,
+    ApplyCIdConverters = true,
+    ConfigurationAssemblies = [typeof(MyPersistenceMarker).Assembly]
+});
+
 services.AddTurtlePathSieve();
+```
+
+An EF Core context can receive the registered TurtlePath options through DI:
+
+```csharp
+public sealed class AppDbContext : BaseDbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options, TurtlePathDbContextOptions turtlePathOptions)
+        : base(options, turtlePathOptions)
+    {
+    }
+}
 ```
 
 Then derive your Pelican handlers from the provided base handlers, for example `CreateCommandHandler<TRequest, TResponse, TEntity>`, `UpdateCommandHandler<TRequest, TResponse, TEntity>`, `DeleteCommandHandler<TRequest, TResponse, TEntity>`, `GetOneQueryHandler<TQuery, TValue, TEntity, TResponse>`, or `GetPagedInfoQueryHandler<TQuery, TEntity, TResponse>`.
@@ -65,7 +85,7 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - Validation contract plus a Crabalidator-backed adapter.
 - Application exceptions used by the handler base classes.
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
-- Configurable `CId` identifier, identifier JSON converters, and base entity configuration.
+- Configurable `CId` identifier, identifier JSON converters, and configurable EF Core base DbContext conventions.
 
 ## Build
 

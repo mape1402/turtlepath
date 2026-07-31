@@ -11,12 +11,25 @@ namespace TurtlePath.EntityFrameworkCore
     /// </summary>
     public abstract class BaseDbContext : DbContext, IDbContext
     {
+        private readonly TurtlePathDbContextOptions turtlePathOptions;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseDbContext"/> class.
         /// </summary>
         /// <param name="options">The options to configure the context.</param>
         protected BaseDbContext(DbContextOptions options) : base(options)
         {
+            turtlePathOptions = TurtlePathDbContextOptions.Default;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseDbContext"/> class.
+        /// </summary>
+        /// <param name="options">The options to configure the context.</param>
+        /// <param name="turtlePathOptions">The TurtlePath conventions to apply to the model.</param>
+        protected BaseDbContext(DbContextOptions options, TurtlePathDbContextOptions turtlePathOptions) : base(options)
+        {
+            this.turtlePathOptions = turtlePathOptions ?? TurtlePathDbContextOptions.Default;
         }
 
         /// <summary>
@@ -31,16 +44,27 @@ namespace TurtlePath.EntityFrameworkCore
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            ApplyConfigurations(builder);
-            ApplyBaseEntityConventions(builder);
-            ApplyCIdConverters(builder);
+
+            if (turtlePathOptions.ApplyConfigurations)
+                ApplyConfigurations(builder);
+
+            if (turtlePathOptions.ApplyBaseEntityConventions)
+                ApplyBaseEntityConventions(builder);
+
+            if (turtlePathOptions.ApplyCIdConverters)
+                ApplyCIdConverters(builder);
         }
 
         private void ApplyConfigurations(ModelBuilder builder)
         {
-            foreach (var assembly in ConfigurationAssemblies.Where(assembly => assembly != null).Distinct())
+            foreach (var assembly in GetConfigurationAssemblies().Where(assembly => assembly != null).Distinct())
                 builder.ApplyConfigurationsFromAssembly(assembly);
         }
+
+        private IEnumerable<Assembly> GetConfigurationAssemblies()
+            => turtlePathOptions.ConfigurationAssemblies.Count > 0
+                ? turtlePathOptions.ConfigurationAssemblies
+                : ConfigurationAssemblies;
 
         private static void ApplyBaseEntityConventions(ModelBuilder builder)
         {
