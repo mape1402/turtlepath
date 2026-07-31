@@ -1,15 +1,10 @@
 namespace TurtlePath.Commands
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Hooks;
-    using TurtlePath.Models.Responses;
-    using TurtlePath.Persistence;
-    using TurtlePath.Validation;
-    using TurtlePath.Mapping;
-    using TurtlePath.Domain.Contracts;
-    using TurtlePath.Domain.Identifier;
     using Pelican.Mediator;
     using System;
+    using TurtlePath.Domain.Contracts;
+    using TurtlePath.Domain.Identifier;
+    using TurtlePath.Models.Responses;
 
     /// <summary>
     /// Provides a base implementation for handling create commands for TurtlePath BaseEntity instances with CId identifiers.
@@ -36,7 +31,7 @@ namespace TurtlePath.Commands
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being created.</typeparam>
-    public abstract class CreateCommandHandler<TRequest, TEntity> : GenericCreateNoReturnCommandHandler<TRequest, TEntity, CId>
+    public abstract class CreateCommandHandler<TRequest, TEntity> : GenericCreateCommandHandler<TRequest, TEntity, CId>
         where TRequest : class, IRequest
         where TEntity : BaseEntity
     {

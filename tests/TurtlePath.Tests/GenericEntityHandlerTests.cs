@@ -87,7 +87,7 @@ public class GenericEntityHandlerTests
 
         var handler = new CreateCustomEntityNoReturnHandler(provider);
 
-        await handler.Handle(new CreateCustomEntityNoReturnRequest("Linus"));
+        await handler.Handle(new CreateCustomEntityCommand("Linus"));
 
         var entity = Assert.Single(storage.AddedEntities.OfType<CustomEntity>());
         Assert.Equal(11, entity.Id);
@@ -176,7 +176,7 @@ public class GenericEntityHandlerTests
 
     private sealed record CreateCustomEntityRequest(string Name) : IRequest<CustomResponse>;
 
-    private sealed record CreateCustomEntityNoReturnRequest(string Name) : IRequest;
+    private sealed record CreateCustomEntityCommand(string Name) : IRequest;
 
     private sealed class GetCustomEntityByIdQuery : GenericGetByIdQuery<CustomEntity, CustomResponse, int>
     {
@@ -208,7 +208,7 @@ public class GenericEntityHandlerTests
     }
 
     private sealed class CreateCustomEntityNoReturnHandler
-        : GenericCreateNoReturnCommandHandler<CreateCustomEntityNoReturnRequest, CustomEntity, int>
+        : GenericCreateCommandHandler<CreateCustomEntityCommand, CustomEntity, int>
     {
         public CreateCustomEntityNoReturnHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {
@@ -265,29 +265,29 @@ public class GenericEntityHandlerTests
     }
 
     private sealed class CreateNoReturnCommandStageHook(List<string> calls) :
-        IBeforeValidationHook<CreateCustomEntityNoReturnRequest, CustomEntity>,
-        IAfterValidationHook<CreateCustomEntityNoReturnRequest, CustomEntity>,
-        IBeforeMapHook<CreateCustomEntityNoReturnRequest, CustomEntity>,
-        IAfterMapHook<CreateCustomEntityNoReturnRequest, CustomEntity>,
-        IBeforeSaveHook<CreateCustomEntityNoReturnRequest, CustomEntity>,
-        IAfterSaveHook<CreateCustomEntityNoReturnRequest, CustomEntity>
+        IBeforeValidationHook<CreateCustomEntityCommand, CustomEntity>,
+        IAfterValidationHook<CreateCustomEntityCommand, CustomEntity>,
+        IBeforeMapHook<CreateCustomEntityCommand, CustomEntity>,
+        IAfterMapHook<CreateCustomEntityCommand, CustomEntity>,
+        IBeforeSaveHook<CreateCustomEntityCommand, CustomEntity>,
+        IAfterSaveHook<CreateCustomEntityCommand, CustomEntity>
     {
-        public ValueTask BeforeValidationAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask BeforeValidationAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("before-validation");
 
-        public ValueTask AfterValidationAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask AfterValidationAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("after-validation");
 
-        public ValueTask BeforeMapAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask BeforeMapAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("before-map");
 
-        public ValueTask AfterMapAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask AfterMapAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("after-map");
 
-        public ValueTask BeforeSaveAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask BeforeSaveAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("before-save");
 
-        public ValueTask AfterSaveAsync(CommandHookContext<CreateCustomEntityNoReturnRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+        public ValueTask AfterSaveAsync(CommandHookContext<CreateCustomEntityCommand, CustomEntity> context, CancellationToken cancellationToken = default)
             => AddAsync("after-save");
 
         private ValueTask AddAsync(string call)
@@ -329,7 +329,7 @@ public class GenericEntityHandlerTests
                     Id = 10,
                     Name = request.Name
                 },
-                CreateCustomEntityNoReturnRequest request when typeof(TDestination) == typeof(CustomEntity) => new CustomEntity
+                CreateCustomEntityCommand request when typeof(TDestination) == typeof(CustomEntity) => new CustomEntity
                 {
                     Id = 11,
                     Name = request.Name

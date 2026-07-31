@@ -1,16 +1,10 @@
 namespace TurtlePath.Commands
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Exceptions;
-    using TurtlePath.Hooks;
-    using TurtlePath.Models.Requests;
-    using TurtlePath.Models.Responses;
-    using TurtlePath.Persistence;
-    using TurtlePath.Validation;
-    using TurtlePath.Mapping;
+    using Pelican.Mediator;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
-    using Pelican.Mediator;
+    using TurtlePath.Models.Requests;
+    using TurtlePath.Models.Responses;
 
     /// <summary>
     /// Provides a base implementation for handling patch commands for TurtlePath BaseEntity instances with CId identifiers.
@@ -37,7 +31,7 @@ namespace TurtlePath.Commands
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being patched.</typeparam>
-    public abstract class PatchCommandHandler<TRequest, TEntity> : GenericPatchNoReturnCommandHandler<TRequest, TEntity, CId>
+    public abstract class PatchCommandHandler<TRequest, TEntity> : GenericPatchCommandHandler<TRequest, TEntity, CId>
         where TRequest : BaseRequest, IRequest
         where TEntity : BaseEntity
     {

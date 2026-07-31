@@ -1,15 +1,9 @@
 namespace TurtlePath.Commands
 {
-    using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Exceptions;
-    using TurtlePath.Hooks;
-    using TurtlePath.Models.Requests;
-    using TurtlePath.Persistence;
-    using TurtlePath.Validation;
-    using TurtlePath.Mapping;
+    using Pelican.Mediator;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
-    using Pelican.Mediator;
+    using TurtlePath.Models.Requests;
 
     /// <summary>
     /// Provides a base implementation for handling delete commands for TurtlePath BaseEntity instances with CId identifiers.
@@ -36,7 +30,7 @@ namespace TurtlePath.Commands
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being deleted.</typeparam>
-    public abstract class DeleteCommandHandler<TRequest, TEntity> : GenericDeleteNoReturnCommandHandler<TRequest, TEntity, CId>
+    public abstract class DeleteCommandHandler<TRequest, TEntity> : GenericDeleteCommandHandler<TRequest, TEntity, CId>
         where TRequest : BaseRequest, IRequest
         where TEntity : BaseEntity
     {
