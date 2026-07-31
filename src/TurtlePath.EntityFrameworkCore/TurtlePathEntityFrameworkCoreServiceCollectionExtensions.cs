@@ -39,7 +39,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 var options = configure?.Invoke(TurtlePathDbContextOptions.Default) ?? TurtlePathDbContextOptions.Default;
 
-                if (options.CIdDefinition != null)
+                if (options.CIdDefinitions != null)
                     return options;
 
                 var registry = provider.GetService<ICIdDefinitionRegistry>();
@@ -47,15 +47,24 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (registry == null)
                     return options;
 
-                try
+                return options with
                 {
-                    return options with { CIdDefinition = registry.Get() };
-                }
-                catch (InvalidOperationException)
-                {
-                    return options;
-                }
+                    CIdDefinition = TryGetDefaultDefinition(registry),
+                    CIdDefinitions = registry
+                };
             });
+        }
+
+        private static CIdDefinition TryGetDefaultDefinition(ICIdDefinitionRegistry registry)
+        {
+            try
+            {
+                return registry.Get();
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
         }
     }
 }

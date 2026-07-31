@@ -63,7 +63,10 @@ namespace TurtlePath.Domain.Identifier
         /// </summary>
         public CIdGenerationStrategy GenerationStrategy { get; set; } = CIdGenerationStrategy.ClientGenerated;
 
-        internal void ValidateAndThrow()
+        /// <summary>
+        /// Validates the identifier configuration and throws when required delegates are missing.
+        /// </summary>
+        public void ValidateAndThrow()
         {
             if(ConvertToDb == null)
                 throw new InvalidOperationException("ConvertToDb must be set.");

@@ -50,6 +50,16 @@ services
         config.ParseFunction = value => new CId(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
+    .UseCIdFor<LegacyCustomer, int, int>(config =>
+    {
+        config.DefaultFactory = () => CId.From(0);
+        config.ConvertToDb = id => id.Cast<int>();
+        config.ConvertFromDb = value => CId.From(value);
+        config.JsonConverter = value => CId.From(int.Parse(value));
+        config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
+        config.ParseFunction = value => CId.From(int.Parse(value));
+        config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
+    })
     .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
@@ -61,6 +71,8 @@ services
     .UseCrabalidator()
     .UseSieve();
 ```
+
+`UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. `UseCIdFor<TEntity, TValue, TDbValue>()` overrides that definition for legacy or mixed-schema entities.
 
 An EF Core context can receive the registered TurtlePath options through DI:
 
@@ -85,7 +97,7 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - Validation contract plus a Crabalidator-backed adapter.
 - Application exceptions used by the handler base classes.
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
-- Configurable `CId` identifier, identifier JSON converters, and configurable EF Core base DbContext conventions.
+- Configurable `CId` identifier definitions, per-entity identifier overrides, identifier JSON converters, and configurable EF Core base DbContext conventions.
 
 ## Build
 

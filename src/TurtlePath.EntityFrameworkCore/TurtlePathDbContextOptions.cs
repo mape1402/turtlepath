@@ -34,6 +34,11 @@ namespace TurtlePath.EntityFrameworkCore
         public CIdDefinition CIdDefinition { get; init; }
 
         /// <summary>
+        /// Gets the identifier definitions used to configure CId database conversion.
+        /// </summary>
+        public ICIdDefinitionRegistry CIdDefinitions { get; init; }
+
+        /// <summary>
         /// Gets the assemblies used to discover entity configurations. When empty, the DbContext assembly is used.
         /// </summary>
         public IReadOnlyCollection<Assembly> ConfigurationAssemblies { get; init; } = Array.Empty<Assembly>();

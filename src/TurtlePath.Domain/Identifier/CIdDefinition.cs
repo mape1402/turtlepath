@@ -11,6 +11,8 @@ namespace TurtlePath.Domain.Identifier
         /// Initializes a new instance of the <see cref="CIdDefinition"/> class.
         /// </summary>
         /// <param name="context">The definition context.</param>
+        /// <param name="entityType">The entity type this definition belongs to.</param>
+        /// <param name="propertyName">The entity property this definition belongs to.</param>
         /// <param name="valueType">The CLR value type represented by this definition.</param>
         /// <param name="factory">The factory used for client-generated identifiers.</param>
         /// <param name="parser">The parser used to create identifiers from text.</param>
@@ -23,6 +25,8 @@ namespace TurtlePath.Domain.Identifier
         /// <param name="convertFromDatabase">The converter from database value to CId.</param>
         public CIdDefinition(
             string context,
+            Type entityType,
+            string propertyName,
             Type valueType,
             Func<CId> factory,
             Func<string, CId> parser,
@@ -35,6 +39,8 @@ namespace TurtlePath.Domain.Identifier
             LambdaExpression convertFromDatabase = null)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            EntityType = entityType;
+            PropertyName = propertyName;
             ValueType = valueType ?? throw new ArgumentNullException(nameof(valueType));
             Factory = factory ?? throw new ArgumentNullException(nameof(factory));
             Parser = parser ?? throw new ArgumentNullException(nameof(parser));
@@ -53,9 +59,29 @@ namespace TurtlePath.Domain.Identifier
         public const string DefaultContext = "default";
 
         /// <summary>
+        /// Gets the default identifier property name.
+        /// </summary>
+        public const string DefaultPropertyName = "Id";
+
+        /// <summary>
         /// Gets the definition context.
         /// </summary>
         public string Context { get; }
+
+        /// <summary>
+        /// Gets the entity type this definition belongs to.
+        /// </summary>
+        public Type EntityType { get; }
+
+        /// <summary>
+        /// Gets the entity property this definition belongs to.
+        /// </summary>
+        public string PropertyName { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this is the default identifier definition.
+        /// </summary>
+        public bool IsDefault => EntityType == null;
 
         /// <summary>
         /// Gets the CLR value type represented by this definition.

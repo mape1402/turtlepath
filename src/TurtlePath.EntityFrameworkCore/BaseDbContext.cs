@@ -84,11 +84,6 @@ namespace TurtlePath.EntityFrameworkCore
 
         private void ApplyCIdConverters(ModelBuilder builder)
         {
-            var converter = CreateCIdValueConverter();
-
-            if (converter == null)
-                return;
-
             foreach (var entityType in builder.Model.GetEntityTypes())
             {
                 foreach (var property in entityType.GetProperties())
@@ -99,18 +94,31 @@ namespace TurtlePath.EntityFrameworkCore
                     if (clrType != typeof(CId) && underlyingType != typeof(CId))
                         continue;
 
+                    var definition = GetCIdDefinition(entityType.ClrType, property.Name);
+                    var converter = CreateCIdValueConverter(definition);
+
+                    if (converter == null)
+                        continue;
+
                     property.SetValueConverter(converter);
 
-                    if (!string.IsNullOrWhiteSpace(turtlePathOptions.CIdDefinition.DatabaseColumnType))
-                        property.SetColumnType(turtlePathOptions.CIdDefinition.DatabaseColumnType);
+                    if (!string.IsNullOrWhiteSpace(definition.DatabaseColumnType))
+                        property.SetColumnType(definition.DatabaseColumnType);
                 }
             }
         }
 
-        private ValueConverter CreateCIdValueConverter()
+        private CIdDefinition GetCIdDefinition(Type entityType, string propertyName)
         {
-            var definition = turtlePathOptions.CIdDefinition;
+            if (turtlePathOptions.CIdDefinitions != null &&
+                turtlePathOptions.CIdDefinitions.TryGet(entityType, propertyName, out var definition))
+                return definition;
 
+            return turtlePathOptions.CIdDefinition;
+        }
+
+        private static ValueConverter CreateCIdValueConverter(CIdDefinition definition)
+        {
             if (definition?.HasDatabaseConversion != true)
                 return null;
 
