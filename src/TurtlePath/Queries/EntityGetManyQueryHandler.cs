@@ -17,7 +17,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class GetManyQuery<TEntity, TResponse, TKey> : IRequest<IEnumerable<TResponse>>
+    public abstract class EntityGetManyQuery<TEntity, TResponse, TKey> : IRequest<IEnumerable<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -37,23 +37,12 @@ namespace TurtlePath.Queries
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetManyQuery<TEntity, TResponse> : GetManyQuery<TEntity, TResponse, CId>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-    {
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling queries that retrieve multiple entities of a given type, with support for filtering and sorting.
-    /// </summary>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class GetManyQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, IEnumerable<TResponse>>
+    public abstract class EntityGetManyQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, IEnumerable<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
-        where TQuery : GetManyQuery<TEntity, TResponse, TKey>
+        where TQuery : EntityGetManyQuery<TEntity, TResponse, TKey>
     {
         /// <summary>
         /// Gets the service provider used to resolve dependencies.
@@ -71,10 +60,10 @@ namespace TurtlePath.Queries
         protected QueryHookContext<TQuery, IEnumerable<TResponse>> Context { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GetManyQueryHandler{TQuery, TEntity, TResponse}"/> class.
+        /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetManyQueryHandler(IServiceProvider serviceProvider)
+        protected EntityGetManyQueryHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
@@ -124,25 +113,5 @@ namespace TurtlePath.Queries
         /// <param name="query">The query request.</param>
         /// <returns>An expression for sorting entities, or null if not specified.</returns>
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery query) => null;
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling queries that retrieve multiple TurtlePath BaseEntity instances.
-    /// </summary>
-    /// <typeparam name="TQuery">The type of the query.</typeparam>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetManyQueryHandler<TQuery, TEntity, TResponse> : GetManyQueryHandler<TQuery, TEntity, TResponse, CId>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-        where TQuery : GetManyQuery<TEntity, TResponse>
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GetManyQueryHandler{TQuery, TEntity, TResponse}"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetManyQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
-        {
-        }
     }
 }

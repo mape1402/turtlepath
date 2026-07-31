@@ -10,17 +10,17 @@ namespace TurtlePath.Queries
     using System.Linq.Expressions;
 
     /// <summary>
-    /// Represents settings for paged queries, including filters, sorts, page size, and page number.
+    /// Settings for paged queries.
     /// </summary>
     public class PagedSettings
     {
         /// <summary>
-        /// Gets or sets the string-based filters to apply to the query.
+        /// Gets or sets the string-based filters to apply.
         /// </summary>
         public string Filters { get; set; }
 
         /// <summary>
-        /// Gets or sets the string-based sorts to apply to the query.
+        /// Gets or sets the string-based sorts to apply.
         /// </summary>
         public string Sorts { get; set; }
 
@@ -41,15 +41,15 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class GetPagedInfoQuery<TEntity, TResponse, TKey> : IRequest<PagedResponse<TResponse>>
+    public abstract class EntityGetPagedInfoQuery<TEntity, TResponse, TKey> : IRequest<PagedResponse<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GetPagedInfoQuery{TEntity, TResponse}"/> class.
+        /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="pagedSettings">The paged settings for the query.</param>
-        protected GetPagedInfoQuery(PagedSettings pagedSettings)
+        protected EntityGetPagedInfoQuery(PagedSettings pagedSettings)
         {
             PagedSettings = pagedSettings;
         }
@@ -65,36 +65,18 @@ namespace TurtlePath.Queries
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetPagedInfoQuery<TEntity, TResponse> : GetPagedInfoQuery<TEntity, TResponse, CId>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GetPagedInfoQuery{TEntity, TResponse}"/> class.
-        /// </summary>
-        /// <param name="pagedSettings">The paged settings for the query.</param>
-        protected GetPagedInfoQuery(PagedSettings pagedSettings) : base(pagedSettings)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling paged queries, including filtering, sorting, and pagination.
-    /// </summary>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class GetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, PagedResponse<TResponse>>
-        where TQuery : GetPagedInfoQuery<TEntity, TResponse, TKey>
+    public abstract class EntityGetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, PagedResponse<TResponse>>
+        where TQuery : EntityGetPagedInfoQuery<TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GetPagedInfoQueryHandler{TQuery, TEntity, TResponse}"/> class.
+        /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetPagedInfoQueryHandler(IServiceProvider serviceProvider)
+        protected EntityGetPagedInfoQueryHandler(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();
@@ -183,25 +165,5 @@ namespace TurtlePath.Queries
         /// <param name="request">The paged query request.</param>
         /// <returns>An expression for sorting entities, or null if not specified.</returns>
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery request) => null;
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling paged queries for TurtlePath BaseEntity instances.
-    /// </summary>
-    /// <typeparam name="TQuery">The type of the query.</typeparam>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetPagedInfoQueryHandler<TQuery, TEntity, TResponse> : GetPagedInfoQueryHandler<TQuery, TEntity, TResponse, CId>
-        where TQuery : GetPagedInfoQuery<TEntity, TResponse>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GetPagedInfoQueryHandler{TQuery, TEntity, TResponse}"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetPagedInfoQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
-        {
-        }
     }
 }

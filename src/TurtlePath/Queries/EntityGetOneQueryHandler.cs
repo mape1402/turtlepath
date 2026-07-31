@@ -17,7 +17,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class GetOneQuery<TValue, TEntity, TResponse, TKey> : IRequest<TResponse>
+    public abstract class EntityGetOneQuery<TValue, TEntity, TResponse, TKey> : IRequest<TResponse>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -33,30 +33,18 @@ namespace TurtlePath.Queries
     /// <typeparam name="TValue">The type of the value used to retrieve the entity.</typeparam>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetOneQuery<TValue, TEntity, TResponse> : GetOneQuery<TValue, TEntity, TResponse, CId>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-    {
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling queries that retrieve a single entity by a specified value.
-    /// </summary>
-    /// <typeparam name="TValue">The type of the value used to retrieve the entity.</typeparam>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class GetOneQueryHandler<TQuery, TValue, TEntity, TResponse, TKey> : IRequestHandler<TQuery, TResponse>
-        where TQuery : GetOneQuery<TValue, TEntity, TResponse, TKey>
+    public abstract class EntityGetOneQueryHandler<TQuery, TValue, TEntity, TResponse, TKey> : IRequestHandler<TQuery, TResponse>
+        where TQuery : EntityGetOneQuery<TValue, TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GetOneQueryHandler{TQuery, TValue, TEntity, TResponse}"/> class.
+        /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetOneQueryHandler(IServiceProvider serviceProvider)
+        protected EntityGetOneQueryHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
@@ -111,26 +99,5 @@ namespace TurtlePath.Queries
         /// <param name="request">The query request.</param>
         /// <returns>An expression for filtering entities.</returns>
         protected abstract Expression<Func<TEntity, bool>> GetFilterExpression(TQuery request);
-    }
-
-    /// <summary>
-    /// Provides a base implementation for handling queries that retrieve a single TurtlePath BaseEntity by a specified value.
-    /// </summary>
-    /// <typeparam name="TQuery">The type of the query.</typeparam>
-    /// <typeparam name="TValue">The type of the value used to retrieve the entity.</typeparam>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetOneQueryHandler<TQuery, TValue, TEntity, TResponse> : GetOneQueryHandler<TQuery, TValue, TEntity, TResponse, CId>
-        where TQuery : GetOneQuery<TValue, TEntity, TResponse>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GetOneQueryHandler{TQuery, TValue, TEntity, TResponse}"/> class.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected GetOneQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
-        {
-        }
     }
 }
