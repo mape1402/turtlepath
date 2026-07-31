@@ -9,6 +9,7 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 The recommended Elysium stack is:
 
 - `TurtlePath`: Pelican command/query handlers, hooks, request/response models, and application exceptions.
+- `TurtlePath.Automations`: profile and attribute driven handler automation for standard TurtlePath flows.
 - `TurtlePath.Domain`: `BaseEntity`, `IEntity<TKey>`, and configurable `CId` identifiers.
 - `TurtlePath.EntityFrameworkCore`: `BaseDbContext`, model conventions, `IDbContext`, and EF-backed storage adapters.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
@@ -29,6 +30,7 @@ Install the focused packages your application actually uses. For example, a typi
 
 ```powershell
 dotnet add package TurtlePath
+dotnet add package TurtlePath.Automations
 dotnet add package TurtlePath.EntityFrameworkCore
 dotnet add package TurtlePath.Sieve
 dotnet add package TurtlePath.OctoMap
@@ -53,6 +55,7 @@ services
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
     .UseCIdProfile<LegacyIdentifierProfile>()
+    .UseAutomations(typeof(MyApplicationMarker).Assembly)
     .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
@@ -112,6 +115,23 @@ public sealed class AppDbContext : BaseDbContext
 
 ## Recommended Usage
 
+Use `TurtlePath.Automations` for standard create, update, delete, patch, and query happy paths. Write DTOs, entities, mappings, validators, and an automation profile; Pelican still resolves the final handlers through `mediator.Send(...)`.
+
+```csharp
+public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
+{
+    public override void Configure(ITurtlePathAutomationBuilder builder)
+    {
+        builder.For<Customer>()
+            .ToCreate<CreateCustomerRequest, CustomerResponse>()
+            .ToUpdate<UpdateCustomerRequest, CustomerResponse>()
+            .ToPatch<PatchCustomerEmailRequest, CustomerResponse>()
+            .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
+            .ToGetPaged<GetCustomersPageQuery, CustomerResponse>(query => query.DefaultSort("Name"));
+    }
+}
+```
+
 Use `BaseEntity` for new entities. It gives every entity a `CId` identifier while allowing each application to decide how that identifier is generated and stored.
 
 ```csharp
@@ -152,14 +172,17 @@ public sealed class UpdateCustomerRequest : BaseRequest, IRequest<CustomerRespon
 }
 ```
 
-Then derive Pelican handlers from the concise handler names. These are the recommended handlers for `BaseEntity` + `CId`:
+Patch commands used by automations should also implement `IPatchAction<TEntity>`:
 
 ```csharp
-public sealed class CreateCustomerHandler
-    : CreateCommandHandler<CreateCustomerRequest, CustomerResponse, Customer>
+public sealed class PatchCustomerEmailRequest : BaseRequest, IRequest<CustomerResponse>, IPatchAction<Customer>
 {
-    public CreateCustomerHandler(IServiceProvider services) : base(services)
+    public string Email { get; set; } = string.Empty;
+
+    public ValueTask PatchAsync(Customer entity, CancellationToken cancellationToken = default)
     {
+        entity.Email = Email.Trim().ToLowerInvariant();
+        return ValueTask.CompletedTask;
     }
 }
 ```
@@ -207,6 +230,8 @@ public sealed class UpdateLegacyCustomerHandler
     }
 }
 ```
+
+Manual handlers remain the extension point when a flow has special behavior. The virtual handler methods still exist for local overrides, while the default implementations delegate to replaceable flow steps from DI.
 
 ## Extracted Template Surface
 

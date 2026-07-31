@@ -34,6 +34,10 @@ All notable changes to TurtlePath will be documented in this file.
 - Replaced static hook runner behavior with dependency-injected hook runner services.
 - Restored no-response create, update, patch, and delete command handlers for both generic-key and BaseEntity/CId flows.
 - Grouped generic response and no-response command handlers by operation and kept the same `Generic...CommandHandler` names with different generic arity.
+- Added `TurtlePath.Automations` with profile and attribute descriptors for declarative handler automation.
+- Added generated-style automation handler registration for create, update, delete, patch, get by id, get one, get many, and paged query flows.
+- Added `IPatchAction<TEntity>` and a replaceable patch step so automated patch commands can apply request-owned changes.
+- Updated the basic sample to use automation profiles for the recommended Customer happy path while retaining manual handlers for custom cases.
 
 ### Changed
 
