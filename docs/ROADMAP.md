@@ -84,6 +84,7 @@ EF Core adapter package.
 
 - EF-backed storage reader/writer adapters
 - EF-specific `IDbContext` if still useful
+- base `DbContext` with configuration discovery and `CId` conversion
 - entity configurations
 - DI extensions for EF-backed TurtlePath services
 

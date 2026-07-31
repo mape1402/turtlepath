@@ -15,4 +15,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Consolidated mapping, validation, and persistence contracts into `TurtlePath.Abstractions`.
 - Removed the root composition package, standalone identifier package, CId EF value generator package, serialization package, and Swagger package; identifiers now live under `TurtlePath.Domain.Identifier`.
 - Renamed the main handler package from `TurtlePath.Application` to `TurtlePath`.
+- Added the EF Core base DbContext with configuration discovery and `CId` value conversion.
 

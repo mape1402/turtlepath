@@ -29,6 +29,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             CIdMetadata.AllowedType = typeof(TTargetType);
             CIdMetadata.DbType = config.DbType;
+            CIdMetadata.ConvertToDb = config.ConvertToDb;
+            CIdMetadata.ConvertFromDb = config.ConvertFromDb;
             CIdMetadata.DefaultFactory = config.DefaultFactory;
             CIdMetadata.ToByteArrayFunction = (v) => config.ToByteArrayFunction((TTargetType)v);
             CIdMetadata.JsonConverter = config.JsonConverter;

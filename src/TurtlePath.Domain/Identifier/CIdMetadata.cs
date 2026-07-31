@@ -1,5 +1,7 @@
 namespace TurtlePath.Domain.Identifier
 {
+    using System.Linq.Expressions;
+
     /// <summary>
     /// Provides metadata and configuration for the <see cref="CId"/> identifier type.
     /// </summary>
@@ -16,6 +18,16 @@ namespace TurtlePath.Domain.Identifier
         /// <remarks>This property is intended for internal use. Assign a value that is compatible with
         /// the underlying database system to ensure correct data processing and storage.</remarks>
         public static string DbType { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the expression that converts a <see cref="CId"/> to the configured database value.
+        /// </summary>
+        public static LambdaExpression ConvertToDb { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the expression that converts the configured database value to a <see cref="CId"/>.
+        /// </summary>
+        public static LambdaExpression ConvertFromDb { get; internal set; }
 
         /// <summary>
         /// Gets a value indicating whether a database type has been defined.
@@ -64,6 +76,8 @@ namespace TurtlePath.Domain.Identifier
         {
             AllowedType = null;
             DbType = null;
+            ConvertToDb = null;
+            ConvertFromDb = null;
             DefaultFactory = () => new CId();
             ToByteArrayFunction = null;
             JsonConverter = value => new CId(value);
