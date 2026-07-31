@@ -1,9 +1,11 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
     using TurtlePath.EntityFrameworkCore;
+    using TurtlePath.EntityFrameworkCore.Conventions;
     using TurtlePath.Domain.Identifier;
     using TurtlePath;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
 
     /// <summary>
     /// Provides registration helpers for TurtlePath Entity Framework Core integration.
@@ -35,6 +37,9 @@ namespace Microsoft.Extensions.DependencyInjection
             IServiceCollection services,
             Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure)
         {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<ITurtlePathModelConvention, BaseEntityModelConvention>());
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<ITurtlePathModelConvention, CIdModelConvention>());
+
             services.AddSingleton(provider =>
             {
                 var options = configure?.Invoke(TurtlePathDbContextOptions.Default) ?? TurtlePathDbContextOptions.Default;

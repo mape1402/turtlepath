@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using TurtlePath.EntityFrameworkCore;
+using TurtlePath.EntityFrameworkCore.Conventions;
 using TurtlePath.Domain.Identifier;
 
 namespace TurtlePath.Tests;
@@ -99,10 +100,31 @@ public class EntityFrameworkCoreRegistrationTests
         Assert.IsType<SampleDbContext>(dbContext);
     }
 
+    [Fact]
+    public void UseEntityFrameworkCore_registers_model_conventions()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
+
+        services
+            .AddTurtlePath()
+            .UseEntityFrameworkCore<SampleDbContext>();
+
+        using var provider = services.BuildServiceProvider();
+        var conventions = provider.GetServices<ITurtlePathModelConvention>().ToArray();
+
+        Assert.Contains(conventions, convention => convention is BaseEntityModelConvention);
+        Assert.Contains(conventions, convention => convention is CIdModelConvention);
+    }
+
     private sealed class SampleDbContext : BaseDbContext
     {
-        public SampleDbContext(DbContextOptions<SampleDbContext> options, TurtlePathDbContextOptions turtlePathOptions)
-            : base(options, turtlePathOptions)
+        public SampleDbContext(
+            DbContextOptions<SampleDbContext> options,
+            TurtlePathDbContextOptions turtlePathOptions,
+            IEnumerable<ITurtlePathModelConvention> modelConventions)
+            : base(options, turtlePathOptions, modelConventions)
         {
         }
     }
