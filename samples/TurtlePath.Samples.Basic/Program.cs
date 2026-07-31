@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Pelican.Mediator;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Mapping;
 using TurtlePath.Persistence;
 using TurtlePath.Validation;
-using TurtlePath.Samples.Basic.Application.Handlers;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Infrastructure;
 using TurtlePath.Samples.Basic.Infrastructure.Adapters;
@@ -24,8 +24,7 @@ services.AddScoped<IMapperAdapter, SampleMapperAdapter>();
 services.AddScoped<IValidatorAdapter, SampleValidatorAdapter>();
 services.AddScoped<IStorageWriterAdapter, StorageWriterAdapter>();
 services.AddScoped<IStorageReaderAdapter, StorageReaderAdapter>();
-services.AddScoped<CreateCustomerCommandHandler>();
-services.AddScoped<CreateTenantOrderCommandHandler>();
+services.AddPelican(sampleAssembly);
 services.AddDbContext<CommerceDbContext>((provider, options) =>
     options.UseSqlite(provider.GetRequiredService<SqliteConnection>()));
 
@@ -58,18 +57,17 @@ await dbContext.Database.EnsureCreatedAsync();
 
 var idFactory = scopedProvider.GetRequiredService<ICIdFactory>();
 var auditLog = scopedProvider.GetRequiredService<SampleAuditLog>();
-var createCustomer = scopedProvider.GetRequiredService<CreateCustomerCommandHandler>();
-var createTenantOrder = scopedProvider.GetRequiredService<CreateTenantOrderCommandHandler>();
+var mediator = scopedProvider.GetRequiredService<IMediator>();
 
 var customerRequest = new CreateCustomerRequest("Ada Lovelace", "ADA@EXAMPLE.COM");
-var customer = await createCustomer.Handle(customerRequest);
+var customer = await mediator.Send(customerRequest);
 
 var orderRequest = new CreateTenantOrderRequest(
     customer.Id,
     Guid.Parse("87a62326-5f8a-4f5a-9c62-7fa7d11127d5"),
     1001,
     189.95m);
-var order = await createTenantOrder.Handle(orderRequest);
+var order = await mediator.Send(orderRequest);
 
 var persistedCustomers = await dbContext.Customers.CountAsync();
 var persistedOrders = await dbContext.TenantOrders.CountAsync();
