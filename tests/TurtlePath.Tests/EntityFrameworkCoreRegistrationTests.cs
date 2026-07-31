@@ -11,8 +11,10 @@ public class EntityFrameworkCoreRegistrationTests
     public void UseEntityFrameworkCore_registers_default_options()
     {
         var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
 
-        services.AddTurtlePath().UseEntityFrameworkCore();
+        services.AddTurtlePath().UseEntityFrameworkCore<SampleDbContext>();
 
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<TurtlePathDbContextOptions>();
@@ -27,10 +29,12 @@ public class EntityFrameworkCoreRegistrationTests
     public void UseEntityFrameworkCore_registers_configured_options()
     {
         var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
 
         services
             .AddTurtlePath()
-            .UseEntityFrameworkCore(options => options with
+            .UseEntityFrameworkCore<SampleDbContext>(options => options with
             {
                 ApplyBaseEntityConventions = false,
                 ConfigurationAssemblies = [typeof(EntityFrameworkCoreRegistrationTests).Assembly]
@@ -50,6 +54,8 @@ public class EntityFrameworkCoreRegistrationTests
     {
         CIdMetadata.Reset();
         var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
 
         services
             .AddTurtlePath()
@@ -64,7 +70,7 @@ public class EntityFrameworkCoreRegistrationTests
                 config.ParseFunction = value => CId.From(Guid.Parse(value));
                 config.ToByteArrayFunction = value => value.ToByteArray();
             })
-            .UseEntityFrameworkCore();
+            .UseEntityFrameworkCore<SampleDbContext>();
 
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<TurtlePathDbContextOptions>();

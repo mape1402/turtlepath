@@ -11,24 +11,6 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class TurtlePathEntityFrameworkCoreServiceCollectionExtensions
     {
         /// <summary>
-        /// Registers TurtlePath Entity Framework Core options on the current TurtlePath pipeline.
-        /// </summary>
-        /// <param name="builder">The TurtlePath builder.</param>
-        /// <param name="configure">The options configuration callback.</param>
-        /// <returns>The same TurtlePath builder.</returns>
-        public static ITurtlePathBuilder UseEntityFrameworkCore(
-            this ITurtlePathBuilder builder,
-            Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure = null)
-        {
-            if (builder == null)
-                throw new ArgumentNullException(nameof(builder));
-
-            AddTurtlePathEntityFrameworkCore(builder.Services, configure);
-
-            return builder;
-        }
-
-        /// <summary>
         /// Registers TurtlePath Entity Framework Core options and maps the concrete context to <see cref="IDbContext"/>.
         /// </summary>
         /// <typeparam name="TDbContext">The application's DbContext type.</typeparam>
