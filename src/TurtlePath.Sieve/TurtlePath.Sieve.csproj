@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.Sieve</PackageId>
     <Description>Sieve criteria adapter for TurtlePath persistence abstractions.</Description>

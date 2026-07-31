@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath</PackageId>
     <Description>Main TurtlePath package with handler foundations, hooks, request/response models, and application errors.</Description>

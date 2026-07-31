@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.AutoMapper</PackageId>
     <Description>AutoMapper adapter for TurtlePath mapping contracts.</Description>

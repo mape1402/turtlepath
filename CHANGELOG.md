@@ -42,3 +42,4 @@ All notable changes to TurtlePath will be documented in this file.
 - Made EF Core register `IStorageReaderAdapter` and `IStorageWriterAdapter` by default when `UseEntityFrameworkCore<TDbContext>()` is used.
 - Hid the default hook runner implementation behind `IHandlerHookRunner`.
 - Made `NotFoundException` inherit `HttpException` with HTTP 404 semantics.
+- Added the TurtlePath package icon and made all source library projects explicitly packable NuGet projects.

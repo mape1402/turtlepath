@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.Abstractions</PackageId>
     <Description>Provider-neutral mapping, validation, and persistence contracts for TurtlePath.</Description>

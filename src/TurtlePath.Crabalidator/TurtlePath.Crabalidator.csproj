@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.Crabalidator</PackageId>
     <Description>Crabalidator adapter for TurtlePath validation contracts.</Description>

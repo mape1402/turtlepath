@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.Domain</PackageId>
     <Description>Domain primitives for TurtlePath, including identifiers, entity contracts, and base entity types.</Description>

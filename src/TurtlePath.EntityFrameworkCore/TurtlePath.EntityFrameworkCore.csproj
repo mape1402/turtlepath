@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>TurtlePath.EntityFrameworkCore</PackageId>
     <Description>Entity Framework Core storage adapters and configuration helpers for TurtlePath.</Description>

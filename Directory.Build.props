@@ -21,7 +21,7 @@
     <RepositoryUrl>https://github.com/mape1402/turtlepath</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/mape1402/turtlepath</PackageProjectUrl>
-    <PackageIcon>image.png</PackageIcon>
+    <PackageIcon>turtlepath.png</PackageIcon>
     <PackageReleaseNotes>https://github.com/mape1402/turtlepath/releases</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <None Include="../../README.md" Pack="true" Visible="false" PackagePath="" />
-    <None Include="../../assets/image.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="../../assets/turtlepath.png" Pack="true" Visible="false" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup>
