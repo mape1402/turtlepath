@@ -4,15 +4,15 @@ using TurtlePath.Samples.Basic.Domain.Entities;
 
 namespace TurtlePath.Samples.Basic.Application.Hooks;
 
-public sealed class NormalizeCustomerEmailHook : IBeforeValidationHook<CreateCustomerRequest, Customer>, IOrderedHook
+public sealed class NormalizeCustomerEmailAfterMapHook : IAfterMapHook<CreateCustomerRequest, Customer>, IOrderedHook
 {
     public int Order => 0;
 
-    public ValueTask BeforeValidationAsync(
+    public ValueTask AfterMapAsync(
         CommandHookContext<CreateCustomerRequest, Customer> context,
         CancellationToken cancellationToken = default)
     {
-        context.Entity.Email = context.Request.Email.Trim().ToLowerInvariant();
+        context.Entity.Email = context.Entity.Email.Trim().ToLowerInvariant();
 
         return ValueTask.CompletedTask;
     }

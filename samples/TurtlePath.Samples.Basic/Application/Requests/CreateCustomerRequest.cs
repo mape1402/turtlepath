@@ -1,3 +1,6 @@
 namespace TurtlePath.Samples.Basic.Application.Requests;
 
-public sealed record CreateCustomerRequest(string Name, string Email);
+using Pelican.Mediator;
+using TurtlePath.Samples.Basic.Application.Responses;
+
+public sealed record CreateCustomerRequest(string Name, string Email) : IRequest<CustomerResponse>;

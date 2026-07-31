@@ -9,6 +9,8 @@ public sealed class TenantOrderConfiguration : IEntityTypeConfiguration<TenantOr
     public void Configure(EntityTypeBuilder<TenantOrder> builder)
     {
         builder.ToTable("TenantOrders");
+        builder.Property(order => order.Id);
+        builder.Property(order => order.CustomerId);
         builder.Property(order => order.Total).HasPrecision(18, 2);
         builder.HasOne(order => order.Customer)
             .WithMany(customer => customer.Orders)

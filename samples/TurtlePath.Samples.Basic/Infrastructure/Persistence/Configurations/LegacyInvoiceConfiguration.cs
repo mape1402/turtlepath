@@ -9,6 +9,8 @@ public sealed class LegacyInvoiceConfiguration : IEntityTypeConfiguration<Legacy
     public void Configure(EntityTypeBuilder<LegacyInvoice> builder)
     {
         builder.ToTable("LegacyInvoices");
+        builder.Property(invoice => invoice.Id);
+        builder.Property(invoice => invoice.CustomerId);
         builder.Property(invoice => invoice.Amount).HasPrecision(18, 2);
         builder.HasOne(invoice => invoice.Customer)
             .WithMany(customer => customer.Invoices)
