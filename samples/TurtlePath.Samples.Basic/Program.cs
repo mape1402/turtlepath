@@ -64,8 +64,6 @@ var customer = await mediator.Send(customerRequest);
 
 var orderRequest = new CreateTenantOrderRequest(
     customer.Id,
-    Guid.Parse("87a62326-5f8a-4f5a-9c62-7fa7d11127d5"),
-    1001,
     189.95m);
 var order = await mediator.Send(orderRequest);
 
@@ -76,7 +74,7 @@ var persistedInvoices = await dbContext.LegacyInvoices.CountAsync();
 Console.WriteLine("TurtlePath commerce sample");
 Console.WriteLine($"Default customer CId: {customer.Id}");
 Console.WriteLine($"Generated customer CId from factory: {idFactory.New()}");
-Console.WriteLine($"Serialized order key CId: {order.Id}");
+Console.WriteLine($"Order CId: {order.Id}");
 Console.WriteLine($"Legacy invoice CId: {order.LegacyInvoiceId}");
 Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}");
 Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");

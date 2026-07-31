@@ -2,7 +2,6 @@ using TurtlePath.Mapping;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Application.Responses;
 using TurtlePath.Samples.Basic.Domain.Entities;
-using TurtlePath.Samples.Basic.Domain.Identifier;
 
 namespace TurtlePath.Samples.Basic.Infrastructure.Adapters;
 
@@ -29,7 +28,6 @@ public sealed class SampleMapperAdapter : IMapperAdapter
             },
             CreateTenantOrderRequest request when typeof(TDestination) == typeof(TenantOrder) => new TenantOrder
             {
-                Id = TenantOrderId.Create(request.TenantId, request.OrderNumber),
                 CustomerId = request.CustomerId,
                 Total = request.Total
             },

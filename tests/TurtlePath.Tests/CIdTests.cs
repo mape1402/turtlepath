@@ -44,21 +44,6 @@ public class CIdTests
     }
 
     [Fact]
-    public void Composite_ids_compare_by_part_name_and_value()
-    {
-        var left = CId.Composite(
-            new CIdPart("TenantId", Guid.Parse("2e80d91a-9025-45b7-a9a5-7d06e7360f82")),
-            new CIdPart("OrderNumber", 42));
-        var right = CId.Composite(
-            new CIdPart("TenantId", Guid.Parse("2e80d91a-9025-45b7-a9a5-7d06e7360f82")),
-            new CIdPart("OrderNumber", 42));
-
-        Assert.True(left.IsComposite);
-        Assert.Equal(left, right);
-        Assert.Equal("TenantId=2e80d91a-9025-45b7-a9a5-7d06e7360f82;OrderNumber=42", left.ToString());
-    }
-
-    [Fact]
     public void Registry_allows_multiple_identifier_definitions()
     {
         var registry = new CIdDefinitionRegistry();

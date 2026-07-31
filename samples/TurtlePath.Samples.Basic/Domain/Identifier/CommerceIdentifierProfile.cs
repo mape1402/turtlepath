@@ -1,4 +1,3 @@
-using System.Text;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.Samples.Basic.Domain.Entities;
 
@@ -17,17 +16,6 @@ public sealed class CommerceIdentifierProfile : CIdProfile
             config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(int.Parse(value));
             config.ParseFunction = value => CId.From(int.Parse(value));
             config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
-        });
-
-        builder.UseCIdFor<TenantOrder, TenantOrderKey, string>(config =>
-        {
-            config.DefaultFactory = () => TenantOrderId.Create(Guid.Empty, 0);
-            config.ConvertToDb = id => TenantOrderId.ToStorage(id);
-            config.ConvertFromDb = value => TenantOrderId.FromStorage(value);
-            config.JsonConverter = TenantOrderId.FromStorage;
-            config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : TenantOrderId.FromStorage(value);
-            config.ParseFunction = TenantOrderId.FromStorage;
-            config.ToByteArrayFunction = value => Encoding.UTF8.GetBytes(TenantOrderId.ToStorage(value));
         });
     }
 }
