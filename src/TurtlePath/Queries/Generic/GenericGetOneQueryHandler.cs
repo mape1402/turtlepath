@@ -48,6 +48,7 @@ namespace TurtlePath.Queries
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
+            hookStageRunner = Services.GetRequiredService<IQueryHookStageRunner<TQuery, TResponse>>();
         }
 
         /// <summary>
@@ -59,6 +60,8 @@ namespace TurtlePath.Queries
         /// Gets the storage adapter for reading entities.
         /// </summary>
         protected IStorageReaderAdapter StorageReaderAdapter { get; }
+
+        private readonly IQueryHookStageRunner<TQuery, TResponse> hookStageRunner;
 
         /// <summary>
         /// Gets the hook context for the current handler execution.
@@ -75,7 +78,7 @@ namespace TurtlePath.Queries
         {
             Context = new QueryHookContext<TQuery, TResponse>(request);
 
-            await QueryHookStageRunner.BeforeQueryAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeQueryAsync(Context, cancellationToken);
 
             var response = await StorageReaderAdapter
                 .For<TEntity>()
@@ -86,7 +89,7 @@ namespace TurtlePath.Queries
 
             Context.Result = response;
 
-            await QueryHookStageRunner.AfterQueryAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterQueryAsync(Context, cancellationToken);
 
             return response;
         }

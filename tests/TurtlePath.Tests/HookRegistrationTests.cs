@@ -21,18 +21,20 @@ public class HookRegistrationTests
     }
 
     [Fact]
-    public async Task RunHooksAsync_executes_hooks_by_order()
+    public async Task HandlerHookRunner_executes_hooks_by_order()
     {
         var calls = new List<string>();
         var services = new ServiceCollection();
         services.AddSingleton(calls);
+        services.AddTurtlePath();
         services.AddHandlerHook<SecondOrderedBeforeValidationHook>();
         services.AddHandlerHook<FirstOrderedBeforeValidationHook>();
 
         using var provider = services.BuildServiceProvider();
         var context = new CommandHookContext<SampleRequest, SampleEntity>(new SampleRequest());
+        var runner = provider.GetRequiredService<IHandlerHookRunner>();
 
-        await provider.RunHooksAsync<IBeforeValidationHook<SampleRequest, SampleEntity>>(
+        await runner.RunAsync<IBeforeValidationHook<SampleRequest, SampleEntity>>(
             hook => hook.BeforeValidationAsync(context));
 
         Assert.Equal(["first", "second"], calls);

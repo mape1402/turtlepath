@@ -53,6 +53,8 @@ namespace TurtlePath.Commands
         /// </summary>
         protected virtual bool ValidateRequest => false;
 
+        private readonly ICommandHookStageRunner<TRequest, TEntity, TResponse> hookStageRunner;
+
         /// <summary>
         /// Gets the hook context for the current handler execution.
         /// </summary>
@@ -69,6 +71,7 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = serviceProvider.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = serviceProvider.GetRequiredService<IMapperAdapter>();
+            hookStageRunner = serviceProvider.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
         /// <summary>
@@ -81,27 +84,27 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
-            await CommandHookStageRunner.BeforeGetEntityAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
-            await CommandHookStageRunner.AfterGetEntityAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeValidationAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
             await ValidateAsync(request, entity, cancellationToken);
 
-            await CommandHookStageRunner.AfterValidationAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeDeleteAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeDeleteAsync(Context, cancellationToken);
             await DeleteEntityAsync(entity, cancellationToken);
 
-            await CommandHookStageRunner.AfterDeleteAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterDeleteAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeResponseAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeResponseAsync(Context, cancellationToken);
             var response = await BuildResponseAsync(request, entity, cancellationToken);
             Context.Response = response;
 
-            await CommandHookStageRunner.AfterResponseAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterResponseAsync(Context, cancellationToken);
 
             return response;
         }

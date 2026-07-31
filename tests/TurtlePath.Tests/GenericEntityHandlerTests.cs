@@ -129,6 +129,7 @@ public class GenericEntityHandlerTests
     {
         var services = new ServiceCollection();
 
+        services.AddTurtlePath();
         services.AddSingleton(storageWriterAdapter);
         services.AddSingleton(storageReaderAdapter);
         services.AddSingleton(mapperAdapter);

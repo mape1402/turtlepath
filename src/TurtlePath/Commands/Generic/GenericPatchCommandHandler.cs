@@ -54,6 +54,8 @@ namespace TurtlePath.Commands
         /// </summary>
         protected virtual bool ValidateRequest => false;
 
+        private readonly ICommandHookStageRunner<TRequest, TEntity, TResponse> hookStageRunner;
+
         /// <summary>
         /// Gets the hook context for the current handler execution.
         /// </summary>
@@ -70,6 +72,7 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
         /// <summary>
@@ -82,32 +85,32 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
-            await CommandHookStageRunner.BeforeGetEntityAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
-            await CommandHookStageRunner.AfterGetEntityAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeValidationAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
             await ValidateAsync(request, entity, cancellationToken);
 
-            await CommandHookStageRunner.AfterValidationAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforePatchAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforePatchAsync(Context, cancellationToken);
             await PatchEntityAsync(request, entity, cancellationToken);
 
-            await CommandHookStageRunner.AfterPatchAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterPatchAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeSaveAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeSaveAsync(Context, cancellationToken);
             await UpdateEntityAsync(request, entity, cancellationToken);
 
-            await CommandHookStageRunner.AfterSaveAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterSaveAsync(Context, cancellationToken);
 
-            await CommandHookStageRunner.BeforeResponseAsync(Services, Context, cancellationToken);
+            await hookStageRunner.BeforeResponseAsync(Context, cancellationToken);
             var response = await BuildResponseAsync(request, entity, cancellationToken);
             Context.Response = response;
 
-            await CommandHookStageRunner.AfterResponseAsync(Services, Context, cancellationToken);
+            await hookStageRunner.AfterResponseAsync(Context, cancellationToken);
 
             return response;
         }

@@ -1,19 +1,31 @@
 namespace TurtlePath.Hooks
 {
-    internal static class QueryHookStageRunner
+    internal interface IQueryHookStageRunner<TQuery, TResult>
     {
-        public static ValueTask BeforeQueryAsync<TQuery, TResult>(
-            IServiceProvider services,
+        ValueTask BeforeQueryAsync(QueryHookContext<TQuery, TResult> context, CancellationToken cancellationToken);
+
+        ValueTask AfterQueryAsync(QueryHookContext<TQuery, TResult> context, CancellationToken cancellationToken);
+    }
+
+    internal sealed class QueryHookStageRunner<TQuery, TResult> : IQueryHookStageRunner<TQuery, TResult>
+    {
+        private readonly IHandlerHookRunner hookRunner;
+
+        public QueryHookStageRunner(IHandlerHookRunner hookRunner)
+        {
+            this.hookRunner = hookRunner ?? throw new ArgumentNullException(nameof(hookRunner));
+        }
+
+        public ValueTask BeforeQueryAsync(
             QueryHookContext<TQuery, TResult> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeQueryHook<TQuery, TResult>>(
+            => hookRunner.RunAsync<IBeforeQueryHook<TQuery, TResult>>(
                 hook => hook.BeforeQueryAsync(context, cancellationToken));
 
-        public static ValueTask AfterQueryAsync<TQuery, TResult>(
-            IServiceProvider services,
+        public ValueTask AfterQueryAsync(
             QueryHookContext<TQuery, TResult> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterQueryHook<TQuery, TResult>>(
+            => hookRunner.RunAsync<IAfterQueryHook<TQuery, TResult>>(
                 hook => hook.AfterQueryAsync(context, cancellationToken));
     }
 }

@@ -1,103 +1,127 @@
 namespace TurtlePath.Hooks
 {
-    internal static class CommandHookStageRunner
+    internal interface ICommandHookStageRunner<TRequest, TEntity, TResponse>
     {
-        public static ValueTask BeforeValidationAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        ValueTask BeforeValidationAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterValidationAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforeGetEntityAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterGetEntityAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforeMapAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterMapAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforePatchAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterPatchAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforeSaveAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterSaveAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforeDeleteAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterDeleteAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask BeforeResponseAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+
+        ValueTask AfterResponseAsync(CommandHookContext<TRequest, TEntity, TResponse> context, CancellationToken cancellationToken);
+    }
+
+    internal sealed class CommandHookStageRunner<TRequest, TEntity, TResponse> : ICommandHookStageRunner<TRequest, TEntity, TResponse>
+    {
+        private readonly IHandlerHookRunner hookRunner;
+
+        public CommandHookStageRunner(IHandlerHookRunner hookRunner)
+        {
+            this.hookRunner = hookRunner ?? throw new ArgumentNullException(nameof(hookRunner));
+        }
+
+        public ValueTask BeforeValidationAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeValidationHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforeValidationHook<TRequest, TEntity>>(
                 hook => hook.BeforeValidationAsync(context, cancellationToken));
 
-        public static ValueTask AfterValidationAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterValidationAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterValidationHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterValidationHook<TRequest, TEntity>>(
                 hook => hook.AfterValidationAsync(context, cancellationToken));
 
-        public static ValueTask BeforeGetEntityAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforeGetEntityAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeGetEntityHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforeGetEntityHook<TRequest, TEntity>>(
                 hook => hook.BeforeGetEntityAsync(context, cancellationToken));
 
-        public static ValueTask AfterGetEntityAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterGetEntityAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterGetEntityHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterGetEntityHook<TRequest, TEntity>>(
                 hook => hook.AfterGetEntityAsync(context, cancellationToken));
 
-        public static ValueTask BeforeMapAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforeMapAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeMapHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforeMapHook<TRequest, TEntity>>(
                 hook => hook.BeforeMapAsync(context, cancellationToken));
 
-        public static ValueTask AfterMapAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterMapAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterMapHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterMapHook<TRequest, TEntity>>(
                 hook => hook.AfterMapAsync(context, cancellationToken));
 
-        public static ValueTask BeforePatchAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforePatchAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforePatchHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforePatchHook<TRequest, TEntity>>(
                 hook => hook.BeforePatchAsync(context, cancellationToken));
 
-        public static ValueTask AfterPatchAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterPatchAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterPatchHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterPatchHook<TRequest, TEntity>>(
                 hook => hook.AfterPatchAsync(context, cancellationToken));
 
-        public static ValueTask BeforeSaveAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforeSaveAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeSaveHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforeSaveHook<TRequest, TEntity>>(
                 hook => hook.BeforeSaveAsync(context, cancellationToken));
 
-        public static ValueTask AfterSaveAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterSaveAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterSaveHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterSaveHook<TRequest, TEntity>>(
                 hook => hook.AfterSaveAsync(context, cancellationToken));
 
-        public static ValueTask BeforeDeleteAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforeDeleteAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeDeleteHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IBeforeDeleteHook<TRequest, TEntity>>(
                 hook => hook.BeforeDeleteAsync(context, cancellationToken));
 
-        public static ValueTask AfterDeleteAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterDeleteAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterDeleteHook<TRequest, TEntity>>(
+            => hookRunner.RunAsync<IAfterDeleteHook<TRequest, TEntity>>(
                 hook => hook.AfterDeleteAsync(context, cancellationToken));
 
-        public static ValueTask BeforeResponseAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask BeforeResponseAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IBeforeResponseHook<TRequest, TEntity, TResponse>>(
+            => hookRunner.RunAsync<IBeforeResponseHook<TRequest, TEntity, TResponse>>(
                 hook => hook.BeforeResponseAsync(context, cancellationToken));
 
-        public static ValueTask AfterResponseAsync<TRequest, TEntity, TResponse>(
-            IServiceProvider services,
+        public ValueTask AfterResponseAsync(
             CommandHookContext<TRequest, TEntity, TResponse> context,
             CancellationToken cancellationToken)
-            => services.RunHooksAsync<IAfterResponseHook<TRequest, TEntity, TResponse>>(
+            => hookRunner.RunAsync<IAfterResponseHook<TRequest, TEntity, TResponse>>(
                 hook => hook.AfterResponseAsync(context, cancellationToken));
     }
 }

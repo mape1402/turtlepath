@@ -1,5 +1,6 @@
 namespace Microsoft.Extensions.DependencyInjection
 {
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using System.Reflection;
     using TurtlePath;
     using TurtlePath.Domain.Identifier;
@@ -20,6 +21,10 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
+
+            services.TryAddScoped<IHandlerHookRunner, HandlerHookRunner>();
+            services.TryAddScoped(typeof(ICommandHookStageRunner<,,>), typeof(CommandHookStageRunner<,,>));
+            services.TryAddScoped(typeof(IQueryHookStageRunner<,>), typeof(QueryHookStageRunner<,>));
 
             if (hookAssemblies?.Length > 0)
                 services.AddHandlerHooksFromAssemblies(hookAssemblies);
