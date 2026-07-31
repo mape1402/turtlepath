@@ -1,6 +1,6 @@
 namespace TurtlePath.Persistence
 {
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
 
     /// <summary>
     /// Applies provider-specific criteria to an entity query.
@@ -18,3 +18,4 @@ namespace TurtlePath.Persistence
             where TEntity : BaseEntity;
     }
 }
+

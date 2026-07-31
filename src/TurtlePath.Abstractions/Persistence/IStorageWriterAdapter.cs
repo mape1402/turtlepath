@@ -1,6 +1,6 @@
 namespace TurtlePath.Persistence
 {
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
 
     /// <summary>
     /// Defines an abstraction for storage operations on entities, including save, update, delete, and retrieval.
@@ -91,3 +91,4 @@ namespace TurtlePath.Persistence
         Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
     }
 }
+

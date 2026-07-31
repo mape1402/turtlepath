@@ -1,7 +1,7 @@
 namespace TurtlePath.EntityFrameworkCore
 {
     using TurtlePath.Persistence;
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using TurtlePath.EntityFrameworkCore;
 
     /// <summary>
@@ -99,3 +99,4 @@ namespace TurtlePath.EntityFrameworkCore
         }
     }
 }
+

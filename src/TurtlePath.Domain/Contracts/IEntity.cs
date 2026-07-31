@@ -1,4 +1,4 @@
-namespace TurtlePath.Contracts
+namespace TurtlePath.Domain.Contracts
 {
     /// <summary>
     /// Defines a non-generic entity marker interface.
@@ -17,3 +17,4 @@ namespace TurtlePath.Contracts
         TKey Id { get; set; }
     }
 }
+

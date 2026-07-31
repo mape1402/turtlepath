@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using TurtlePath.Contracts;
+using TurtlePath.Domain.Contracts;
 
 namespace TurtlePath.EntityFrameworkCore
 {
@@ -21,3 +21,4 @@ namespace TurtlePath.EntityFrameworkCore
         }
     }
 }
+

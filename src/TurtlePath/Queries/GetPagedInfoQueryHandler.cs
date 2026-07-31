@@ -4,7 +4,7 @@ namespace TurtlePath.Queries
     using TurtlePath.Hooks;
     using TurtlePath.Models.Responses;
     using TurtlePath.Persistence;
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using Pelican.Mediator;
     using System.Linq.Expressions;
 
@@ -164,4 +164,5 @@ namespace TurtlePath.Queries
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery request) => null;
     }
 }
+
 

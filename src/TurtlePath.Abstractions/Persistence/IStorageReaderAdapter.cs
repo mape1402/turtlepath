@@ -1,6 +1,6 @@
 namespace TurtlePath.Persistence
 {
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using System.Linq.Expressions;
 
     /// <summary>
@@ -259,3 +259,4 @@ namespace TurtlePath.Persistence
             where TExpected : class;
     }
 }
+

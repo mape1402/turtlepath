@@ -1,6 +1,6 @@
 using TurtlePath.Domain.Identifier;
 
-namespace TurtlePath.Contracts
+namespace TurtlePath.Domain.Contracts
 {
     /// <summary>
     /// Provides a base implementation for entities with a <see cref="CId"/> identifier.
@@ -13,4 +13,5 @@ namespace TurtlePath.Contracts
         public CId Id { get; set; }
     }
 }
+
 

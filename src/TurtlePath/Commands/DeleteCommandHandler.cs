@@ -7,7 +7,7 @@ namespace TurtlePath.Commands
     using TurtlePath.Persistence;
     using TurtlePath.Validation;
     using TurtlePath.Mapping;
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using Pelican.Mediator;
 
     /// <summary>
@@ -301,4 +301,5 @@ namespace TurtlePath.Commands
         }
     }
 }
+
 

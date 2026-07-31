@@ -3,7 +3,7 @@ namespace TurtlePath.EntityFrameworkCore
     using Microsoft.EntityFrameworkCore;
     using TurtlePath.Mapping;
     using TurtlePath.Persistence;
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using System.Linq.Expressions;
 
     /// <summary>
@@ -293,3 +293,4 @@ namespace TurtlePath.EntityFrameworkCore
         }
     }
 }
+

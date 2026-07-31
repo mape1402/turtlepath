@@ -70,13 +70,17 @@ public class ProjectStructureTests
     }
 
     [Fact]
-    public void Domain_project_owns_identifiers_without_entity_framework_references()
+    public void Domain_project_owns_contracts_and_identifiers_without_entity_framework_references()
     {
         var root = FindRepositoryRoot();
         var domainProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Domain", "TurtlePath.Domain.csproj"));
         var identifier = Path.Combine(root, "src", "TurtlePath.Domain", "Identifier", "CId.cs");
+        var entity = Path.Combine(root, "src", "TurtlePath.Domain", "Contracts", "IEntity.cs");
+        var baseEntity = Path.Combine(root, "src", "TurtlePath.Domain", "Contracts", "BaseEntity.cs");
 
         Assert.True(File.Exists(identifier));
+        Assert.True(File.Exists(entity));
+        Assert.True(File.Exists(baseEntity));
         Assert.DoesNotContain("Microsoft.EntityFrameworkCore", domainProject);
     }
 

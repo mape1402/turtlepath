@@ -2,7 +2,7 @@ namespace TurtlePath.Sieve
 {
     using global::Sieve.Models;
     using global::Sieve.Services;
-    using TurtlePath.Contracts;
+    using TurtlePath.Domain.Contracts;
     using TurtlePath.Persistence;
 
     /// <summary>
@@ -41,3 +41,4 @@ namespace TurtlePath.Sieve
         }
     }
 }
+
