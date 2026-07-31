@@ -29,7 +29,7 @@ public sealed class SampleMapperAdapter : IMapperAdapter
             },
             CreateTenantOrderRequest request when typeof(TDestination) == typeof(TenantOrder) => new TenantOrder
             {
-                Id = CompositeOrderId.Create(request.TenantId, request.OrderNumber),
+                Id = TenantOrderId.Create(request.TenantId, request.OrderNumber),
                 CustomerId = request.CustomerId,
                 Total = request.Total
             },

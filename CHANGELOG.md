@@ -24,5 +24,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Removed the static `CIdMetadata` configuration surface.
 - Removed `CId.New()` so generated identifiers always come from the configured `ICIdFactory`.
 - Added `CIdProfile` configuration so per-entity identifier overrides can be grouped outside the DI registration chain.
-- Expanded the basic sample into a layered commerce example with Pelican mediator dispatch, command handlers, SQLite-backed EF Core configuration, CId defaults, per-entity profiles, composite identifiers, and hooks.
+- Expanded the basic sample into a layered commerce example with Pelican mediator dispatch, command handlers, SQLite-backed EF Core configuration, CId defaults, per-entity profiles, serialized custom identifiers, and hooks.
 

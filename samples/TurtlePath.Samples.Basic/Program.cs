@@ -76,7 +76,7 @@ var persistedInvoices = await dbContext.LegacyInvoices.CountAsync();
 Console.WriteLine("TurtlePath commerce sample");
 Console.WriteLine($"Default customer CId: {customer.Id}");
 Console.WriteLine($"Generated customer CId from factory: {idFactory.New()}");
-Console.WriteLine($"Composite order CId: {order.Id}");
+Console.WriteLine($"Serialized order key CId: {order.Id}");
 Console.WriteLine($"Legacy invoice CId: {order.LegacyInvoiceId}");
 Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}");
 Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");
