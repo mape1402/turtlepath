@@ -7,7 +7,7 @@ namespace TurtlePath.Automations
     using TurtlePath.Automations.Handlers;
     using TurtlePath.Models.Responses;
 
-    internal static class AutomationHandlerRegistrar
+    internal static class AutomationHandlerRegistration
     {
         public static void Register(IServiceCollection services, IEnumerable<AutomationDescriptor> descriptors)
         {

@@ -9,7 +9,7 @@ namespace TurtlePath.Automations.Tests
     using TurtlePath.Models.Responses;
     using TurtlePath.Queries;
 
-    public class AutomationHandlerRegistrarTests
+    public class AutomationHandlerRegistrationTests
     {
         [Fact]
         public void Register_adds_closed_create_handler_for_pelican_request()
@@ -25,7 +25,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(descriptor =>
                 descriptor.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
@@ -47,7 +47,7 @@ namespace TurtlePath.Automations.Tests
                 typeof(CId),
                 AutomationReturnMode.None);
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(descriptor =>
                 descriptor.ServiceType == typeof(IRequestHandler<DeleteCustomerCommand>));
@@ -70,7 +70,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<GetCustomerByIdQuery, CustomerResponse>));
@@ -93,7 +93,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<GetCustomerByEmailQuery, CustomerResponse>));
@@ -117,7 +117,7 @@ namespace TurtlePath.Automations.Tests
                 typeof(PagedResponse<CustomerResponse>),
                 defaultSortProperty: "Name");
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var registry = services
                 .Select(service => service.ImplementationInstance)
@@ -143,7 +143,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistrar.Register(services, [descriptor]);
+            AutomationHandlerRegistration.Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<PatchCustomerCommand, CustomerResponse>));
@@ -166,7 +166,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            var exception = Assert.Throws<NotSupportedException>(() => AutomationHandlerRegistrar.Register(services, [descriptor]));
+            var exception = Assert.Throws<NotSupportedException>(() => AutomationHandlerRegistration.Register(services, [descriptor]));
 
             Assert.Contains(nameof(AutomationOperationKind.Patch), exception.Message);
             Assert.Contains(nameof(InvalidPatchCustomerCommand), exception.Message);

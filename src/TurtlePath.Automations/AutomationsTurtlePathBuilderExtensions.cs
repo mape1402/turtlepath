@@ -16,7 +16,7 @@ namespace TurtlePath.Automations
                 throw new ArgumentNullException(nameof(builder));
 
             var descriptors = AutomationDescriptorDiscovery.Discover(assemblies);
-            AutomationHandlerRegistrar.Register(builder.Services, descriptors);
+            AutomationHandlerRegistration.Register(builder.Services, descriptors);
 
             return builder;
         }
