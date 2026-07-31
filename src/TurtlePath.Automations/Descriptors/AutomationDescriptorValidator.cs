@@ -1,5 +1,6 @@
 namespace TurtlePath.Automations.Descriptors
 {
+    using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
 
     internal static class AutomationDescriptorValidator
@@ -25,6 +26,14 @@ namespace TurtlePath.Automations.Descriptors
                 descriptor.ReturnMode != AutomationReturnMode.Response)
             {
                 throw new ArgumentException("Query automations require a response type.", nameof(descriptor));
+            }
+
+            if (descriptor.OperationKind == AutomationOperationKind.Patch)
+            {
+                var patchActionContract = typeof(IPatchAction<>).MakeGenericType(descriptor.EntityType);
+                if (!patchActionContract.IsAssignableFrom(descriptor.RequestType))
+                    throw new NotSupportedException(
+                        $"Automation operation '{descriptor.OperationKind}' for request '{descriptor.RequestType.FullName}' requires '{patchActionContract.FullName}'.");
             }
         }
     }

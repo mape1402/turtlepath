@@ -48,6 +48,7 @@ namespace TurtlePath.Queries
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
+            QueryOptions = Services.GetService<IGetOneQueryOptions<TQuery, TEntity>>();
             hookStageRunner = Services.GetRequiredService<IQueryHookStageRunner<TQuery, TResponse>>();
         }
 
@@ -60,6 +61,11 @@ namespace TurtlePath.Queries
         /// Gets the storage adapter for reading entities.
         /// </summary>
         protected IStorageReaderAdapter StorageReaderAdapter { get; }
+
+        /// <summary>
+        /// Gets optional query-specific filtering options.
+        /// </summary>
+        protected IGetOneQueryOptions<TQuery, TEntity> QueryOptions { get; }
 
         private readonly IQueryHookStageRunner<TQuery, TResponse> hookStageRunner;
 
@@ -95,10 +101,25 @@ namespace TurtlePath.Queries
         }
 
         /// <summary>
-        /// Gets the filter expression to apply to the query. Must be implemented by derived classes.
+        /// Gets the filter expression to apply to the query.
         /// </summary>
         /// <param name="request">The query request.</param>
         /// <returns>An expression for filtering entities.</returns>
-        protected abstract Expression<Func<TEntity, bool>> GetFilterExpression(TQuery request);
+        protected virtual Expression<Func<TEntity, bool>> GetFilterExpression(TQuery request)
+        {
+            if (QueryOptions != null)
+                return QueryOptions.GetFilterExpression(request);
+
+            if (typeof(TValue) != typeof(TKey))
+                throw new NotSupportedException(
+                    $"Get-one query '{typeof(TQuery).FullName}' requires {nameof(IGetOneQueryOptions<TQuery, TEntity>)} when the value type is not the entity key type.");
+
+            var entity = Expression.Parameter(typeof(TEntity), "entity");
+            var id = Expression.Property(entity, nameof(IEntity<TKey>.Id));
+            var value = Expression.Constant(request.Value, typeof(TKey));
+            var equals = Expression.Equal(id, value);
+
+            return Expression.Lambda<Func<TEntity, bool>>(equals, entity);
+        }
     }
 }

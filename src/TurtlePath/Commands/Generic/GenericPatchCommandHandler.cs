@@ -187,13 +187,14 @@ namespace TurtlePath.Commands
             => EntitySaveStep.SaveAsync(request, entity, cancellationToken);
 
         /// <summary>
-        /// Maps the updated entity to a response using the mapper adapter. Must be implemented by derived classes.
+        /// Maps the updated entity to a response using the mapper adapter.
         /// </summary>
         /// <param name="request">The request associated with the entity.</param>
         /// <param name="entity">The updated entity to map to a response.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
-        protected abstract ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken);
+        protected virtual ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+            => MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
     }
 
     /// <summary>

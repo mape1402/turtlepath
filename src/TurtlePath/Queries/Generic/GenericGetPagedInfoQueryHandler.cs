@@ -80,6 +80,7 @@ namespace TurtlePath.Queries
         {
             ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();
+            QueryOptions = serviceProvider.GetService<IGetPagedInfoQueryOptions<TQuery, TEntity>>();
             hookStageRunner = serviceProvider.GetRequiredService<IQueryHookStageRunner<TQuery, PagedResponse<TResponse>>>();
         }
 
@@ -92,6 +93,11 @@ namespace TurtlePath.Queries
         /// Gets the storage adapter for reading entities.
         /// </summary>
         protected IStorageReaderAdapter StorageReaderAdapter { get; }
+
+        /// <summary>
+        /// Gets optional query-specific paging options.
+        /// </summary>
+        protected IGetPagedInfoQueryOptions<TQuery, TEntity> QueryOptions { get; }
 
         private readonly IQueryHookStageRunner<TQuery, PagedResponse<TResponse>> hookStageRunner;
 
@@ -111,9 +117,9 @@ namespace TurtlePath.Queries
         protected int DefaultPageNumber => 1;
 
         /// <summary>
-        /// Gets the default sorts to use if not specified in the query. Must be implemented by derived classes.
+        /// Gets the default sorts to use if not specified in the query.
         /// </summary>
-        protected abstract string DefaultSorts { get; }
+        protected virtual string DefaultSorts => QueryOptions?.DefaultSorts;
 
         /// <summary>
         /// Handles the paged query by retrieving entities matching the specified criteria and returning a paged response.

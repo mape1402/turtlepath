@@ -170,7 +170,8 @@ namespace TurtlePath.Commands
         /// <param name="entity">The deleted entity.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous operation, with the response as the result.</returns>
-        protected abstract ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken);
+        protected virtual ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+            => MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
     }
 
     /// <summary>

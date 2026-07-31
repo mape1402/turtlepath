@@ -32,6 +32,9 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(handler);
             Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericCreateCommandHandler<CreateCustomerCommand, CustomerResponse, Customer, CId>));
         }
 
         [Fact]
@@ -54,6 +57,9 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(handler);
             Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericDeleteCommandHandler<DeleteCustomerCommand, Customer, CId>));
         }
 
         [Fact]
@@ -77,6 +83,9 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(handler);
             Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericGetByIdQueryHandler<GetCustomerByIdQuery, Customer, CustomerResponse, CId>));
         }
 
         [Fact]
@@ -100,6 +109,9 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(handler);
             Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericGetOneQueryHandler<GetCustomerByEmailQuery, CId, Customer, CustomerResponse, CId>));
         }
 
         [Fact]
@@ -150,6 +162,9 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(handler);
             Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericPatchCommandHandler<PatchCustomerCommand, CustomerResponse, Customer, CId>));
         }
 
         [Fact]
@@ -172,43 +187,43 @@ namespace TurtlePath.Automations.Tests
             Assert.Contains(nameof(InvalidPatchCustomerCommand), exception.Message);
         }
 
-        private sealed class Customer : BaseEntity
+        public sealed class Customer : BaseEntity
         {
         }
 
-        private sealed class CustomerResponse : IBaseResponse<CId>
-        {
-            public CId Id { get; set; }
-        }
-
-        private sealed class CreateCustomerCommand : IRequest<CustomerResponse>
-        {
-        }
-
-        private sealed class DeleteCustomerCommand : IRequest, TurtlePath.Models.Requests.IBaseRequest<CId>
+        public sealed class CustomerResponse : IBaseResponse<CId>
         {
             public CId Id { get; set; }
         }
 
-        private sealed class GetCustomerByIdQuery : GenericGetByIdQuery<Customer, CustomerResponse, CId>
+        public sealed class CreateCustomerCommand : IRequest<CustomerResponse>
+        {
+        }
+
+        public sealed class DeleteCustomerCommand : IRequest, TurtlePath.Models.Requests.IBaseRequest<CId>
+        {
+            public CId Id { get; set; }
+        }
+
+        public sealed class GetCustomerByIdQuery : GenericGetByIdQuery<Customer, CustomerResponse, CId>
         {
             public GetCustomerByIdQuery(CId id) : base(id)
             {
             }
         }
 
-        private sealed class GetCustomerByEmailQuery : GenericGetOneQuery<CId, Customer, CustomerResponse, CId>
+        public sealed class GetCustomerByEmailQuery : GenericGetOneQuery<CId, Customer, CustomerResponse, CId>
         {
         }
 
-        private sealed class SearchCustomersQuery : GenericGetPagedInfoQuery<Customer, CustomerResponse, CId>
+        public sealed class SearchCustomersQuery : GenericGetPagedInfoQuery<Customer, CustomerResponse, CId>
         {
             public SearchCustomersQuery(PagedSettings pagedSettings) : base(pagedSettings)
             {
             }
         }
 
-        private sealed class PatchCustomerCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>, IPatchAction<Customer>
+        public sealed class PatchCustomerCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>, IPatchAction<Customer>
         {
             public CId Id { get; set; }
 
@@ -216,9 +231,16 @@ namespace TurtlePath.Automations.Tests
                 => ValueTask.CompletedTask;
         }
 
-        private sealed class InvalidPatchCustomerCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>
+        public sealed class InvalidPatchCustomerCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>
         {
             public CId Id { get; set; }
+        }
+
+        private static void AssertGeneratedHandler(Type implementationType, Type expectedBaseType)
+        {
+            Assert.StartsWith("Generated", implementationType.Name);
+            Assert.Equal("TurtlePath.Automations.Generated", implementationType.Assembly.GetName().Name);
+            Assert.Equal(expectedBaseType, implementationType.BaseType);
         }
     }
 }
