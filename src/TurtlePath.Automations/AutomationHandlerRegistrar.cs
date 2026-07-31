@@ -36,6 +36,8 @@ namespace TurtlePath.Automations
                     AutomationOperationKind.Update => typeof(AutomatedUpdateCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
                     AutomationOperationKind.Delete when descriptor.HasResponse => typeof(AutomatedDeleteCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
                     AutomationOperationKind.Delete => typeof(AutomatedDeleteCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
+                    AutomationOperationKind.Patch when descriptor.HasResponse => typeof(AutomatedPatchCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
+                    AutomationOperationKind.Patch => typeof(AutomatedPatchCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
                     AutomationOperationKind.GetById => typeof(AutomatedGetByIdQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.ResponseType, descriptor.KeyType),
                     AutomationOperationKind.GetMany => typeof(AutomatedGetManyQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolveCollectionItemType(descriptor.ResponseType), descriptor.KeyType),
                     AutomationOperationKind.GetPaged => typeof(AutomatedGetPagedQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolvePagedItemType(descriptor.ResponseType), descriptor.KeyType),

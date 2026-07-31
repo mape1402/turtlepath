@@ -34,6 +34,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddScoped(typeof(IEntityAddStep<,>), typeof(DefaultEntityAddStep<,>));
             services.TryAddScoped(typeof(IEntitySaveStep<,>), typeof(DefaultEntitySaveStep<,>));
             services.TryAddScoped(typeof(IEntityDeleteStep<,>), typeof(DefaultEntityDeleteStep<,>));
+            services.TryAddScoped(typeof(IEntityPatchStep<,>), typeof(DefaultEntityPatchStep<,>));
             services.TryAddScoped(typeof(IResponseMappingStep<,,,>), typeof(DefaultResponseMappingStep<,,,>));
 
             if (hookAssemblies?.Length > 0)

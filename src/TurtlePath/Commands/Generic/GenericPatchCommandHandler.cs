@@ -65,6 +65,11 @@ namespace TurtlePath.Commands
         protected IEntitySaveStep<TRequest, TEntity> EntitySaveStep { get; }
 
         /// <summary>
+        /// Gets the entity patch step.
+        /// </summary>
+        protected IEntityPatchStep<TRequest, TEntity> EntityPatchStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => false;
@@ -90,6 +95,7 @@ namespace TurtlePath.Commands
             EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
             ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
             EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
+            EntityPatchStep = Services.GetRequiredService<IEntityPatchStep<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -161,13 +167,14 @@ namespace TurtlePath.Commands
         }
 
         /// <summary>
-        /// Applies the patch from the request onto the entity. Must be implemented by derived classes.
+        /// Applies the patch from the request onto the entity.
         /// </summary>
         /// <param name="request">The request containing patch data.</param>
         /// <param name="entity">The entity to patch.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous patch operation.</returns>
-        protected abstract ValueTask PatchEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken);
+        protected virtual ValueTask PatchEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+            => EntityPatchStep.PatchAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Updates the entity in the storage using the storage adapter.
@@ -237,6 +244,11 @@ namespace TurtlePath.Commands
         protected IEntitySaveStep<TRequest, TEntity> EntitySaveStep { get; }
 
         /// <summary>
+        /// Gets the entity patch step.
+        /// </summary>
+        protected IEntityPatchStep<TRequest, TEntity> EntityPatchStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => false;
@@ -262,6 +274,7 @@ namespace TurtlePath.Commands
             EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
             ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
             EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
+            EntityPatchStep = Services.GetRequiredService<IEntityPatchStep<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity>>();
         }
 
@@ -326,7 +339,8 @@ namespace TurtlePath.Commands
         /// <param name="entity">The entity to patch.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected abstract ValueTask PatchEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken);
+        protected virtual ValueTask PatchEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+            => EntityPatchStep.PatchAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Saves the patched entity.
