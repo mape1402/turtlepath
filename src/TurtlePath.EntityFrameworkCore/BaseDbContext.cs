@@ -3,6 +3,7 @@ namespace TurtlePath.EntityFrameworkCore
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
     using System.Reflection;
+    using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
 
     /// <summary>
@@ -31,6 +32,7 @@ namespace TurtlePath.EntityFrameworkCore
         {
             base.OnModelCreating(builder);
             ApplyConfigurations(builder);
+            ApplyBaseEntityConventions(builder);
             ApplyCIdConverters(builder);
         }
 
@@ -38,6 +40,31 @@ namespace TurtlePath.EntityFrameworkCore
         {
             foreach (var assembly in ConfigurationAssemblies.Where(assembly => assembly != null).Distinct())
                 builder.ApplyConfigurationsFromAssembly(assembly);
+        }
+
+        private static void ApplyBaseEntityConventions(ModelBuilder builder)
+        {
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                    continue;
+
+                var idProperty = entityType.FindProperty(nameof(BaseEntity.Id));
+
+                if (idProperty == null)
+                    continue;
+
+                var primaryKey = entityType.FindPrimaryKey();
+                var usesDefaultIdKey = primaryKey == null ||
+                                       primaryKey.Properties.Count == 1 &&
+                                       primaryKey.Properties[0].Name == nameof(BaseEntity.Id);
+
+                if (!usesDefaultIdKey)
+                    continue;
+
+                builder.Entity(entityType.ClrType).HasKey(nameof(BaseEntity.Id));
+                builder.Entity(entityType.ClrType).Property(nameof(BaseEntity.Id)).ValueGeneratedOnAdd();
+            }
         }
 
         private static void ApplyCIdConverters(ModelBuilder builder)

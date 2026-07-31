@@ -16,4 +16,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Removed the root composition package, standalone identifier package, CId EF value generator package, serialization package, and Swagger package; identifiers now live under `TurtlePath.Domain.Identifier`.
 - Renamed the main handler package from `TurtlePath.Application` to `TurtlePath`.
 - Added the EF Core base DbContext with configuration discovery and `CId` value conversion.
+- Moved base entity EF key conventions into the EF Core base DbContext.
 
