@@ -45,8 +45,9 @@ public class HookRegistrationTests
         var services = new ServiceCollection();
         services.AddSingleton(new List<string>());
 
-        services.AddTurtlePath<Guid, string>(
-            config =>
+        services
+            .AddTurtlePath(typeof(SampleBeforeValidationHook).Assembly)
+            .UseCId<Guid, string>(config =>
             {
                 config.DefaultFactory = () => CId.From(Guid.Parse("f8cb21f2-35d7-419b-9f58-90d1c82154f0"));
                 config.ConvertToDb = id => id.ToString();
@@ -55,8 +56,7 @@ public class HookRegistrationTests
                 config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
                 config.ParseFunction = value => CId.From(Guid.Parse(value));
                 config.ToByteArrayFunction = value => value.ToByteArray();
-            },
-            typeof(SampleBeforeValidationHook).Assembly);
+            });
 
         using var provider = services.BuildServiceProvider();
         var idFactory = provider.GetRequiredService<ICIdFactory>();

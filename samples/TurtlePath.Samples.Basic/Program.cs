@@ -6,8 +6,9 @@ using TurtlePath.Hooks;
 
 var services = new ServiceCollection();
 
-services.AddTurtlePath<Guid, string>(
-    config =>
+services
+    .AddTurtlePath(typeof(CreateTodoAuditHook).Assembly)
+    .UseCId<Guid, string>(config =>
     {
         config.DefaultFactory = () => new CId(Guid.NewGuid());
         config.ConvertToDb = id => id.ToString();
@@ -16,13 +17,11 @@ services.AddTurtlePath<Guid, string>(
         config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
         config.ParseFunction = value => new CId(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
-    },
-    typeof(CreateTodoAuditHook).Assembly);
-
-services.AddTurtlePathEntityFrameworkCore(options => options with
-{
-    ConfigurationAssemblies = [typeof(CreateTodoAuditHook).Assembly]
-});
+    })
+    .UseEntityFrameworkCore(options => options with
+    {
+        ConfigurationAssemblies = [typeof(CreateTodoAuditHook).Assembly]
+    });
 
 using var provider = services.BuildServiceProvider();
 var idFactory = provider.GetRequiredService<ICIdFactory>();

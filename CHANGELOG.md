@@ -18,4 +18,6 @@ All notable changes to TurtlePath will be documented in this file.
 - Added the EF Core base DbContext with configuration discovery and `CId` value conversion.
 - Moved base entity EF key conventions into the EF Core base DbContext.
 - Added DI registration for configurable EF Core DbContext conventions and removed the redundant `BaseEntityConfiguration` type.
+- Added a chainable TurtlePath builder for identifier, EF Core, OctoMap, Crabalidator, and Sieve registrations.
+- Moved EF Core `CId` conversion away from static metadata and into registered identifier definitions.
 

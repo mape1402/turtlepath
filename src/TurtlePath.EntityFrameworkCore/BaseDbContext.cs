@@ -17,15 +17,6 @@ namespace TurtlePath.EntityFrameworkCore
         /// Initializes a new instance of the <see cref="BaseDbContext"/> class.
         /// </summary>
         /// <param name="options">The options to configure the context.</param>
-        protected BaseDbContext(DbContextOptions options) : base(options)
-        {
-            turtlePathOptions = TurtlePathDbContextOptions.Default;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BaseDbContext"/> class.
-        /// </summary>
-        /// <param name="options">The options to configure the context.</param>
         /// <param name="turtlePathOptions">The TurtlePath conventions to apply to the model.</param>
         protected BaseDbContext(DbContextOptions options, TurtlePathDbContextOptions turtlePathOptions) : base(options)
         {
@@ -91,7 +82,7 @@ namespace TurtlePath.EntityFrameworkCore
             }
         }
 
-        private static void ApplyCIdConverters(ModelBuilder builder)
+        private void ApplyCIdConverters(ModelBuilder builder)
         {
             var converter = CreateCIdValueConverter();
 
@@ -110,24 +101,26 @@ namespace TurtlePath.EntityFrameworkCore
 
                     property.SetValueConverter(converter);
 
-                    if (CIdMetadata.HasDbType)
-                        property.SetColumnType(CIdMetadata.DbType);
+                    if (!string.IsNullOrWhiteSpace(turtlePathOptions.CIdDefinition.DatabaseColumnType))
+                        property.SetColumnType(turtlePathOptions.CIdDefinition.DatabaseColumnType);
                 }
             }
         }
 
-        private static ValueConverter CreateCIdValueConverter()
+        private ValueConverter CreateCIdValueConverter()
         {
-            if (CIdMetadata.ConvertToDb == null || CIdMetadata.ConvertFromDb == null)
+            var definition = turtlePathOptions.CIdDefinition;
+
+            if (definition?.HasDatabaseConversion != true)
                 return null;
 
-            var providerType = CIdMetadata.ConvertToDb.ReturnType;
+            var providerType = definition.DatabaseValueType ?? definition.ConvertToDatabase.ReturnType;
             var converterType = typeof(ValueConverter<,>).MakeGenericType(typeof(CId), providerType);
 
             return (ValueConverter)Activator.CreateInstance(
                 converterType,
-                CIdMetadata.ConvertToDb,
-                CIdMetadata.ConvertFromDb,
+                definition.ConvertToDatabase,
+                definition.ConvertFromDatabase,
                 null);
         }
     }

@@ -38,8 +38,9 @@ dotnet add package TurtlePath.Sieve
 Register each implementation package from your application composition root:
 
 ```csharp
-services.AddTurtlePath<Guid, string>(
-    config =>
+services
+    .AddTurtlePath(typeof(MyApplicationMarker).Assembly)
+    .UseCId<Guid, string>(config =>
     {
         config.DefaultFactory = () => new CId(Guid.NewGuid());
         config.ConvertToDb = id => id.ToString();
@@ -48,18 +49,17 @@ services.AddTurtlePath<Guid, string>(
         config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
         config.ParseFunction = value => new CId(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
-    },
-    typeof(MyApplicationMarker).Assembly);
-
-services.AddTurtlePathEntityFrameworkCore(options => options with
-{
-    ApplyConfigurations = true,
-    ApplyBaseEntityConventions = true,
-    ApplyCIdConverters = true,
-    ConfigurationAssemblies = [typeof(MyPersistenceMarker).Assembly]
-});
-
-services.AddTurtlePathSieve();
+    })
+    .UseEntityFrameworkCore(options => options with
+    {
+        ApplyConfigurations = true,
+        ApplyBaseEntityConventions = true,
+        ApplyCIdConverters = true,
+        ConfigurationAssemblies = [typeof(MyPersistenceMarker).Assembly]
+    })
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseSieve();
 ```
 
 An EF Core context can receive the registered TurtlePath options through DI:

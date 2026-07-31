@@ -45,7 +45,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 config.ParseFunction,
                 id => id.ToString(),
                 id => id.ToByteArray(),
-                config.GenerationStrategy));
+                config.GenerationStrategy,
+                typeof(TDbType),
+                config.DbType,
+                config.ConvertToDb,
+                config.ConvertFromDb));
 
             services.AddSingleton<ICIdDefinitionRegistry>(registry);
             services.AddSingleton<ICIdFactory>(registry);

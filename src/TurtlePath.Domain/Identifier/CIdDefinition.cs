@@ -1,5 +1,7 @@
 namespace TurtlePath.Domain.Identifier
 {
+    using System.Linq.Expressions;
+
     /// <summary>
     /// Describes how an opaque identifier is created, parsed, and formatted in a specific context.
     /// </summary>
@@ -15,6 +17,10 @@ namespace TurtlePath.Domain.Identifier
         /// <param name="formatter">The formatter used to convert identifiers to text.</param>
         /// <param name="toByteArray">The converter used to expose the identifier as bytes.</param>
         /// <param name="generationStrategy">The identifier generation strategy.</param>
+        /// <param name="databaseValueType">The provider CLR type used to store this identifier in a database.</param>
+        /// <param name="databaseColumnType">The database column type used to store this identifier.</param>
+        /// <param name="convertToDatabase">The converter from CId to database value.</param>
+        /// <param name="convertFromDatabase">The converter from database value to CId.</param>
         public CIdDefinition(
             string context,
             Type valueType,
@@ -22,7 +28,11 @@ namespace TurtlePath.Domain.Identifier
             Func<string, CId> parser,
             Func<CId, string> formatter,
             Func<CId, byte[]> toByteArray,
-            CIdGenerationStrategy generationStrategy)
+            CIdGenerationStrategy generationStrategy,
+            Type databaseValueType = null,
+            string databaseColumnType = null,
+            LambdaExpression convertToDatabase = null,
+            LambdaExpression convertFromDatabase = null)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             ValueType = valueType ?? throw new ArgumentNullException(nameof(valueType));
@@ -31,6 +41,10 @@ namespace TurtlePath.Domain.Identifier
             Formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
             ToByteArray = toByteArray ?? throw new ArgumentNullException(nameof(toByteArray));
             GenerationStrategy = generationStrategy;
+            DatabaseValueType = databaseValueType;
+            DatabaseColumnType = databaseColumnType;
+            ConvertToDatabase = convertToDatabase;
+            ConvertFromDatabase = convertFromDatabase;
         }
 
         /// <summary>
@@ -72,6 +86,31 @@ namespace TurtlePath.Domain.Identifier
         /// Gets the generation strategy.
         /// </summary>
         public CIdGenerationStrategy GenerationStrategy { get; }
+
+        /// <summary>
+        /// Gets the provider CLR type used to store this identifier in a database.
+        /// </summary>
+        public Type DatabaseValueType { get; }
+
+        /// <summary>
+        /// Gets the database column type used to store this identifier.
+        /// </summary>
+        public string DatabaseColumnType { get; }
+
+        /// <summary>
+        /// Gets the expression that converts a CId to its database value.
+        /// </summary>
+        public LambdaExpression ConvertToDatabase { get; }
+
+        /// <summary>
+        /// Gets the expression that converts a database value to a CId.
+        /// </summary>
+        public LambdaExpression ConvertFromDatabase { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this definition has database conversion metadata.
+        /// </summary>
+        public bool HasDatabaseConversion => ConvertToDatabase != null && ConvertFromDatabase != null;
     }
 }
 
