@@ -127,7 +127,7 @@ public class ProjectStructureTests
         var baseEntityConfiguration = Path.Combine(root, "src", "TurtlePath.EntityFrameworkCore", "BaseEntityConfiguration.cs");
 
         Assert.True(File.Exists(baseDbContext));
-        Assert.False(File.Exists(baseEntityConfiguration));
+        Assert.True(File.Exists(baseEntityConfiguration));
         Assert.Contains("Microsoft.EntityFrameworkCore", project);
         Assert.DoesNotContain("OctoMap", project);
         Assert.DoesNotContain("Crabalidator", project);
