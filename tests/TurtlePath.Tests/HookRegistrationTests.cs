@@ -41,7 +41,6 @@ public class HookRegistrationTests
     [Fact]
     public void AddTurtlePath_registers_identifier_configuration_and_discovered_hooks()
     {
-        CIdMetadata.Reset();
         var services = new ServiceCollection();
         services.AddSingleton(new List<string>());
 

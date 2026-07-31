@@ -52,7 +52,6 @@ public class EntityFrameworkCoreRegistrationTests
     [Fact]
     public void UseEntityFrameworkCore_uses_registered_identifier_definition()
     {
-        CIdMetadata.Reset();
         var services = new ServiceCollection();
         services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
         services.AddScoped<SampleDbContext>();

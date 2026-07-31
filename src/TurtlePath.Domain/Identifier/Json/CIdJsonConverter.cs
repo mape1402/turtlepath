@@ -19,7 +19,7 @@ namespace TurtlePath.Domain.Identifier.Json
         public override CId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             var value = reader.GetString();
-            return CIdMetadata.JsonConverter(value);
+            return CId.Parse(value);
         }
         
         /// <summary>

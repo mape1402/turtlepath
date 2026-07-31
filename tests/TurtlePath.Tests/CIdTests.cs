@@ -32,8 +32,6 @@ public class CIdTests
     [Fact]
     public void Constructor_accepts_different_underlying_types()
     {
-        CIdMetadata.Reset();
-
         Assert.Equal(42, CId.From(42).Cast<int>());
         Assert.Equal(Guid.Empty, CId.From(Guid.Empty).Cast<Guid>());
     }
@@ -41,7 +39,6 @@ public class CIdTests
     [Fact]
     public void Composite_ids_compare_by_part_name_and_value()
     {
-        CIdMetadata.Reset();
         var left = CId.Composite(
             new CIdPart("TenantId", Guid.Parse("2e80d91a-9025-45b7-a9a5-7d06e7360f82")),
             new CIdPart("OrderNumber", 42));

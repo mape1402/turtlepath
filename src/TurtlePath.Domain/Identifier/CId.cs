@@ -2,6 +2,7 @@ namespace TurtlePath.Domain.Identifier
 {
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
+    using System.Text;
 
     /// <summary>
     /// Represents a strongly-typed identifier with a value of a specific allowed type.
@@ -77,7 +78,14 @@ namespace TurtlePath.Domain.Identifier
             if (IsEmpty || Value is null)
                 return null;
 
-            return CIdMetadata.ToByteArrayFunction?.Invoke(Value);
+            return Value switch
+            {
+                Guid value => value.ToByteArray(),
+                int value => BitConverter.GetBytes(value),
+                long value => BitConverter.GetBytes(value),
+                string value => Encoding.UTF8.GetBytes(value),
+                _ => Encoding.UTF8.GetBytes(Value.ToString())
+            };
         }
 
         /// <summary>
@@ -85,7 +93,7 @@ namespace TurtlePath.Domain.Identifier
         /// </summary>
         /// <returns>A new <see cref="CId"/> instance.</returns>
         public static CId New()
-            => CIdMetadata.DefaultFactory();
+            => From(Guid.NewGuid());
 
         /// <summary>
         /// Parses the specified string to create a new <see cref="CId"/> instance.
@@ -93,7 +101,21 @@ namespace TurtlePath.Domain.Identifier
         /// <param name="value">The string representation of the CId to parse. Cannot be null or empty.</param>
         /// <returns>A <see cref="CId"/> instance that corresponds to the specified string.</returns>
         public static CId Parse(string value)
-            => CIdMetadata.ParseFunction(value);
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return Empty;
+
+            if (Guid.TryParse(value, out var guid))
+                return From(guid);
+
+            if (int.TryParse(value, out var integer))
+                return From(integer);
+
+            if (long.TryParse(value, out var longValue))
+                return From(longValue);
+
+            return From(value);
+        }
 
         /// <summary>
         /// Tries to convert the specified string representation of a CId to its equivalent CId object.
