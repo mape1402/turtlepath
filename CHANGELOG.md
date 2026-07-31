@@ -22,4 +22,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Moved EF Core `CId` conversion away from static metadata and into registered identifier definitions.
 - Added default and per-entity `CId` definitions so clean schemas can share one identifier type while legacy schemas can override individual entities.
 - Removed the static `CIdMetadata` configuration surface.
+- Removed `CId.New()` so generated identifiers always come from the configured `ICIdFactory`.
 

@@ -6,7 +6,14 @@ namespace TurtlePath.Tests;
 public class CIdTests
 {
     [Fact]
-    public void New_uses_configured_factory()
+    public void CId_does_not_expose_a_default_generator()
+    {
+        Assert.Null(typeof(CId).GetMethod("New", Type.EmptyTypes));
+        Assert.Empty(typeof(CId).GetConstructors());
+    }
+
+    [Fact]
+    public void Factory_new_uses_configured_factory()
     {
         var services = new ServiceCollection();
 
@@ -14,12 +21,12 @@ public class CIdTests
             .AddTurtlePath()
             .UseCId<Guid, string>(config =>
             {
-                config.DefaultFactory = () => new CId(Guid.Parse("f8cb21f2-35d7-419b-9f58-90d1c82154f0"));
+                config.DefaultFactory = () => CId.From(Guid.Parse("f8cb21f2-35d7-419b-9f58-90d1c82154f0"));
                 config.ConvertToDb = id => id.ToString();
-                config.ConvertFromDb = value => new CId(Guid.Parse(value));
-                config.JsonConverter = value => new CId(Guid.Parse(value));
-                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : new CId(Guid.Parse(value));
-                config.ParseFunction = value => new CId(Guid.Parse(value));
+                config.ConvertFromDb = value => CId.From(Guid.Parse(value));
+                config.JsonConverter = value => CId.From(Guid.Parse(value));
+                config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.From(Guid.Parse(value));
+                config.ParseFunction = value => CId.From(Guid.Parse(value));
                 config.ToByteArrayFunction = value => value.ToByteArray();
             });
 

@@ -17,7 +17,7 @@ namespace TurtlePath.Domain.Identifier
         /// </summary>
         /// <param name="value">The value of the identifier. Must be of the allowed type.</param>
         /// <exception cref="ArgumentException">Thrown if the value is not of the allowed type.</exception>
-        public CId(object value)
+        private CId(object value)
             : this(CIdPart.Single(value))
         {
         }
@@ -26,7 +26,7 @@ namespace TurtlePath.Domain.Identifier
         /// Initializes a new <see cref="CId"/> with the specified parts.
         /// </summary>
         /// <param name="parts">The identifier parts.</param>
-        public CId(params CIdPart[] parts)
+        private CId(params CIdPart[] parts)
         {
             if (parts == null)
                 throw new ArgumentNullException(nameof(parts));
@@ -87,13 +87,6 @@ namespace TurtlePath.Domain.Identifier
                 _ => Encoding.UTF8.GetBytes(Value.ToString())
             };
         }
-
-        /// <summary>
-        /// Creates a new <see cref="CId"/> using the default factory.
-        /// </summary>
-        /// <returns>A new <see cref="CId"/> instance.</returns>
-        public static CId New()
-            => From(Guid.NewGuid());
 
         /// <summary>
         /// Parses the specified string to create a new <see cref="CId"/> instance.
