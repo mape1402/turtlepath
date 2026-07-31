@@ -2,6 +2,7 @@ namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Exceptions;
     using TurtlePath.Hooks;
@@ -48,6 +49,21 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the entity lookup step.
+        /// </summary>
+        protected IEntityLookupStep<TRequest, TEntity, TKey> EntityLookupStep { get; }
+
+        /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity delete step.
+        /// </summary>
+        protected IEntityDeleteStep<TRequest, TEntity> EntityDeleteStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => false;
@@ -70,6 +86,9 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = serviceProvider.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = serviceProvider.GetRequiredService<IMapperAdapter>();
+            EntityLookupStep = serviceProvider.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
+            ValidationStep = serviceProvider.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityDeleteStep = serviceProvider.GetRequiredService<IEntityDeleteStep<TRequest, TEntity>>();
             hookStageRunner = serviceProvider.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -117,12 +136,7 @@ namespace TurtlePath.Commands
         /// <exception cref="NotFoundException">Thrown if the entity is not found.</exception>
         protected virtual async Task<TEntity> GetEntityAsync(TRequest request, CancellationToken cancellationToken)
         {
-            return await StorageReaderAdapter
-                .For<TEntity>()
-                .AsTracking()
-                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                .FirstOrDefaultAsync<TEntity>(cancellationToken)
-                ?? throw new NotFoundException(typeof(TEntity).Name, request.Id.ToString());
+            return await EntityLookupStep.GetAsync(request, request.Id, cancellationToken);
         }
 
         /// <summary>
@@ -137,7 +151,7 @@ namespace TurtlePath.Commands
             if(!ValidateRequest)
                 return ValueTask.CompletedTask;
 
-            return ValidatorAdapter.ValidateAsync(request, cancellationToken);
+            return ValidationStep.ValidateAsync(request, entity, cancellationToken);
         }
 
         /// <summary>
@@ -147,10 +161,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous delete operation.</returns>
         protected virtual async Task DeleteEntityAsync(TEntity entity, CancellationToken cancellationToken)
-        {
-            StorageWriterAdapter.Remove(entity);
-            await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
-        }
+            => await EntityDeleteStep.DeleteAsync(Context.Request, entity, cancellationToken);
 
         /// <summary>
         /// Builds the response after the entity has been deleted.
@@ -195,6 +206,21 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the entity lookup step.
+        /// </summary>
+        protected IEntityLookupStep<TRequest, TEntity, TKey> EntityLookupStep { get; }
+
+        /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity delete step.
+        /// </summary>
+        protected IEntityDeleteStep<TRequest, TEntity> EntityDeleteStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => false;
@@ -217,6 +243,9 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityDeleteStep = Services.GetRequiredService<IEntityDeleteStep<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity>>();
         }
 
@@ -252,12 +281,7 @@ namespace TurtlePath.Commands
         /// <returns>The entity to delete.</returns>
         protected virtual async Task<TEntity> GetEntityAsync(TRequest request, CancellationToken cancellationToken)
         {
-            return await StorageReaderAdapter
-                .For<TEntity>()
-                .AsTracking()
-                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                .FirstOrDefaultAsync<TEntity>(cancellationToken)
-                ?? throw new NotFoundException(typeof(TEntity).Name, request.Id?.ToString());
+            return await EntityLookupStep.GetAsync(request, request.Id, cancellationToken);
         }
 
         /// <summary>
@@ -272,7 +296,7 @@ namespace TurtlePath.Commands
             if (!ValidateRequest)
                 return ValueTask.CompletedTask;
 
-            return ValidatorAdapter.ValidateAsync(request, cancellationToken);
+            return ValidationStep.ValidateAsync(request, entity, cancellationToken);
         }
 
         /// <summary>
@@ -282,9 +306,6 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual async Task DeleteEntityAsync(TEntity entity, CancellationToken cancellationToken)
-        {
-            StorageWriterAdapter.Remove(entity);
-            await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
-        }
+            => await EntityDeleteStep.DeleteAsync(Context.Request, entity, cancellationToken);
     }
 }

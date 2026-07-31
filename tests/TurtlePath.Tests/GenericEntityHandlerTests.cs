@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Pelican.Mediator;
 using TurtlePath.Commands;
+using TurtlePath.Commands.Steps;
 using TurtlePath.Domain.Contracts;
 using TurtlePath.Hooks;
 using TurtlePath.Mapping;
@@ -102,6 +103,44 @@ public class GenericEntityHandlerTests
                 "after-save"
             ],
             calls);
+    }
+
+    [Fact]
+    public async Task Create_handler_uses_closed_creation_step_from_dependency_injection()
+    {
+        var storage = new RecordingStorageWriterAdapter();
+        using var provider = CreateProvider(
+            storage,
+            new EmptyStorageReaderAdapter(),
+            new TestMapperAdapter(),
+            new NoopValidatorAdapter(),
+            services => services.AddScoped<IEntityCreationStep<CreateCustomEntityRequest, CustomEntity>, ReplacingEntityCreationStep>());
+
+        var handler = new CreateCustomEntityHandler(provider);
+
+        var response = await handler.Handle(new CreateCustomEntityRequest("Ada"));
+
+        Assert.Equal(77, response.Id);
+        Assert.Equal("from-step", response.Name);
+    }
+
+    [Fact]
+    public async Task Create_handler_virtual_override_takes_precedence_over_creation_step()
+    {
+        var storage = new RecordingStorageWriterAdapter();
+        using var provider = CreateProvider(
+            storage,
+            new EmptyStorageReaderAdapter(),
+            new TestMapperAdapter(),
+            new NoopValidatorAdapter(),
+            services => services.AddScoped<IEntityCreationStep<CreateCustomEntityRequest, CustomEntity>, ReplacingEntityCreationStep>());
+
+        var handler = new OverrideCreateCustomEntityHandler(provider);
+
+        var response = await handler.Handle(new CreateCustomEntityRequest("Ada"));
+
+        Assert.Equal(88, response.Id);
+        Assert.Equal("from-override", response.Name);
     }
 
     [Fact]
@@ -207,11 +246,40 @@ public class GenericEntityHandlerTests
         }
     }
 
+    private sealed class OverrideCreateCustomEntityHandler
+        : GenericCreateCommandHandler<CreateCustomEntityRequest, CustomResponse, CustomEntity, int>
+    {
+        public OverrideCreateCustomEntityHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
+
+        protected override ValueTask<CustomEntity> MapToEntityAsync(CreateCustomEntityRequest request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new CustomEntity
+            {
+                Id = 88,
+                Name = "from-override"
+            });
+        }
+    }
+
     private sealed class CreateCustomEntityNoReturnHandler
         : GenericCreateCommandHandler<CreateCustomEntityCommand, CustomEntity, int>
     {
         public CreateCustomEntityNoReturnHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {
+        }
+    }
+
+    private sealed class ReplacingEntityCreationStep : IEntityCreationStep<CreateCustomEntityRequest, CustomEntity>
+    {
+        public ValueTask<CustomEntity> CreateAsync(CreateCustomEntityRequest request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new CustomEntity
+            {
+                Id = 77,
+                Name = "from-step"
+            });
         }
     }
 

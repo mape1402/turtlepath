@@ -3,6 +3,7 @@ namespace Microsoft.Extensions.DependencyInjection
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using System.Reflection;
     using TurtlePath;
+    using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Identifier;
     using TurtlePath.Hooks;
 
@@ -26,6 +27,14 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddScoped(typeof(ICommandHookStageRunner<,>), typeof(CommandHookStageRunner<,>));
             services.TryAddScoped(typeof(ICommandHookStageRunner<,,>), typeof(CommandHookStageRunner<,,>));
             services.TryAddScoped(typeof(IQueryHookStageRunner<,>), typeof(QueryHookStageRunner<,>));
+            services.TryAddScoped(typeof(IRequestValidationStep<,>), typeof(DefaultRequestValidationStep<,>));
+            services.TryAddScoped(typeof(IEntityCreationStep<,>), typeof(DefaultEntityCreationStep<,>));
+            services.TryAddScoped(typeof(IEntityLookupStep<,,>), typeof(DefaultEntityLookupStep<,,>));
+            services.TryAddScoped(typeof(IEntityMappingStep<,>), typeof(DefaultEntityMappingStep<,>));
+            services.TryAddScoped(typeof(IEntityAddStep<,>), typeof(DefaultEntityAddStep<,>));
+            services.TryAddScoped(typeof(IEntitySaveStep<,>), typeof(DefaultEntitySaveStep<,>));
+            services.TryAddScoped(typeof(IEntityDeleteStep<,>), typeof(DefaultEntityDeleteStep<,>));
+            services.TryAddScoped(typeof(IResponseMappingStep<,,,>), typeof(DefaultResponseMappingStep<,,,>));
 
             if (hookAssemblies?.Length > 0)
                 services.AddHandlerHooksFromAssemblies(hookAssemblies);

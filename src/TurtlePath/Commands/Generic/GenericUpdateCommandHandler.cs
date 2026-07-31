@@ -5,6 +5,7 @@ namespace TurtlePath.Commands
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Exceptions;
     using TurtlePath.Hooks;
@@ -52,6 +53,31 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the entity lookup step.
+        /// </summary>
+        protected IEntityLookupStep<TRequest, TEntity, TKey> EntityLookupStep { get; }
+
+        /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity mapping step.
+        /// </summary>
+        protected IEntityMappingStep<TRequest, TEntity> EntityMappingStep { get; }
+
+        /// <summary>
+        /// Gets the entity save step.
+        /// </summary>
+        protected IEntitySaveStep<TRequest, TEntity> EntitySaveStep { get; }
+
+        /// <summary>
+        /// Gets the response mapping step.
+        /// </summary>
+        protected IResponseMappingStep<TRequest, TEntity, TResponse, TKey> ResponseMappingStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => true;
@@ -79,6 +105,11 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityMappingStep = Services.GetRequiredService<IEntityMappingStep<TRequest, TEntity>>();
+            EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
+            ResponseMappingStep = Services.GetRequiredService<IResponseMappingStep<TRequest, TEntity, TResponse, TKey>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -131,12 +162,7 @@ namespace TurtlePath.Commands
         /// <exception cref="NotFoundException">Thrown if the entity is not found.</exception>
         protected virtual async Task<TEntity> GetEntityAsync(TRequest request, CancellationToken cancellationToken)
         {
-            return await StorageReaderAdapter
-                .For<TEntity>()
-                .AsTracking()
-                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                .FirstOrDefaultAsync<TEntity>(cancellationToken)
-                ?? throw new NotFoundException(typeof(TEntity).Name, request.Id.ToString());
+            return await EntityLookupStep.GetAsync(request, request.Id, cancellationToken);
         }
 
         /// <summary>
@@ -162,7 +188,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation.</returns>
         protected virtual ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => MapperAdapter.UpdateMapAsync(request, entity, cancellationToken);
+            => EntityMappingStep.MapAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Updates the entity in the storage using the storage adapter.
@@ -172,7 +198,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous update operation.</returns>
         protected virtual Task UpdateEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => StorageWriterAdapter.SaveChangesAsync(cancellationToken);
+            => EntitySaveStep.SaveAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Maps the updated entity to a response using the mapper adapter or retrieves a projection from storage if <see cref="UseProjectionFromStorage"/> is <c>true</c>.
@@ -182,13 +208,12 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
         protected virtual async ValueTask<TResponse> MapToResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => UseProjectionFromStorage
-                ? await StorageReaderAdapter
-                    .For<TEntity>()
-                    .AsNoTracking()
-                    .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                    .FirstOrDefaultAsync<TResponse>(cancellationToken)
-                : await MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
+            => await ResponseMappingStep.MapAsync(
+                request,
+                entity,
+                UseProjectionFromStorage,
+                EntityKeyExpression.Equals<TEntity, TKey>(request.Id),
+                cancellationToken);
     }
 
     /// <summary>
@@ -224,6 +249,26 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the entity lookup step.
+        /// </summary>
+        protected IEntityLookupStep<TRequest, TEntity, TKey> EntityLookupStep { get; }
+
+        /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity mapping step.
+        /// </summary>
+        protected IEntityMappingStep<TRequest, TEntity> EntityMappingStep { get; }
+
+        /// <summary>
+        /// Gets the entity save step.
+        /// </summary>
+        protected IEntitySaveStep<TRequest, TEntity> EntitySaveStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => true;
@@ -246,6 +291,10 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityMappingStep = Services.GetRequiredService<IEntityMappingStep<TRequest, TEntity>>();
+            EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity>>();
         }
 
@@ -285,12 +334,7 @@ namespace TurtlePath.Commands
         /// <returns>The entity to update.</returns>
         protected virtual async Task<TEntity> GetEntityAsync(TRequest request, CancellationToken cancellationToken)
         {
-            return await StorageReaderAdapter
-                .For<TEntity>()
-                .AsTracking()
-                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                .FirstOrDefaultAsync<TEntity>(cancellationToken)
-                ?? throw new NotFoundException(typeof(TEntity).Name, request.Id?.ToString());
+            return await EntityLookupStep.GetAsync(request, request.Id, cancellationToken);
         }
 
         /// <summary>
@@ -305,7 +349,7 @@ namespace TurtlePath.Commands
             if (!ValidateRequest)
                 return ValueTask.CompletedTask;
 
-            return ValidatorAdapter.ValidateAsync(request, cancellationToken);
+            return ValidationStep.ValidateAsync(request, entity, cancellationToken);
         }
 
         /// <summary>
@@ -316,7 +360,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => MapperAdapter.UpdateMapAsync(request, entity, cancellationToken);
+            => EntityMappingStep.MapAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Saves the updated entity.
@@ -326,6 +370,6 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual Task UpdateEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => StorageWriterAdapter.SaveChangesAsync(cancellationToken);
+            => EntitySaveStep.SaveAsync(request, entity, cancellationToken);
     }
 }

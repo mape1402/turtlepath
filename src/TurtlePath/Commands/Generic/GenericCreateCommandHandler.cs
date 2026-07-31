@@ -3,6 +3,7 @@ namespace TurtlePath.Commands
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
     using System;
+    using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Hooks;
     using TurtlePath.Mapping;
@@ -48,6 +49,26 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity creation step.
+        /// </summary>
+        protected IEntityCreationStep<TRequest, TEntity> EntityCreationStep { get; }
+
+        /// <summary>
+        /// Gets the entity add step.
+        /// </summary>
+        protected IEntityAddStep<TRequest, TEntity> EntityAddStep { get; }
+
+        /// <summary>
+        /// Gets the response mapping step.
+        /// </summary>
+        protected IResponseMappingStep<TRequest, TEntity, TResponse, TKey> ResponseMappingStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => true;
@@ -75,6 +96,10 @@ namespace TurtlePath.Commands
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityCreationStep = Services.GetRequiredService<IEntityCreationStep<TRequest, TEntity>>();
+            EntityAddStep = Services.GetRequiredService<IEntityAddStep<TRequest, TEntity>>();
+            ResponseMappingStep = Services.GetRequiredService<IResponseMappingStep<TRequest, TEntity, TResponse, TKey>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -124,7 +149,7 @@ namespace TurtlePath.Commands
             if (!ValidateRequest)
                 return ValueTask.CompletedTask;
 
-            return ValidatorAdapter.ValidateAsync(request, cancellationToken);
+            return ValidationStep.ValidateAsync(request, Context?.Entity, cancellationToken);
         }
 
         /// <summary>
@@ -134,7 +159,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped entity as the result.</returns>
         protected virtual ValueTask<TEntity> MapToEntityAsync(TRequest request, CancellationToken cancellationToken)
-            => MapperAdapter.MapAsync<TRequest, TEntity>(request, cancellationToken);
+            => EntityCreationStep.CreateAsync(request, cancellationToken);
 
         /// <summary>
         /// Saves the entity using the storage adapter.
@@ -144,10 +169,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A Task representing the asynchronous save operation.</returns>
         protected virtual async Task SaveEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-        {
-            await StorageWriterAdapter.AddAsync(entity, cancellationToken);
-            await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
-        }
+            => await EntityAddStep.AddAsync(request, entity, cancellationToken);
 
         /// <summary>
         /// Maps the entity to a response using the mapper adapter or retrieves a projection from storage if <see cref="UseProjectionFromStorage"/> is <c>true</c>.
@@ -157,13 +179,12 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
         protected virtual async ValueTask<TResponse> MapToResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => UseProjectionFromStorage ?
-               await StorageReaderAdapter
-                   .For<TEntity>()
-                   .AsNoTracking()
-                   .Where(EntityKeyExpression.Equals<TEntity, TKey>(entity.Id))
-                   .FirstOrDefaultAsync<TResponse>(cancellationToken) :
-               await MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
+            => await ResponseMappingStep.MapAsync(
+                request,
+                entity,
+                UseProjectionFromStorage,
+                EntityKeyExpression.Equals<TEntity, TKey>(entity.Id),
+                cancellationToken);
     }
 
     /// <summary>
@@ -194,6 +215,21 @@ namespace TurtlePath.Commands
         protected IMapperAdapter MapperAdapter { get; }
 
         /// <summary>
+        /// Gets the request validation step.
+        /// </summary>
+        protected IRequestValidationStep<TRequest, TEntity> ValidationStep { get; }
+
+        /// <summary>
+        /// Gets the entity creation step.
+        /// </summary>
+        protected IEntityCreationStep<TRequest, TEntity> EntityCreationStep { get; }
+
+        /// <summary>
+        /// Gets the entity add step.
+        /// </summary>
+        protected IEntityAddStep<TRequest, TEntity> EntityAddStep { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => true;
@@ -215,6 +251,9 @@ namespace TurtlePath.Commands
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityCreationStep = Services.GetRequiredService<IEntityCreationStep<TRequest, TEntity>>();
+            EntityAddStep = Services.GetRequiredService<IEntityAddStep<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity>>();
         }
 
@@ -253,7 +292,7 @@ namespace TurtlePath.Commands
             if (!ValidateRequest)
                 return ValueTask.CompletedTask;
 
-            return ValidatorAdapter.ValidateAsync(request, cancellationToken);
+            return ValidationStep.ValidateAsync(request, Context?.Entity, cancellationToken);
         }
 
         /// <summary>
@@ -263,7 +302,7 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>The mapped entity.</returns>
         protected virtual ValueTask<TEntity> MapToEntityAsync(TRequest request, CancellationToken cancellationToken)
-            => MapperAdapter.MapAsync<TRequest, TEntity>(request, cancellationToken);
+            => EntityCreationStep.CreateAsync(request, cancellationToken);
 
         /// <summary>
         /// Saves the entity.
@@ -273,9 +312,6 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected virtual async Task SaveEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-        {
-            await StorageWriterAdapter.AddAsync(entity, cancellationToken);
-            await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
-        }
+            => await EntityAddStep.AddAsync(request, entity, cancellationToken);
     }
 }
