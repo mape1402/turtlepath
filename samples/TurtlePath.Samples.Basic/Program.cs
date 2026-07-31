@@ -6,6 +6,8 @@ using TurtlePath.Hooks;
 
 var services = new ServiceCollection();
 
+services.AddDbContext<TodoDbContext>();
+
 services
     .AddTurtlePath(typeof(CreateTodoAuditHook).Assembly)
     .UseCId<Guid, string>(config =>
@@ -18,7 +20,7 @@ services
         config.ParseFunction = value => new CId(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
-    .UseEntityFrameworkCore(options => options with
+    .UseEntityFrameworkCore<TodoDbContext>(options => options with
     {
         ConfigurationAssemblies = [typeof(CreateTodoAuditHook).Assembly]
     });

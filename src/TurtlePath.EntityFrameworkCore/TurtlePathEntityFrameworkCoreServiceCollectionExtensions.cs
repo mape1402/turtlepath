@@ -3,6 +3,7 @@ namespace Microsoft.Extensions.DependencyInjection
     using TurtlePath.EntityFrameworkCore;
     using TurtlePath.Domain.Identifier;
     using TurtlePath;
+    using Microsoft.EntityFrameworkCore;
 
     /// <summary>
     /// Provides registration helpers for TurtlePath Entity Framework Core integration.
@@ -10,18 +11,48 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class TurtlePathEntityFrameworkCoreServiceCollectionExtensions
     {
         /// <summary>
-        /// Registers TurtlePath Entity Framework Core options.
+        /// Registers TurtlePath Entity Framework Core options on the current TurtlePath pipeline.
         /// </summary>
-        /// <param name="services">The service collection.</param>
+        /// <param name="builder">The TurtlePath builder.</param>
         /// <param name="configure">The options configuration callback.</param>
-        /// <returns>The same service collection.</returns>
-        public static IServiceCollection AddTurtlePathEntityFrameworkCore(
-            this IServiceCollection services,
+        /// <returns>The same TurtlePath builder.</returns>
+        public static ITurtlePathBuilder UseEntityFrameworkCore(
+            this ITurtlePathBuilder builder,
             Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure = null)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
 
+            AddTurtlePathEntityFrameworkCore(builder.Services, configure);
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers TurtlePath Entity Framework Core options and maps the concrete context to <see cref="IDbContext"/>.
+        /// </summary>
+        /// <typeparam name="TDbContext">The application's DbContext type.</typeparam>
+        /// <param name="builder">The TurtlePath builder.</param>
+        /// <param name="configure">The options configuration callback.</param>
+        /// <returns>The same TurtlePath builder.</returns>
+        public static ITurtlePathBuilder UseEntityFrameworkCore<TDbContext>(
+            this ITurtlePathBuilder builder,
+            Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure = null)
+            where TDbContext : DbContext, IDbContext
+        {
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
+
+            AddTurtlePathEntityFrameworkCore(builder.Services, configure);
+            builder.Services.AddScoped<IDbContext>(provider => provider.GetRequiredService<TDbContext>());
+
+            return builder;
+        }
+
+        private static void AddTurtlePathEntityFrameworkCore(
+            IServiceCollection services,
+            Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure)
+        {
             services.AddSingleton(provider =>
             {
                 var options = configure?.Invoke(TurtlePathDbContextOptions.Default) ?? TurtlePathDbContextOptions.Default;
@@ -43,26 +74,6 @@ namespace Microsoft.Extensions.DependencyInjection
                     return options;
                 }
             });
-
-            return services;
-        }
-
-        /// <summary>
-        /// Registers TurtlePath Entity Framework Core options on the current TurtlePath pipeline.
-        /// </summary>
-        /// <param name="builder">The TurtlePath builder.</param>
-        /// <param name="configure">The options configuration callback.</param>
-        /// <returns>The same TurtlePath builder.</returns>
-        public static ITurtlePathBuilder UseEntityFrameworkCore(
-            this ITurtlePathBuilder builder,
-            Func<TurtlePathDbContextOptions, TurtlePathDbContextOptions> configure = null)
-        {
-            if (builder == null)
-                throw new ArgumentNullException(nameof(builder));
-
-            builder.Services.AddTurtlePathEntityFrameworkCore(configure);
-
-            return builder;
         }
     }
 }

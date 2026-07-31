@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Domain.Identifier;
 
@@ -7,11 +8,11 @@ namespace TurtlePath.Tests;
 public class EntityFrameworkCoreRegistrationTests
 {
     [Fact]
-    public void AddTurtlePathEntityFrameworkCore_registers_default_options()
+    public void UseEntityFrameworkCore_registers_default_options()
     {
         var services = new ServiceCollection();
 
-        services.AddTurtlePathEntityFrameworkCore();
+        services.AddTurtlePath().UseEntityFrameworkCore();
 
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<TurtlePathDbContextOptions>();
@@ -23,15 +24,17 @@ public class EntityFrameworkCoreRegistrationTests
     }
 
     [Fact]
-    public void AddTurtlePathEntityFrameworkCore_registers_configured_options()
+    public void UseEntityFrameworkCore_registers_configured_options()
     {
         var services = new ServiceCollection();
 
-        services.AddTurtlePathEntityFrameworkCore(options => options with
-        {
-            ApplyBaseEntityConventions = false,
-            ConfigurationAssemblies = [typeof(EntityFrameworkCoreRegistrationTests).Assembly]
-        });
+        services
+            .AddTurtlePath()
+            .UseEntityFrameworkCore(options => options with
+            {
+                ApplyBaseEntityConventions = false,
+                ConfigurationAssemblies = [typeof(EntityFrameworkCoreRegistrationTests).Assembly]
+            });
 
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<TurtlePathDbContextOptions>();
@@ -43,7 +46,7 @@ public class EntityFrameworkCoreRegistrationTests
     }
 
     [Fact]
-    public void AddTurtlePathEntityFrameworkCore_uses_registered_identifier_definition()
+    public void UseEntityFrameworkCore_uses_registered_identifier_definition()
     {
         CIdMetadata.Reset();
         var services = new ServiceCollection();
@@ -70,5 +73,32 @@ public class EntityFrameworkCoreRegistrationTests
         Assert.Equal(typeof(string), options.CIdDefinition.DatabaseValueType);
         Assert.Equal("uniqueidentifier", options.CIdDefinition.DatabaseColumnType);
         Assert.True(options.CIdDefinition.HasDatabaseConversion);
+    }
+
+    [Fact]
+    public void UseEntityFrameworkCore_registers_concrete_context_as_IDbContext()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(new DbContextOptionsBuilder<SampleDbContext>().Options);
+        services.AddScoped<SampleDbContext>();
+
+        services
+            .AddTurtlePath()
+            .UseEntityFrameworkCore<SampleDbContext>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var dbContext = scope.ServiceProvider.GetRequiredService<IDbContext>();
+
+        Assert.IsType<SampleDbContext>(dbContext);
+    }
+
+    private sealed class SampleDbContext : BaseDbContext
+    {
+        public SampleDbContext(DbContextOptions<SampleDbContext> options, TurtlePathDbContextOptions turtlePathOptions)
+            : base(options, turtlePathOptions)
+        {
+        }
     }
 }

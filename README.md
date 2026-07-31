@@ -50,7 +50,7 @@ services
         config.ParseFunction = value => new CId(Guid.Parse(value));
         config.ToByteArrayFunction = value => value.ToByteArray();
     })
-    .UseEntityFrameworkCore(options => options with
+    .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
         ApplyBaseEntityConventions = true,
