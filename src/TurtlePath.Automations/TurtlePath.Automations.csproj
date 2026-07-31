@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.Automations</PackageId>
+    <Description>Declarative automation profiles and generated handler registration for TurtlePath application flows.</Description>
+    <PackageTags>application cqrs handlers automation pelican turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath\TurtlePath.csproj" />
+    <ProjectReference Include="..\TurtlePath.Domain\TurtlePath.Domain.csproj" />
+    <ProjectReference Include="..\TurtlePath.Abstractions\TurtlePath.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+    <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
+  </ItemGroup>
+</Project>

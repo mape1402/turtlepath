@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TurtlePath.Automations\TurtlePath.Automations.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath\TurtlePath.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.Domain\TurtlePath.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
