@@ -8,6 +8,8 @@
     <ProjectReference Include="..\..\src\TurtlePath\TurtlePath.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Domain\TurtlePath.Domain.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.AutoMapper\TurtlePath.AutoMapper.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.FluentValidation\TurtlePath.FluentValidation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

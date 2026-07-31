@@ -11,7 +11,9 @@ It packages the template's base command/query handlers, handler hook pipeline, v
 - `src/TurtlePath`: Pelican handler bases, hooks, request/response models, and application errors.
 - `src/TurtlePath.EntityFrameworkCore`: EF Core context abstraction, base DbContext conventions, and storage adapters.
 - `src/TurtlePath.OctoMap`: OctoMap mapper adapter.
+- `src/TurtlePath.AutoMapper`: AutoMapper mapper adapter.
 - `src/TurtlePath.Crabalidator`: Crabalidator validator adapter.
+- `src/TurtlePath.FluentValidation`: FluentValidation validator adapter.
 - `src/TurtlePath.Sieve`: Sieve criteria adapter.
 - `tests/TurtlePath.Tests`: unit tests for extracted primitives and registration behavior.
 - `samples/TurtlePath.Samples.Basic`: small usage-oriented sample.
@@ -31,7 +33,9 @@ Install the focused packages your application actually uses. For example, a typi
 dotnet add package TurtlePath
 dotnet add package TurtlePath.EntityFrameworkCore
 dotnet add package TurtlePath.OctoMap
+dotnet add package TurtlePath.AutoMapper
 dotnet add package TurtlePath.Crabalidator
+dotnet add package TurtlePath.FluentValidation
 dotnet add package TurtlePath.Sieve
 ```
 
@@ -91,8 +95,11 @@ An EF Core context can receive the registered TurtlePath options through DI:
 ```csharp
 public sealed class AppDbContext : BaseDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options, TurtlePathDbContextOptions turtlePathOptions)
-        : base(options, turtlePathOptions)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        TurtlePathDbContextOptions turtlePathOptions,
+        IEnumerable<ITurtlePathModelConvention> modelConventions)
+        : base(options, turtlePathOptions, modelConventions)
     {
     }
 }
@@ -105,8 +112,8 @@ Then derive your Pelican handlers from the provided base handlers, for example `
 - Pelican command and query handler bases.
 - Ordered before/after handler hooks.
 - Storage reader/writer adapter contracts and default EF Core adapters.
-- Mapping contract plus an OctoMap-backed adapter.
-- Validation contract plus a Crabalidator-backed adapter.
+- Mapping contract plus OctoMap-backed and AutoMapper-backed adapters.
+- Validation contract plus Crabalidator-backed and FluentValidation-backed adapters.
 - Application exceptions used by the handler base classes.
 - `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
 - Configurable `CId` identifier definitions, per-entity identifier overrides, identifier JSON converters, and configurable EF Core base DbContext conventions.

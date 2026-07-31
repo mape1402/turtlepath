@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.AutoMapper</PackageId>
+    <Description>AutoMapper adapter for TurtlePath mapping contracts.</Description>
+    <PackageTags>automapper mapping adapter turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Abstractions\TurtlePath.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="15.1.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

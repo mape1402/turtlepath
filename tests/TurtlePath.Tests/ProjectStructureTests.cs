@@ -58,15 +58,21 @@ public class ProjectStructureTests
         var root = FindRepositoryRoot();
         var applicationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath", "TurtlePath.csproj"));
         var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
+        var autoMapperProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.AutoMapper", "TurtlePath.AutoMapper.csproj"));
         var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
+        var fluentValidationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.FluentValidation", "TurtlePath.FluentValidation.csproj"));
         var sieveProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Sieve", "TurtlePath.Sieve.csproj"));
 
         Assert.Contains("TurtlePath.Abstractions", applicationProject);
         Assert.Contains("TurtlePath.Abstractions", octoMapProject);
+        Assert.Contains("TurtlePath.Abstractions", autoMapperProject);
         Assert.Contains("TurtlePath.Abstractions", crabalidatorProject);
+        Assert.Contains("TurtlePath.Abstractions", fluentValidationProject);
         Assert.Contains("TurtlePath.Abstractions", sieveProject);
         Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", octoMapProject);
+        Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", autoMapperProject);
         Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", crabalidatorProject);
+        Assert.DoesNotContain("..\\TurtlePath\\TurtlePath.csproj", fluentValidationProject);
     }
 
     [Fact]
@@ -139,10 +145,14 @@ public class ProjectStructureTests
     {
         var root = FindRepositoryRoot();
         var octoMapProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.OctoMap", "TurtlePath.OctoMap.csproj"));
+        var autoMapperProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.AutoMapper", "TurtlePath.AutoMapper.csproj"));
         var crabalidatorProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.Crabalidator", "TurtlePath.Crabalidator.csproj"));
+        var fluentValidationProject = File.ReadAllText(Path.Combine(root, "src", "TurtlePath.FluentValidation", "TurtlePath.FluentValidation.csproj"));
 
         Assert.Contains("OctoMap", octoMapProject);
+        Assert.Contains("AutoMapper", autoMapperProject);
         Assert.Contains("Crabalidator", crabalidatorProject);
+        Assert.Contains("FluentValidation", fluentValidationProject);
     }
 
     [Fact]
