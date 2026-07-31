@@ -23,6 +23,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
 
             services.TryAddScoped<IHandlerHookRunner, HandlerHookRunner>();
+            services.TryAddScoped(typeof(ICommandHookStageRunner<,>), typeof(CommandHookStageRunner<,>));
             services.TryAddScoped(typeof(ICommandHookStageRunner<,,>), typeof(CommandHookStageRunner<,,>));
             services.TryAddScoped(typeof(IQueryHookStageRunner<,>), typeof(QueryHookStageRunner<,>));
 

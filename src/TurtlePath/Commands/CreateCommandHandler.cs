@@ -30,4 +30,22 @@ namespace TurtlePath.Commands
         {
         }
     }
+
+    /// <summary>
+    /// Provides a base implementation for create commands that do not return a response for TurtlePath BaseEntity instances with CId identifiers.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the request.</typeparam>
+    /// <typeparam name="TEntity">The type of the entity being created.</typeparam>
+    public abstract class CreateCommandHandler<TRequest, TEntity> : GenericCreateNoReturnCommandHandler<TRequest, TEntity, CId>
+        where TRequest : class, IRequest
+        where TEntity : BaseEntity
+    {
+        /// <summary>
+        /// Initializes a new instance of this class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
+        protected CreateCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
+    }
 }
