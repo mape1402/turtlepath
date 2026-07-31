@@ -5,6 +5,7 @@ namespace TurtlePath.Queries
     using TurtlePath.Models.Responses;
     using TurtlePath.Persistence;
     using TurtlePath.Domain.Contracts;
+    using TurtlePath.Domain.Identifier;
     using Pelican.Mediator;
     using System.Linq.Expressions;
 
@@ -39,9 +40,10 @@ namespace TurtlePath.Queries
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetPagedInfoQuery<TEntity, TResponse> : IRequest<PagedResponse<TResponse>>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
+    /// <typeparam name="TKey">The entity identifier type.</typeparam>
+    public abstract class GetPagedInfoQuery<TEntity, TResponse, TKey> : IRequest<PagedResponse<TResponse>>
+        where TEntity : class, IEntity<TKey>
+        where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GetPagedInfoQuery{TEntity, TResponse}"/> class.
@@ -61,13 +63,32 @@ namespace TurtlePath.Queries
     /// <summary>
     /// Provides a base implementation for handling paged queries, including filtering, sorting, and pagination.
     /// </summary>
-    /// <typeparam name="TQuery">The type of the query.</typeparam>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class GetPagedInfoQueryHandler<TQuery, TEntity, TResponse> : IRequestHandler<TQuery, PagedResponse<TResponse>>
-        where TQuery : GetPagedInfoQuery<TEntity, TResponse>
+    public abstract class GetPagedInfoQuery<TEntity, TResponse> : GetPagedInfoQuery<TEntity, TResponse, CId>
         where TEntity : BaseEntity
         where TResponse : BaseResponse
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GetPagedInfoQuery{TEntity, TResponse}"/> class.
+        /// </summary>
+        /// <param name="pagedSettings">The paged settings for the query.</param>
+        protected GetPagedInfoQuery(PagedSettings pagedSettings) : base(pagedSettings)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Provides a base implementation for handling paged queries, including filtering, sorting, and pagination.
+    /// </summary>
+    /// <typeparam name="TEntity">The type of the entity.</typeparam>
+    /// <typeparam name="TResponse">The type of the response.</typeparam>
+    /// <typeparam name="TKey">The entity identifier type.</typeparam>
+    /// <typeparam name="TQuery">The type of the query.</typeparam>
+    public abstract class GetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, PagedResponse<TResponse>>
+        where TQuery : GetPagedInfoQuery<TEntity, TResponse, TKey>
+        where TEntity : class, IEntity<TKey>
+        where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GetPagedInfoQueryHandler{TQuery, TEntity, TResponse}"/> class.
@@ -163,6 +184,24 @@ namespace TurtlePath.Queries
         /// <returns>An expression for sorting entities, or null if not specified.</returns>
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery request) => null;
     }
+
+    /// <summary>
+    /// Provides a base implementation for handling paged queries for TurtlePath BaseEntity instances.
+    /// </summary>
+    /// <typeparam name="TQuery">The type of the query.</typeparam>
+    /// <typeparam name="TEntity">The type of the entity.</typeparam>
+    /// <typeparam name="TResponse">The type of the response.</typeparam>
+    public abstract class GetPagedInfoQueryHandler<TQuery, TEntity, TResponse> : GetPagedInfoQueryHandler<TQuery, TEntity, TResponse, CId>
+        where TQuery : GetPagedInfoQuery<TEntity, TResponse>
+        where TEntity : BaseEntity
+        where TResponse : BaseResponse
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GetPagedInfoQueryHandler{TQuery, TEntity, TResponse}"/> class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
+        protected GetPagedInfoQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
+    }
 }
-
-

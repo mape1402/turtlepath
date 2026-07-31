@@ -5,7 +5,7 @@ namespace TurtlePath.Models.Requests
     /// <summary>
     /// Represents the base request model containing a unique identifier.
     /// </summary>
-    public abstract class BaseRequest
+    public abstract class BaseRequest : IBaseRequest<CId>
     {
         /// <summary>
         /// Gets or sets the unique identifier for the resource.

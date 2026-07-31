@@ -7,6 +7,7 @@ namespace TurtlePath.Commands
     using TurtlePath.Validation;
     using TurtlePath.Mapping;
     using TurtlePath.Domain.Contracts;
+    using TurtlePath.Domain.Identifier;
     using Pelican.Mediator;
     using System;
 
@@ -16,10 +17,11 @@ namespace TurtlePath.Commands
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being created.</typeparam>
-    public abstract class CreateCommandHandler<TRequest, TResponse, TEntity> : BaseCommandHandler<TRequest, TResponse>
+    /// <typeparam name="TKey">The entity identifier type.</typeparam>
+    public abstract class CreateCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
         where TRequest : class, IRequest<TResponse>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
+        where TEntity : class, IEntity<TKey>
+        where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
         /// Gets the service provider used to resolve dependencies.
@@ -62,7 +64,7 @@ namespace TurtlePath.Commands
         protected CommandHookContext<TRequest, TEntity, TResponse> Context { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CreateCommandHandler{TRequest, TResponse, TEntity}"/> class.
+        /// Initializes a new instance of the <see cref="CreateCommandHandler{TRequest, TResponse, TEntity, TKey}"/> class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
         protected CreateCommandHandler(IServiceProvider serviceProvider)
@@ -165,9 +167,29 @@ namespace TurtlePath.Commands
                await StorageReaderAdapter
                    .For<TEntity>()
                    .AsNoTracking()
-                   .Where(e => e.Id == entity.Id)
+                   .Where(EntityKeyExpression.Equals<TEntity, TKey>(entity.Id))
                    .FirstOrDefaultAsync<TResponse>(cancellationToken) :
                await MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
+    }
+
+    /// <summary>
+    /// Provides a base implementation for handling create commands for TurtlePath BaseEntity instances with CId identifiers.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the request.</typeparam>
+    /// <typeparam name="TEntity">The type of the entity being created.</typeparam>
+    /// <typeparam name="TResponse">The type of the response.</typeparam>
+    public abstract class CreateCommandHandler<TRequest, TResponse, TEntity> : CreateCommandHandler<TRequest, TResponse, TEntity, CId>
+        where TRequest : class, IRequest<TResponse>
+        where TEntity : BaseEntity
+        where TResponse : BaseResponse
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CreateCommandHandler{TRequest, TResponse, TEntity}"/> class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
+        protected CreateCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
     }
 
     /// <summary>
@@ -290,6 +312,5 @@ namespace TurtlePath.Commands
             await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
         }
     }
+
 }
-
-

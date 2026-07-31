@@ -14,7 +14,7 @@ namespace TurtlePath.Persistence
         /// <param name="entity">The entity to add.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        ValueTask AddAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
+        ValueTask AddAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity;
 
         /// <summary>
         /// Adds entities to the current storage unit of work.
@@ -23,35 +23,35 @@ namespace TurtlePath.Persistence
         /// <param name="entities">The entities to add.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task AddRangeAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
+        Task AddRangeAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : class, IEntity;
 
         /// <summary>
         /// Marks an entity as updated in the current storage unit of work.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <param name="entity">The entity to update.</param>
-        void Update<TEntity>(TEntity entity) where TEntity : BaseEntity;
+        void Update<TEntity>(TEntity entity) where TEntity : class, IEntity;
 
         /// <summary>
         /// Marks entities as updated in the current storage unit of work.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entities.</typeparam>
         /// <param name="entities">The entities to update.</param>
-        void UpdateRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : BaseEntity;
+        void UpdateRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity;
 
         /// <summary>
         /// Removes an entity from the current storage unit of work.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <param name="entity">The entity to remove.</param>
-        void Remove<TEntity>(TEntity entity) where TEntity : BaseEntity;
+        void Remove<TEntity>(TEntity entity) where TEntity : class, IEntity;
 
         /// <summary>
         /// Removes entities from the current storage unit of work.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entities.</typeparam>
         /// <param name="entities">The entities to remove.</param>
-        void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : BaseEntity;
+        void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity;
 
         /// <summary>
         /// Persists all pending storage changes.
@@ -68,7 +68,7 @@ namespace TurtlePath.Persistence
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         [Obsolete("Use AddAsync followed by SaveChangesAsync.")]
-        Task SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
+        Task SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity;
        
         /// <summary>
         /// Updates the entity in the storage.
@@ -78,7 +78,7 @@ namespace TurtlePath.Persistence
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         [Obsolete("Use Update when the entity is detached, then SaveChangesAsync.")]
-        Task UpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
+        Task UpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity;
 
         /// <summary>
         /// Deletes an entity from the storage.
@@ -88,7 +88,6 @@ namespace TurtlePath.Persistence
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         [Obsolete("Use Remove followed by SaveChangesAsync.")]
-        Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity;
+        Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity;
     }
 }
-

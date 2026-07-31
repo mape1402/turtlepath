@@ -15,7 +15,6 @@ namespace TurtlePath.Persistence
         /// <param name="criteria">The requested criteria.</param>
         /// <returns>The query with provider criteria applied.</returns>
         IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
-            where TEntity : BaseEntity;
+            where TEntity : class, IEntity;
     }
 }
-

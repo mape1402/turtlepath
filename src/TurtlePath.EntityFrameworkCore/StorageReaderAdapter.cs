@@ -29,7 +29,7 @@ namespace TurtlePath.EntityFrameworkCore
         }
 
         /// <inheritdoc/>
-        public IStorageReadSet<TEntity> For<TEntity>() where TEntity : BaseEntity
+        public IStorageReadSet<TEntity> For<TEntity>() where TEntity : class, IEntity
             => new StorageReadSet<TEntity>(this);
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <exception cref="ArgumentNullException">Thrown if criteria is null.</exception>
         /// <exception cref="ArgumentException">Thrown if FiltersExpression is null.</exception>
         public async Task<TExpected> GetOneAsync<TEntity, TExpected>(GetOneCriteria<TEntity> criteria, CancellationToken cancellationToken = default)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
             where TExpected : class
         {
             if (criteria == null)
@@ -82,7 +82,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <returns>A task representing the asynchronous operation, with a batch result containing the expected results as the result.</returns>
         /// <exception cref="ArgumentNullException">Thrown if criteria is null.</exception>
         public async Task<BatchResult<TExpected>> GetManyAsync<TEntity, TExpected>(GetManyCriteria<TEntity> criteria, CancellationToken cancellationToken = default)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
             where TExpected : class
         {
             if (criteria == null)
@@ -133,7 +133,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="criteria">The criteria containing expressions.</param>
         /// <returns>The queryable source with expressions applied.</returns>
         private IQueryable<TEntity> ApplyExpressions<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
         {
             if (criteria.UseFiltersExpression())
                 source = source.Where(criteria.FiltersExpression);
@@ -156,7 +156,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="criteria">The criteria containing Sieve filters and sorts.</param>
         /// <returns>The queryable source with provider-specific filters and sorts applied.</returns>
         private IQueryable<TEntity> ApplyProviderCriteria<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
         {
             foreach (var criteriaApplier in _criteriaAppliers)
                 source = criteriaApplier.Apply(source, criteria);
@@ -172,7 +172,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="criteria">The criteria containing paging information.</param>
         /// <returns>A tuple containing the paged query, row count, page count, page number, and page size.</returns>
         private (IQueryable<TEntity> query, int rowCount, int pageCount, int pageNumber, int pageSize) ApplyPaging<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
         {
             var rowCount = source.Count();
 
@@ -194,7 +194,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// Stores fluent read options before delegating execution to the storage reader adapter.
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
-        private sealed class StorageReadSet<TEntity> : IStorageReadSet<TEntity> where TEntity : BaseEntity
+        private sealed class StorageReadSet<TEntity> : IStorageReadSet<TEntity> where TEntity : class, IEntity
         {
             /// <summary>
             /// The reader used to execute the accumulated criteria.
@@ -293,4 +293,3 @@ namespace TurtlePath.EntityFrameworkCore
         }
     }
 }
-

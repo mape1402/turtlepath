@@ -23,7 +23,7 @@ namespace TurtlePath.Sieve
 
         /// <inheritdoc/>
         public IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
         {
             if (criteria == null)
                 throw new ArgumentNullException(nameof(criteria));
@@ -41,4 +41,3 @@ namespace TurtlePath.Sieve
         }
     }
 }
-

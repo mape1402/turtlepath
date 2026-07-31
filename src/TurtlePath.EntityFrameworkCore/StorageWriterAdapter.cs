@@ -21,37 +21,37 @@ namespace TurtlePath.EntityFrameworkCore
         }
 
         /// <inheritdoc/>
-        public async ValueTask AddAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        public async ValueTask AddAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity
         {
             await _dbContext.AddAsync(entity, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Task AddRangeAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        public Task AddRangeAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : class, IEntity
         {
             return _dbContext.AddRangeAsync(entities, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public void Update<TEntity>(TEntity entity) where TEntity : BaseEntity
+        public void Update<TEntity>(TEntity entity) where TEntity : class, IEntity
         {
             _dbContext.Update(entity);
         }
 
         /// <inheritdoc/>
-        public void UpdateRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : BaseEntity
+        public void UpdateRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity
         {
             _dbContext.UpdateRange(entities);
         }
 
         /// <inheritdoc/>
-        public void Remove<TEntity>(TEntity entity) where TEntity : BaseEntity
+        public void Remove<TEntity>(TEntity entity) where TEntity : class, IEntity
         {
             _dbContext.Set<TEntity>().Remove(entity);
         }
 
         /// <inheritdoc/>
-        public void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : BaseEntity
+        public void RemoveRange<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity
         {
             _dbContext.RemoveRange(entities);
         }
@@ -67,7 +67,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="entity">The entity to save.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        public async Task SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity
         {
             await AddAsync(entity, cancellationToken);
             await SaveChangesAsync(cancellationToken);
@@ -80,7 +80,7 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="entity">The entity to update.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task UpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        public async Task UpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity
         {
             await SaveChangesAsync(cancellationToken);
         }
@@ -92,11 +92,10 @@ namespace TurtlePath.EntityFrameworkCore
         /// <param name="entity">The entity to delete.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : BaseEntity
+        public async Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity
         {
             Remove(entity);
             await SaveChangesAsync(cancellationToken);
         }
     }
 }
-

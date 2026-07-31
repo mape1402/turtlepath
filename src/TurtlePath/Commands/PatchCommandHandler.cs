@@ -9,6 +9,7 @@ namespace TurtlePath.Commands
     using TurtlePath.Validation;
     using TurtlePath.Mapping;
     using TurtlePath.Domain.Contracts;
+    using TurtlePath.Domain.Identifier;
     using Pelican.Mediator;
 
     /// <summary>
@@ -17,10 +18,11 @@ namespace TurtlePath.Commands
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being patched.</typeparam>
-    public abstract class PatchCommandHandler<TRequest, TResponse, TEntity> : BaseCommandHandler<TRequest, TResponse>
-        where TRequest : BaseRequest, IRequest<TResponse>
-        where TEntity : BaseEntity
-        where TResponse : BaseResponse
+    /// <typeparam name="TKey">The entity identifier type.</typeparam>
+    public abstract class PatchCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
+        where TRequest : class, IBaseRequest<TKey>, IRequest<TResponse>
+        where TEntity : class, IEntity<TKey>
+        where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
         /// Gets the service provider used to resolve dependencies.
@@ -58,7 +60,7 @@ namespace TurtlePath.Commands
         protected CommandHookContext<TRequest, TEntity, TResponse> Context { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PatchCommandHandler{TRequest, TResponse, TEntity}"/> class.
+        /// Initializes a new instance of the <see cref="PatchCommandHandler{TRequest, TResponse, TEntity, TKey}"/> class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
         protected PatchCommandHandler(IServiceProvider serviceProvider)
@@ -132,7 +134,7 @@ namespace TurtlePath.Commands
             return await StorageReaderAdapter
                 .For<TEntity>()
                 .AsTracking()
-                .Where(e => e.Id == request.Id)
+                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
                 .FirstOrDefaultAsync<TEntity>(cancellationToken)
                 ?? throw new NotFoundException(typeof(TEntity).Name, request.Id.ToString());
         }
@@ -179,6 +181,26 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
         protected abstract ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
+    /// Provides a base implementation for handling patch commands for TurtlePath BaseEntity instances with CId identifiers.
+    /// </summary>
+    /// <typeparam name="TRequest">The type of the request.</typeparam>
+    /// <typeparam name="TEntity">The type of the entity being patched.</typeparam>
+    /// <typeparam name="TResponse">The type of the response.</typeparam>
+    public abstract class PatchCommandHandler<TRequest, TResponse, TEntity> : PatchCommandHandler<TRequest, TResponse, TEntity, CId>
+        where TRequest : BaseRequest, IRequest<TResponse>
+        where TEntity : BaseEntity
+        where TResponse : BaseResponse
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PatchCommandHandler{TRequest, TResponse, TEntity}"/> class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
+        protected PatchCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
     }
 
     /// <summary>
@@ -329,6 +351,5 @@ namespace TurtlePath.Commands
         protected virtual Task UpdateEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
             => StorageWriterAdapter.SaveChangesAsync(cancellationToken);
     }
+
 }
-
-

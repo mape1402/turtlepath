@@ -5,7 +5,7 @@ namespace TurtlePath.Models.Responses
     /// <summary>
     /// Represents the base response model containing a unique identifier.
     /// </summary>
-    public abstract class BaseResponse
+    public abstract class BaseResponse : IBaseResponse<CId>
     {
         /// <summary>
         /// Gets or sets the unique identifier for the resource.

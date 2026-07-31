@@ -152,7 +152,7 @@ namespace TurtlePath.Persistence
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity.</typeparam>
         /// <returns>A fluent read set for the entity type.</returns>
-        IStorageReadSet<TEntity> For<TEntity>() where TEntity : BaseEntity;
+        IStorageReadSet<TEntity> For<TEntity>() where TEntity : class, IEntity;
 
         /// <summary>
         /// Asynchronously retrieves a single entity matching the specified criteria.
@@ -163,7 +163,7 @@ namespace TurtlePath.Persistence
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation, with the expected result as the result.</returns>
         Task<TExpected> GetOneAsync<TEntity, TExpected>(GetOneCriteria<TEntity> criteria, CancellationToken cancellationToken = default)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
             where TExpected : class;
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace TurtlePath.Persistence
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation, with a batch result containing the expected results as the result.</returns>
         Task<BatchResult<TExpected>> GetManyAsync<TEntity, TExpected>(GetManyCriteria<TEntity> criteria, CancellationToken cancellationToken = default)
-            where TEntity : BaseEntity
+            where TEntity : class, IEntity
             where TExpected : class;
     }
 
@@ -183,7 +183,7 @@ namespace TurtlePath.Persistence
     /// Provides a fluent, provider-neutral read surface for common entity queries.
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    public interface IStorageReadSet<TEntity> where TEntity : BaseEntity
+    public interface IStorageReadSet<TEntity> where TEntity : class, IEntity
     {
         /// <summary>
         /// Applies a typed filter.
@@ -259,4 +259,3 @@ namespace TurtlePath.Persistence
             where TExpected : class;
     }
 }
-
