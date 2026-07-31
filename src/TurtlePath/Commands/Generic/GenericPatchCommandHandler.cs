@@ -82,42 +82,32 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
-            await Services.RunHooksAsync<IBeforeGetEntityHook<TRequest, TEntity>>(
-                hook => hook.BeforeGetEntityAsync(Context, cancellationToken));
+            await CommandHookStageRunner.BeforeGetEntityAsync(Services, Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
-            await Services.RunHooksAsync<IAfterGetEntityHook<TRequest, TEntity>>(
-                hook => hook.AfterGetEntityAsync(Context, cancellationToken));
+            await CommandHookStageRunner.AfterGetEntityAsync(Services, Context, cancellationToken);
 
-            await Services.RunHooksAsync<IBeforeValidationHook<TRequest, TEntity>>(
-                hook => hook.BeforeValidationAsync(Context, cancellationToken));
+            await CommandHookStageRunner.BeforeValidationAsync(Services, Context, cancellationToken);
             await ValidateAsync(request, entity, cancellationToken);
 
-            await Services.RunHooksAsync<IAfterValidationHook<TRequest, TEntity>>(
-                hook => hook.AfterValidationAsync(Context, cancellationToken));
+            await CommandHookStageRunner.AfterValidationAsync(Services, Context, cancellationToken);
 
-            await Services.RunHooksAsync<IBeforePatchHook<TRequest, TEntity>>(
-                hook => hook.BeforePatchAsync(Context, cancellationToken));
+            await CommandHookStageRunner.BeforePatchAsync(Services, Context, cancellationToken);
             await PatchEntityAsync(request, entity, cancellationToken);
 
-            await Services.RunHooksAsync<IAfterPatchHook<TRequest, TEntity>>(
-                hook => hook.AfterPatchAsync(Context, cancellationToken));
+            await CommandHookStageRunner.AfterPatchAsync(Services, Context, cancellationToken);
 
-            await Services.RunHooksAsync<IBeforeSaveHook<TRequest, TEntity>>(
-                hook => hook.BeforeSaveAsync(Context, cancellationToken));
+            await CommandHookStageRunner.BeforeSaveAsync(Services, Context, cancellationToken);
             await UpdateEntityAsync(request, entity, cancellationToken);
 
-            await Services.RunHooksAsync<IAfterSaveHook<TRequest, TEntity>>(
-                hook => hook.AfterSaveAsync(Context, cancellationToken));
+            await CommandHookStageRunner.AfterSaveAsync(Services, Context, cancellationToken);
 
-            await Services.RunHooksAsync<IBeforeResponseHook<TRequest, TEntity, TResponse>>(
-                hook => hook.BeforeResponseAsync(Context, cancellationToken));
+            await CommandHookStageRunner.BeforeResponseAsync(Services, Context, cancellationToken);
             var response = await BuildResponseAsync(request, entity, cancellationToken);
             Context.Response = response;
 
-            await Services.RunHooksAsync<IAfterResponseHook<TRequest, TEntity, TResponse>>(
-                hook => hook.AfterResponseAsync(Context, cancellationToken));
+            await CommandHookStageRunner.AfterResponseAsync(Services, Context, cancellationToken);
 
             return response;
         }

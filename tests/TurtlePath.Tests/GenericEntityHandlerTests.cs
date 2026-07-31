@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Pelican.Mediator;
 using TurtlePath.Commands;
 using TurtlePath.Domain.Contracts;
+using TurtlePath.Hooks;
 using TurtlePath.Mapping;
 using TurtlePath.Models.Responses;
 using TurtlePath.Persistence;
@@ -35,6 +36,40 @@ public class GenericEntityHandlerTests
     }
 
     [Fact]
+    public async Task Create_handler_runs_command_hooks_by_stage_order()
+    {
+        var calls = new List<string>();
+        var storage = new RecordingStorageWriterAdapter();
+        using var provider = CreateProvider(
+            storage,
+            new EmptyStorageReaderAdapter(),
+            new TestMapperAdapter(),
+            new NoopValidatorAdapter(),
+            services =>
+            {
+                services.AddSingleton(calls);
+                services.AddHandlerHook<CreateCommandStageHook>();
+            });
+
+        var handler = new CreateCustomEntityHandler(provider);
+
+        await handler.Handle(new CreateCustomEntityRequest("Ada"));
+
+        Assert.Equal(
+            [
+                "before-validation",
+                "after-validation",
+                "before-map",
+                "after-map",
+                "before-save",
+                "after-save",
+                "before-response",
+                "after-response"
+            ],
+            calls);
+    }
+
+    [Fact]
     public async Task Get_by_id_handler_supports_entities_with_custom_key_contract()
     {
         var reader = new InMemoryStorageReaderAdapter(new CustomEntity
@@ -57,11 +92,40 @@ public class GenericEntityHandlerTests
         Assert.Equal("Grace", response.Name);
     }
 
+    [Fact]
+    public async Task Get_by_id_handler_runs_query_hooks_by_stage_order()
+    {
+        var calls = new List<string>();
+        var reader = new InMemoryStorageReaderAdapter(new CustomEntity
+        {
+            Id = 42,
+            Name = "Grace"
+        });
+
+        using var provider = CreateProvider(
+            new RecordingStorageWriterAdapter(),
+            reader,
+            new TestMapperAdapter(),
+            new NoopValidatorAdapter(),
+            services =>
+            {
+                services.AddSingleton(calls);
+                services.AddHandlerHook<GetByIdQueryStageHook>();
+            });
+
+        var handler = new GetCustomEntityByIdHandler(provider);
+
+        await handler.Handle(new GetCustomEntityByIdQuery(42));
+
+        Assert.Equal(["before-query", "after-query"], calls);
+    }
+
     private static ServiceProvider CreateProvider(
         IStorageWriterAdapter storageWriterAdapter,
         IStorageReaderAdapter storageReaderAdapter,
         IMapperAdapter mapperAdapter,
-        IValidatorAdapter validatorAdapter)
+        IValidatorAdapter validatorAdapter,
+        Action<IServiceCollection> configure = null)
     {
         var services = new ServiceCollection();
 
@@ -69,6 +133,7 @@ public class GenericEntityHandlerTests
         services.AddSingleton(storageReaderAdapter);
         services.AddSingleton(mapperAdapter);
         services.AddSingleton(validatorAdapter);
+        configure?.Invoke(services);
 
         return services.BuildServiceProvider();
     }
@@ -109,6 +174,64 @@ public class GenericEntityHandlerTests
     {
         public GetCustomEntityByIdHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {
+        }
+    }
+
+    private sealed class CreateCommandStageHook(List<string> calls) :
+        IBeforeValidationHook<CreateCustomEntityRequest, CustomEntity>,
+        IAfterValidationHook<CreateCustomEntityRequest, CustomEntity>,
+        IBeforeMapHook<CreateCustomEntityRequest, CustomEntity>,
+        IAfterMapHook<CreateCustomEntityRequest, CustomEntity>,
+        IBeforeSaveHook<CreateCustomEntityRequest, CustomEntity>,
+        IAfterSaveHook<CreateCustomEntityRequest, CustomEntity>,
+        IBeforeResponseHook<CreateCustomEntityRequest, CustomEntity, CustomResponse>,
+        IAfterResponseHook<CreateCustomEntityRequest, CustomEntity, CustomResponse>
+    {
+        public ValueTask BeforeValidationAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("before-validation");
+
+        public ValueTask AfterValidationAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("after-validation");
+
+        public ValueTask BeforeMapAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("before-map");
+
+        public ValueTask AfterMapAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("after-map");
+
+        public ValueTask BeforeSaveAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("before-save");
+
+        public ValueTask AfterSaveAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity> context, CancellationToken cancellationToken = default)
+            => AddAsync("after-save");
+
+        public ValueTask BeforeResponseAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity, CustomResponse> context, CancellationToken cancellationToken = default)
+            => AddAsync("before-response");
+
+        public ValueTask AfterResponseAsync(CommandHookContext<CreateCustomEntityRequest, CustomEntity, CustomResponse> context, CancellationToken cancellationToken = default)
+            => AddAsync("after-response");
+
+        private ValueTask AddAsync(string call)
+        {
+            calls.Add(call);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class GetByIdQueryStageHook(List<string> calls) :
+        IBeforeQueryHook<GetCustomEntityByIdQuery, CustomResponse>,
+        IAfterQueryHook<GetCustomEntityByIdQuery, CustomResponse>
+    {
+        public ValueTask BeforeQueryAsync(QueryHookContext<GetCustomEntityByIdQuery, CustomResponse> context, CancellationToken cancellationToken = default)
+            => AddAsync("before-query");
+
+        public ValueTask AfterQueryAsync(QueryHookContext<GetCustomEntityByIdQuery, CustomResponse> context, CancellationToken cancellationToken = default)
+            => AddAsync("after-query");
+
+        private ValueTask AddAsync(string call)
+        {
+            calls.Add(call);
+            return ValueTask.CompletedTask;
         }
     }
 

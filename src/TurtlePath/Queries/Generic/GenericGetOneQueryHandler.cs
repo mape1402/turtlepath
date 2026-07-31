@@ -75,8 +75,7 @@ namespace TurtlePath.Queries
         {
             Context = new QueryHookContext<TQuery, TResponse>(request);
 
-            await Services.RunHooksAsync<IBeforeQueryHook<TQuery, TResponse>>(
-                hook => hook.BeforeQueryAsync(Context, cancellationToken));
+            await QueryHookStageRunner.BeforeQueryAsync(Services, Context, cancellationToken);
 
             var response = await StorageReaderAdapter
                 .For<TEntity>()
@@ -87,8 +86,7 @@ namespace TurtlePath.Queries
 
             Context.Result = response;
 
-            await Services.RunHooksAsync<IAfterQueryHook<TQuery, TResponse>>(
-                hook => hook.AfterQueryAsync(Context, cancellationToken));
+            await QueryHookStageRunner.AfterQueryAsync(Services, Context, cancellationToken);
 
             return response;
         }

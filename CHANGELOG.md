@@ -30,4 +30,5 @@ All notable changes to TurtlePath will be documented in this file.
 - Added generic handler contracts for custom entity key types through `IEntity<TKey>`, `IBaseRequest<TKey>`, and `IBaseResponse<TKey>` while keeping the short `BaseEntity`/`CId` handler path.
 - Split generic entity handlers from `BaseEntity`/`CId` handlers; generic-key handlers now use `Generic...` names while the recommended `BaseEntity`/`CId` handlers keep the concise names.
 - Organized generic handler source files under `Generic` folders while keeping the `BaseEntity`/`CId` handlers directly under `Commands` and `Queries`.
+- Extracted internal command and query hook stage runners to centralize handler hook execution and protect stage order with tests.
 
