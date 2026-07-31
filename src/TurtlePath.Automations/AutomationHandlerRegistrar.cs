@@ -1,6 +1,7 @@
 namespace TurtlePath.Automations
 {
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Pelican.Mediator;
     using TurtlePath.Automations.Descriptors;
     using TurtlePath.Automations.Handlers;
@@ -10,7 +11,10 @@ namespace TurtlePath.Automations
     {
         public static void Register(IServiceCollection services, IEnumerable<AutomationDescriptor> descriptors)
         {
-            foreach (var descriptor in descriptors)
+            var registry = new AutomationDescriptorRegistry(descriptors);
+            services.TryAddSingleton(registry);
+
+            foreach (var descriptor in registry.Descriptors)
                 Register(services, descriptor);
         }
 
@@ -39,6 +43,7 @@ namespace TurtlePath.Automations
                     AutomationOperationKind.Patch when descriptor.HasResponse => typeof(AutomatedPatchCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
                     AutomationOperationKind.Patch => typeof(AutomatedPatchCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
                     AutomationOperationKind.GetById => typeof(AutomatedGetByIdQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.ResponseType, descriptor.KeyType),
+                    AutomationOperationKind.GetOne => typeof(AutomatedGetOneQueryHandler<,,,,>).MakeGenericType(descriptor.RequestType, ResolveGetOneValueType(descriptor), descriptor.EntityType, descriptor.ResponseType, descriptor.KeyType),
                     AutomationOperationKind.GetMany => typeof(AutomatedGetManyQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolveCollectionItemType(descriptor.ResponseType), descriptor.KeyType),
                     AutomationOperationKind.GetPaged => typeof(AutomatedGetPagedQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolvePagedItemType(descriptor.ResponseType), descriptor.KeyType),
                     _ => throw new NotSupportedException($"Automation operation '{descriptor.OperationKind}' is not supported by handler registration yet.")
@@ -58,6 +63,26 @@ namespace TurtlePath.Automations
                 return responseType.GetGenericArguments()[0];
 
             return responseType;
+        }
+
+        private static Type ResolveGetOneValueType(AutomationDescriptor descriptor)
+        {
+            var queryBase = FindGenericBaseType(descriptor.RequestType, typeof(TurtlePath.Queries.GenericGetOneQuery<,,,>));
+            if (queryBase != null)
+                return queryBase.GetGenericArguments()[0];
+
+            return descriptor.KeySelector?.ReturnType ?? descriptor.KeyType;
+        }
+
+        private static Type FindGenericBaseType(Type type, Type genericTypeDefinition)
+        {
+            for (var current = type; current != null && current != typeof(object); current = current.BaseType)
+            {
+                if (current.IsGenericType && current.GetGenericTypeDefinition() == genericTypeDefinition)
+                    return current;
+            }
+
+            return null;
         }
 
         private static Type ResolvePagedItemType(Type responseType)

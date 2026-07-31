@@ -80,6 +80,56 @@ namespace TurtlePath.Automations.Tests
         }
 
         [Fact]
+        public void Register_adds_closed_get_one_query_handler_for_pelican_request()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.GetOne,
+                typeof(GetCustomerByEmailQuery),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse));
+
+            AutomationHandlerRegistrar.Register(services, [descriptor]);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<GetCustomerByEmailQuery, CustomerResponse>));
+
+            Assert.NotNull(handler);
+            Assert.NotNull(handler.ImplementationType);
+        }
+
+        [Fact]
+        public void Register_preserves_descriptor_customizations_for_generated_handlers()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.GetPaged,
+                typeof(SearchCustomersQuery),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(PagedResponse<CustomerResponse>),
+                defaultSortProperty: "Name");
+
+            AutomationHandlerRegistrar.Register(services, [descriptor]);
+
+            var registry = services
+                .Select(service => service.ImplementationInstance)
+                .OfType<AutomationDescriptorRegistry>()
+                .Single();
+            var registeredDescriptor = registry.Find(typeof(SearchCustomersQuery), typeof(PagedResponse<CustomerResponse>));
+
+            Assert.NotNull(registeredDescriptor);
+            Assert.Equal("Name", registeredDescriptor.DefaultSortProperty);
+        }
+
+        [Fact]
         public void Register_adds_closed_patch_handler_when_request_implements_patch_action()
         {
             var services = new ServiceCollection();
@@ -143,6 +193,17 @@ namespace TurtlePath.Automations.Tests
         private sealed class GetCustomerByIdQuery : GenericGetByIdQuery<Customer, CustomerResponse, CId>
         {
             public GetCustomerByIdQuery(CId id) : base(id)
+            {
+            }
+        }
+
+        private sealed class GetCustomerByEmailQuery : GenericGetOneQuery<CId, Customer, CustomerResponse, CId>
+        {
+        }
+
+        private sealed class SearchCustomersQuery : GenericGetPagedInfoQuery<Customer, CustomerResponse, CId>
+        {
+            public SearchCustomersQuery(PagedSettings pagedSettings) : base(pagedSettings)
             {
             }
         }

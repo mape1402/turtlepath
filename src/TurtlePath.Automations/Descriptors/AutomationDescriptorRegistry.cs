@@ -7,6 +7,19 @@ namespace TurtlePath.Automations.Descriptors
     {
         private readonly Dictionary<AutomationDescriptorKey, AutomationDescriptor> descriptors = new();
 
+        public AutomationDescriptorRegistry()
+        {
+        }
+
+        public AutomationDescriptorRegistry(IEnumerable<AutomationDescriptor> descriptors)
+        {
+            if (descriptors == null)
+                throw new ArgumentNullException(nameof(descriptors));
+
+            foreach (var descriptor in descriptors)
+                Add(descriptor);
+        }
+
         public IReadOnlyCollection<AutomationDescriptor> Descriptors => descriptors.Values.ToArray();
 
         public void Add(AutomationDescriptor descriptor)
@@ -35,6 +48,19 @@ namespace TurtlePath.Automations.Descriptors
                 return;
 
             throw new AutomationDescriptorConflictException(current, descriptor);
+        }
+
+        public AutomationDescriptor Find(Type requestType, Type responseType)
+        {
+            if (requestType == null)
+                throw new ArgumentNullException(nameof(requestType));
+
+            if (responseType == null)
+                throw new ArgumentNullException(nameof(responseType));
+
+            return descriptors.Values.FirstOrDefault(descriptor =>
+                descriptor.RequestType == requestType &&
+                descriptor.ResponseType == responseType);
         }
     }
 }
