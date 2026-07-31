@@ -75,7 +75,7 @@ public class GenericEntityHandlerTests
 
     private sealed record CreateCustomEntityRequest(string Name) : IRequest<CustomResponse>;
 
-    private sealed class GetCustomEntityByIdQuery : EntityGetByIdQuery<CustomEntity, CustomResponse, int>
+    private sealed class GetCustomEntityByIdQuery : GenericGetByIdQuery<CustomEntity, CustomResponse, int>
     {
         public GetCustomEntityByIdQuery(int id) : base(id)
         {
@@ -97,7 +97,7 @@ public class GenericEntityHandlerTests
     }
 
     private sealed class CreateCustomEntityHandler
-        : EntityCreateCommandHandler<CreateCustomEntityRequest, CustomResponse, CustomEntity, int>
+        : GenericCreateCommandHandler<CreateCustomEntityRequest, CustomResponse, CustomEntity, int>
     {
         public CreateCustomEntityHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {
@@ -105,7 +105,7 @@ public class GenericEntityHandlerTests
     }
 
     private sealed class GetCustomEntityByIdHandler
-        : EntityGetByIdQueryHandler<GetCustomEntityByIdQuery, CustomEntity, CustomResponse, int>
+        : GenericGetByIdQueryHandler<GetCustomEntityByIdQuery, CustomEntity, CustomResponse, int>
     {
         public GetCustomEntityByIdHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {

@@ -41,7 +41,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityGetPagedInfoQuery<TEntity, TResponse, TKey> : IRequest<PagedResponse<TResponse>>
+    public abstract class GenericGetPagedInfoQuery<TEntity, TResponse, TKey> : IRequest<PagedResponse<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -49,7 +49,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="pagedSettings">The paged settings for the query.</param>
-        protected EntityGetPagedInfoQuery(PagedSettings pagedSettings)
+        protected GenericGetPagedInfoQuery(PagedSettings pagedSettings)
         {
             PagedSettings = pagedSettings;
         }
@@ -67,8 +67,8 @@ namespace TurtlePath.Queries
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class EntityGetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, PagedResponse<TResponse>>
-        where TQuery : EntityGetPagedInfoQuery<TEntity, TResponse, TKey>
+    public abstract class GenericGetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, PagedResponse<TResponse>>
+        where TQuery : GenericGetPagedInfoQuery<TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -76,7 +76,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityGetPagedInfoQueryHandler(IServiceProvider serviceProvider)
+        protected GenericGetPagedInfoQueryHandler(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();

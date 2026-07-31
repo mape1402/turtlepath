@@ -19,7 +19,7 @@ namespace TurtlePath.Commands
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being patched.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityPatchCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
+    public abstract class GenericPatchCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
         where TRequest : class, IBaseRequest<TKey>, IRequest<TResponse>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
@@ -63,7 +63,7 @@ namespace TurtlePath.Commands
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityPatchCommandHandler(IServiceProvider serviceProvider)
+        protected GenericPatchCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();

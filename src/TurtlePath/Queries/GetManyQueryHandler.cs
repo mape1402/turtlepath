@@ -1,45 +1,43 @@
 namespace TurtlePath.Queries
 {
+    using Microsoft.Extensions.DependencyInjection;
+    using TurtlePath.Hooks;
     using TurtlePath.Models.Responses;
+    using TurtlePath.Persistence;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
-    using System;
+    using Pelican.Mediator;
     using System.Linq.Expressions;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
-    /// Represents a query to retrieve a TurtlePath BaseEntity by its unique CId identifier.
+    /// Represents a query to retrieve multiple TurtlePath BaseEntity instances.
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public class BaseEntityGetByIdQuery<TEntity, TResponse> : EntityGetByIdQuery<TEntity, TResponse, CId>
+    public abstract class GetManyQuery<TEntity, TResponse> : GenericGetManyQuery<TEntity, TResponse, CId>
         where TEntity : BaseEntity
         where TResponse : BaseResponse
     {
-        /// <summary>
-        /// Initializes a new instance of this class.
-        /// </summary>
-        /// <param name="id">The unique identifier used to retrieve the specific entity.</param>
-        public BaseEntityGetByIdQuery(CId id) : base(id)
-        {
-        }
     }
 
     /// <summary>
-    /// Provides a base implementation for handling queries that retrieve a TurtlePath BaseEntity by its CId identifier.
+    /// Provides a base implementation for handling queries that retrieve multiple TurtlePath BaseEntity instances.
     /// </summary>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public abstract class BaseEntityGetByIdQueryHandler<TQuery, TEntity, TResponse> : EntityGetByIdQueryHandler<TQuery, TEntity, TResponse, CId>
-        where TQuery : BaseEntityGetByIdQuery<TEntity, TResponse>
+    public abstract class GetManyQueryHandler<TQuery, TEntity, TResponse> : GenericGetManyQueryHandler<TQuery, TEntity, TResponse, CId>
         where TEntity : BaseEntity
         where TResponse : BaseResponse
+        where TQuery : GetManyQuery<TEntity, TResponse>
     {
         /// <summary>
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected BaseEntityGetByIdQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+        protected GetManyQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider)
         {
         }
     }

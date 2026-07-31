@@ -18,7 +18,7 @@ namespace TurtlePath.Commands
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TEntity">The type of the entity being deleted.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityDeleteCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
+    public abstract class GenericDeleteCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
         where TRequest : class, IBaseRequest<TKey>, IRequest<TResponse>
         where TResponse : class
         where TEntity : class, IEntity<TKey>
@@ -62,7 +62,7 @@ namespace TurtlePath.Commands
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityDeleteCommandHandler(IServiceProvider serviceProvider)
+        protected GenericDeleteCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageWriterAdapter = serviceProvider.GetRequiredService<IStorageWriterAdapter>();

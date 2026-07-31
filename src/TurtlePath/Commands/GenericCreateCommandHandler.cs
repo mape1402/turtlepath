@@ -1,9 +1,7 @@
 namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
-    using TurtlePath.Exceptions;
     using TurtlePath.Hooks;
-    using TurtlePath.Models.Requests;
     using TurtlePath.Models.Responses;
     using TurtlePath.Persistence;
     using TurtlePath.Validation;
@@ -12,20 +10,18 @@ namespace TurtlePath.Commands
     using TurtlePath.Domain.Identifier;
     using Pelican.Mediator;
     using System;
-    using System.Threading;
-    using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides a base implementation for handling update commands that return a response, including entity retrieval, validation, mapping, updating, and response mapping.
+    /// Provides a base implementation for handling create commands that return a response, including validation, mapping, saving, and response mapping.
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    /// <typeparam name="TEntity">The type of the entity being updated.</typeparam>
+    /// <typeparam name="TEntity">The type of the entity being created.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityUpdateCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
-        where TRequest : class, IBaseRequest<TKey>, IRequest<TResponse>
-        where TResponse : class, IBaseResponse<TKey>
+    public abstract class GenericCreateCommandHandler<TRequest, TResponse, TEntity, TKey> : BaseCommandHandler<TRequest, TResponse>
+        where TRequest : class, IRequest<TResponse>
         where TEntity : class, IEntity<TKey>
+        where TResponse : class, IBaseResponse<TKey>
     {
         /// <summary>
         /// Gets the service provider used to resolve dependencies.
@@ -33,7 +29,7 @@ namespace TurtlePath.Commands
         protected IServiceProvider Services { get; }
 
         /// <summary>
-        /// Gets the storage adapter for saving and updating entities.
+        /// Gets the storage adapter for saving entities.
         /// </summary>
         protected IStorageWriterAdapter StorageWriterAdapter { get; }
 
@@ -71,7 +67,7 @@ namespace TurtlePath.Commands
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityUpdateCommandHandler(IServiceProvider serviceProvider)
+        protected GenericCreateCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
@@ -81,40 +77,33 @@ namespace TurtlePath.Commands
         }
 
         /// <summary>
-        /// Handles the update command by retrieving, validating, mapping, updating the entity, and returning the response.
+        /// Handles the create command by validating, mapping, saving, and returning the response.
         /// </summary>
         /// <param name="request">The request to handle.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
-        /// <returns>A task representing the asynchronous operation, with the response for the update command as the result.</returns>
+        /// <returns>A task representing the asynchronous operation, with the response for the create command as the result.</returns>
         public override async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken = default)
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
-            await Services.RunHooksAsync<IBeforeGetEntityHook<TRequest, TEntity>>(
-                hook => hook.BeforeGetEntityAsync(Context, cancellationToken));
-            var entity = await GetEntityAsync(request, cancellationToken);
-            Context.Entity = entity;
-
-            await Services.RunHooksAsync<IAfterGetEntityHook<TRequest, TEntity>>(
-                hook => hook.AfterGetEntityAsync(Context, cancellationToken));
-
             await Services.RunHooksAsync<IBeforeValidationHook<TRequest, TEntity>>(
                 hook => hook.BeforeValidationAsync(Context, cancellationToken));
-            await ValidateAsync(request, entity, cancellationToken);
+            await ValidateAsync(request, cancellationToken);
 
             await Services.RunHooksAsync<IAfterValidationHook<TRequest, TEntity>>(
                 hook => hook.AfterValidationAsync(Context, cancellationToken));
 
             await Services.RunHooksAsync<IBeforeMapHook<TRequest, TEntity>>(
                 hook => hook.BeforeMapAsync(Context, cancellationToken));
-            await MapEntityAsync(request, entity, cancellationToken);
+            var entity = await MapToEntityAsync(request, cancellationToken);
+            Context.Entity = entity;
 
             await Services.RunHooksAsync<IAfterMapHook<TRequest, TEntity>>(
                 hook => hook.AfterMapAsync(Context, cancellationToken));
 
             await Services.RunHooksAsync<IBeforeSaveHook<TRequest, TEntity>>(
                 hook => hook.BeforeSaveAsync(Context, cancellationToken));
-            await UpdateEntityAsync(request, entity, cancellationToken);
+            await SaveEntityAsync(request, entity, cancellationToken);
 
             await Services.RunHooksAsync<IAfterSaveHook<TRequest, TEntity>>(
                 hook => hook.AfterSaveAsync(Context, cancellationToken));
@@ -131,30 +120,12 @@ namespace TurtlePath.Commands
         }
 
         /// <summary>
-        /// Retrieves the entity to be updated based on the request. Throws <see cref="NotFoundException"/> if the entity is not found.
-        /// </summary>
-        /// <param name="request">The request containing information to identify the entity.</param>
-        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
-        /// <returns>A task representing the asynchronous operation, with the entity as the result.</returns>
-        /// <exception cref="NotFoundException">Thrown if the entity is not found.</exception>
-        protected virtual async Task<TEntity> GetEntityAsync(TRequest request, CancellationToken cancellationToken)
-        {
-            return await StorageReaderAdapter
-                .For<TEntity>()
-                .AsTracking()
-                .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                .FirstOrDefaultAsync<TEntity>(cancellationToken)
-                ?? throw new NotFoundException(typeof(TEntity).Name, request.Id.ToString());
-        }
-
-        /// <summary>
-        /// Validates the request and entity using the validator adapter if <see cref="ValidateRequest"/> is <c>true</c>.
+        /// Validates the request using the validator adapter if <see cref="ValidateRequest"/> is <c>true</c>.
         /// </summary>
         /// <param name="request">The request to validate.</param>
-        /// <param name="entity">The entity to validate.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous validation operation.</returns>
-        protected virtual ValueTask ValidateAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+        protected virtual ValueTask ValidateAsync(TRequest request, CancellationToken cancellationToken)
         {
             if (!ValidateRequest)
                 return ValueTask.CompletedTask;
@@ -163,39 +134,41 @@ namespace TurtlePath.Commands
         }
 
         /// <summary>
-        /// Maps the request onto the entity using the mapper adapter.
+        /// Maps the request to an entity using the mapper adapter.
         /// </summary>
-        /// <param name="request">The request containing updated values.</param>
-        /// <param name="entity">The entity to update.</param>
+        /// <param name="request">The request to map.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
-        /// <returns>A ValueTask representing the asynchronous mapping operation.</returns>
-        protected virtual ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => MapperAdapter.UpdateMapAsync(request, entity, cancellationToken);
+        /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped entity as the result.</returns>
+        protected virtual ValueTask<TEntity> MapToEntityAsync(TRequest request, CancellationToken cancellationToken)
+            => MapperAdapter.MapAsync<TRequest, TEntity>(request, cancellationToken);
 
         /// <summary>
-        /// Updates the entity in the storage using the storage adapter.
+        /// Saves the entity using the storage adapter.
         /// </summary>
         /// <param name="request">The request associated with the entity.</param>
-        /// <param name="entity">The entity to update.</param>
+        /// <param name="entity">The entity to save.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
-        /// <returns>A task representing the asynchronous update operation.</returns>
-        protected virtual Task UpdateEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => StorageWriterAdapter.SaveChangesAsync(cancellationToken);
+        /// <returns>A Task representing the asynchronous save operation.</returns>
+        protected virtual async Task SaveEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+        {
+            await StorageWriterAdapter.AddAsync(entity, cancellationToken);
+            await StorageWriterAdapter.SaveChangesAsync(cancellationToken);
+        }
 
         /// <summary>
-        /// Maps the updated entity to a response using the mapper adapter or retrieves a projection from storage if <see cref="UseProjectionFromStorage"/> is <c>true</c>.
+        /// Maps the entity to a response using the mapper adapter or retrieves a projection from storage if <see cref="UseProjectionFromStorage"/> is <c>true</c>.
         /// </summary>
         /// <param name="request">The request associated with the entity.</param>
-        /// <param name="entity">The updated entity to map to a response.</param>
+        /// <param name="entity">The entity to map to a response.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
         protected virtual async ValueTask<TResponse> MapToResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => UseProjectionFromStorage
-                ? await StorageReaderAdapter
-                    .For<TEntity>()
-                    .AsNoTracking()
-                    .Where(EntityKeyExpression.Equals<TEntity, TKey>(request.Id))
-                    .FirstOrDefaultAsync<TResponse>(cancellationToken)
-                : await MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
+            => UseProjectionFromStorage ?
+               await StorageReaderAdapter
+                   .For<TEntity>()
+                   .AsNoTracking()
+                   .Where(EntityKeyExpression.Equals<TEntity, TKey>(entity.Id))
+                   .FirstOrDefaultAsync<TResponse>(cancellationToken) :
+               await MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
     }
 }

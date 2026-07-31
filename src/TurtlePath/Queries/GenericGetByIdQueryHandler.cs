@@ -12,7 +12,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public class EntityGetByIdQuery<TEntity, TResponse, TKey> : EntityGetOneQuery<TKey, TEntity, TResponse, TKey>
+    public class GenericGetByIdQuery<TEntity, TResponse, TKey> : GenericGetOneQuery<TKey, TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -20,7 +20,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="id">The unique identifier used to retrieve the specific entity.</param>
-        public EntityGetByIdQuery(TKey id)
+        public GenericGetByIdQuery(TKey id)
         {
             Value = id;
         }
@@ -33,8 +33,8 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityGetByIdQueryHandler<TQuery, TEntity, TResponse, TKey> : EntityGetOneQueryHandler<TQuery, TKey, TEntity, TResponse, TKey>
-        where TQuery : EntityGetByIdQuery<TEntity, TResponse, TKey>
+    public abstract class GenericGetByIdQueryHandler<TQuery, TEntity, TResponse, TKey> : GenericGetOneQueryHandler<TQuery, TKey, TEntity, TResponse, TKey>
+        where TQuery : GenericGetByIdQuery<TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -42,7 +42,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityGetByIdQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider) { }
+        protected GenericGetByIdQueryHandler(IServiceProvider serviceProvider) : base(serviceProvider) { }
 
         /// <inheritdoc/>
         protected override Expression<Func<TEntity, bool>> GetFilterExpression(TQuery request)

@@ -6,7 +6,7 @@ using TurtlePath.Samples.Basic.Domain.Entities;
 
 namespace TurtlePath.Samples.Basic.Application.Handlers;
 
-public sealed class CreateTenantOrderCommandHandler : BaseEntityCreateCommandHandler<CreateTenantOrderRequest, TenantOrderResponse, TenantOrder>
+public sealed class CreateTenantOrderCommandHandler : CreateCommandHandler<CreateTenantOrderRequest, TenantOrderResponse, TenantOrder>
 {
     private readonly ICIdDefinitionRegistry idDefinitions;
     private CId legacyInvoiceId = CId.Empty;

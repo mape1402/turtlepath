@@ -105,11 +105,11 @@ public sealed class AppDbContext : BaseDbContext
 }
 ```
 
-Then derive your Pelican handlers from the provided base handlers. `BaseEntity...` handlers target the recommended TurtlePath domain path, where entities inherit from `BaseEntity` and use `CId`:
+Then derive your Pelican handlers from the provided base handlers. The default handler names target the recommended TurtlePath domain path, where entities inherit from `BaseEntity` and use `CId`:
 
 ```csharp
 public sealed class CreateCustomerHandler
-    : BaseEntityCreateCommandHandler<CreateCustomerRequest, CustomerResponse, Customer>
+    : CreateCommandHandler<CreateCustomerRequest, CustomerResponse, Customer>
 {
     public CreateCustomerHandler(IServiceProvider services) : base(services)
     {
@@ -117,7 +117,7 @@ public sealed class CreateCustomerHandler
 }
 ```
 
-For legacy or specialized models, use the `Entity...` handlers. These depend only on `IEntity<TKey>`, `IBaseRequest<TKey>`, and `IBaseResponse<TKey>`:
+For legacy or specialized models, use the `Generic...` handlers. These depend only on `IEntity<TKey>`, `IBaseRequest<TKey>`, and `IBaseResponse<TKey>`:
 
 ```csharp
 public sealed class UpdateLegacyCustomerRequest : IBaseRequest<int>, IRequest<LegacyCustomerResponse>
@@ -142,7 +142,7 @@ public sealed class LegacyCustomerResponse : IBaseResponse<int>
 }
 
 public sealed class UpdateLegacyCustomerHandler
-    : EntityUpdateCommandHandler<UpdateLegacyCustomerRequest, LegacyCustomerResponse, LegacyCustomer, int>
+    : GenericUpdateCommandHandler<UpdateLegacyCustomerRequest, LegacyCustomerResponse, LegacyCustomer, int>
 {
     public UpdateLegacyCustomerHandler(IServiceProvider services) : base(services)
     {

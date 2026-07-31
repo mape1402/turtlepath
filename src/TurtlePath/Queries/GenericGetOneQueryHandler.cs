@@ -17,7 +17,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityGetOneQuery<TValue, TEntity, TResponse, TKey> : IRequest<TResponse>
+    public abstract class GenericGetOneQuery<TValue, TEntity, TResponse, TKey> : IRequest<TResponse>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -35,8 +35,8 @@ namespace TurtlePath.Queries
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class EntityGetOneQueryHandler<TQuery, TValue, TEntity, TResponse, TKey> : IRequestHandler<TQuery, TResponse>
-        where TQuery : EntityGetOneQuery<TValue, TEntity, TResponse, TKey>
+    public abstract class GenericGetOneQueryHandler<TQuery, TValue, TEntity, TResponse, TKey> : IRequestHandler<TQuery, TResponse>
+        where TQuery : GenericGetOneQuery<TValue, TEntity, TResponse, TKey>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -44,7 +44,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityGetOneQueryHandler(IServiceProvider serviceProvider)
+        protected GenericGetOneQueryHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();

@@ -17,7 +17,7 @@ namespace TurtlePath.Queries
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
-    public abstract class EntityGetManyQuery<TEntity, TResponse, TKey> : IRequest<IEnumerable<TResponse>>
+    public abstract class GenericGetManyQuery<TEntity, TResponse, TKey> : IRequest<IEnumerable<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
     {
@@ -39,10 +39,10 @@ namespace TurtlePath.Queries
     /// <typeparam name="TResponse">The type of the response.</typeparam>
     /// <typeparam name="TKey">The entity identifier type.</typeparam>
     /// <typeparam name="TQuery">The type of the query.</typeparam>
-    public abstract class EntityGetManyQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, IEnumerable<TResponse>>
+    public abstract class GenericGetManyQueryHandler<TQuery, TEntity, TResponse, TKey> : IRequestHandler<TQuery, IEnumerable<TResponse>>
         where TEntity : class, IEntity<TKey>
         where TResponse : class, IBaseResponse<TKey>
-        where TQuery : EntityGetManyQuery<TEntity, TResponse, TKey>
+        where TQuery : GenericGetManyQuery<TEntity, TResponse, TKey>
     {
         /// <summary>
         /// Gets the service provider used to resolve dependencies.
@@ -63,7 +63,7 @@ namespace TurtlePath.Queries
         /// Initializes a new instance of this class.
         /// </summary>
         /// <param name="serviceProvider">The service provider used to resolve dependencies.</param>
-        protected EntityGetManyQueryHandler(IServiceProvider serviceProvider)
+        protected GenericGetManyQueryHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
