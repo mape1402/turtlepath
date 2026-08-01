@@ -218,7 +218,10 @@ namespace TurtlePath.Automations.Tests
                 typeof(CustomerResponse));
             var generator = new StubHandlerTypeGenerator(typeof(ConfiguredCreateCustomerHandler));
 
-            new AutomationHandlerRegistration(generator).Register(services, [descriptor]);
+            new AutomationHandlerRegistration(
+                generator,
+                new AutomationHandlerServiceTypeResolver(),
+                new Options.AutomationQueryOptionsRegistration()).Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
@@ -288,7 +291,9 @@ namespace TurtlePath.Automations.Tests
                 new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
                 new AutomationHandlerGenerationOptions(),
                 new AutomationHandlerBaseTypeResolver(),
-                new DefaultAutomationHandlerTypeNamePolicy()));
+                new DefaultAutomationHandlerTypeNamePolicy()),
+                new AutomationHandlerServiceTypeResolver(),
+                new Options.AutomationQueryOptionsRegistration());
 
         private static void AssertGeneratedHandler(Type implementationType, Type expectedBaseType)
         {

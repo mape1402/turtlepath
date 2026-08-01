@@ -29,7 +29,10 @@ namespace TurtlePath.Automations
                 new AutomationHandlerBaseTypeResolver(),
                 new DefaultAutomationHandlerTypeNamePolicy());
 
-            new AutomationHandlerRegistration(handlerTypeGenerator).Register(builder.Services, descriptors);
+            new AutomationHandlerRegistration(
+                handlerTypeGenerator,
+                new AutomationHandlerServiceTypeResolver(),
+                new Options.AutomationQueryOptionsRegistration()).Register(builder.Services, descriptors);
 
             return builder;
         }
