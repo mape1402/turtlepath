@@ -5,9 +5,20 @@ namespace TurtlePath.Automations.Generation
     using System.Reflection.Emit;
     using TurtlePath.Automations.Descriptors;
 
-    internal sealed class AutomationHandlerTypeGenerator
+    internal sealed class AutomationHandlerTypeGenerator : IAutomationHandlerTypeGenerator
     {
-        public IReadOnlyDictionary<AutomationDescriptor, Type> Generate(IReadOnlyCollection<AutomationDescriptor> descriptors)
+        private readonly IAutomationHandlerBaseTypeResolver baseTypeResolver;
+        private readonly IAutomationHandlerTypeNamePolicy typeNamePolicy;
+
+        public AutomationHandlerTypeGenerator(
+            IAutomationHandlerBaseTypeResolver baseTypeResolver,
+            IAutomationHandlerTypeNamePolicy typeNamePolicy)
+        {
+            this.baseTypeResolver = baseTypeResolver ?? throw new ArgumentNullException(nameof(baseTypeResolver));
+            this.typeNamePolicy = typeNamePolicy ?? throw new ArgumentNullException(nameof(typeNamePolicy));
+        }
+
+        public AutomationHandlerGenerationResult Generate(IReadOnlyCollection<AutomationDescriptor> descriptors)
         {
             if (descriptors == null)
                 throw new ArgumentNullException(nameof(descriptors));
@@ -21,8 +32,8 @@ namespace TurtlePath.Automations.Generation
 
             foreach (var descriptor in descriptors)
             {
-                var baseType = AutomationHandlerRegistration.ResolveBaseHandlerType(descriptor);
-                var className = CreateClassName(descriptor, ++index);
+                var baseType = baseTypeResolver.Resolve(descriptor);
+                var className = typeNamePolicy.CreateName(descriptor, ++index);
                 classNames.Add(descriptor, className);
 
                 assemblyBuilder.AddClass(className, generatedClass => generatedClass
@@ -33,7 +44,12 @@ namespace TurtlePath.Automations.Generation
             }
 
             var assemblyContext = assemblyBuilder.Build();
-            return classNames.ToDictionary(pair => pair.Key, pair => assemblyContext.GetClrType(pair.Value));
+            var handlers = classNames.Select(pair => new AutomationGeneratedHandler(
+                pair.Key,
+                pair.Value,
+                assemblyContext.GetClrType(pair.Value)));
+
+            return new AutomationHandlerGenerationResult(handlers);
         }
 
         private static void EmitServiceProviderConstructor(ILGenerator il, Type baseType)
@@ -53,13 +69,5 @@ namespace TurtlePath.Automations.Generation
             il.Emit(OpCodes.Ret);
         }
 
-        private static string CreateClassName(AutomationDescriptor descriptor, int index)
-            => $"Generated{descriptor.OperationKind}Handler_{Sanitize(descriptor.RequestType.Name)}_{Sanitize(descriptor.EntityType.Name)}_{index}";
-
-        private static string Sanitize(string value)
-        {
-            var chars = value.Select(character => char.IsLetterOrDigit(character) ? character : '_').ToArray();
-            return new string(chars);
-        }
     }
 }

@@ -18,9 +18,13 @@ namespace TurtlePath.Automations
 
             RegisterQueryOptions(services, registry.Descriptors);
 
-            var generatedTypes = new AutomationHandlerTypeGenerator().Generate(registry.Descriptors);
+            var generator = new AutomationHandlerTypeGenerator(
+                new AutomationHandlerBaseTypeResolver(),
+                new DefaultAutomationHandlerTypeNamePolicy());
+
+            var generationResult = generator.Generate(registry.Descriptors);
             foreach (var descriptor in registry.Descriptors)
-                Register(services, descriptor, generatedTypes[descriptor]);
+                Register(services, descriptor, generationResult.Find(descriptor).ImplementationType);
         }
 
         private static void Register(IServiceCollection services, AutomationDescriptor descriptor, Type implementationType)
@@ -30,35 +34,6 @@ namespace TurtlePath.Automations
                 : typeof(IRequestHandler<>).MakeGenericType(descriptor.RequestType);
 
             services.AddScoped(serviceType, implementationType);
-        }
-
-        internal static Type ResolveBaseHandlerType(AutomationDescriptor descriptor)
-        {
-            try
-            {
-                return descriptor.OperationKind switch
-                {
-                    AutomationOperationKind.Create when descriptor.HasResponse => typeof(TurtlePath.Commands.GenericCreateCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Create => typeof(TurtlePath.Commands.GenericCreateCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Update when descriptor.HasResponse => typeof(TurtlePath.Commands.GenericUpdateCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Update => typeof(TurtlePath.Commands.GenericUpdateCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Delete when descriptor.HasResponse => typeof(TurtlePath.Commands.GenericDeleteCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Delete => typeof(TurtlePath.Commands.GenericDeleteCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Patch when descriptor.HasResponse => typeof(TurtlePath.Commands.GenericPatchCommandHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.ResponseType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.Patch => typeof(TurtlePath.Commands.GenericPatchCommandHandler<,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.KeyType),
-                    AutomationOperationKind.GetById => typeof(TurtlePath.Queries.GenericGetByIdQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, descriptor.ResponseType, descriptor.KeyType),
-                    AutomationOperationKind.GetOne => typeof(TurtlePath.Queries.GenericGetOneQueryHandler<,,,,>).MakeGenericType(descriptor.RequestType, ResolveGetOneValueType(descriptor), descriptor.EntityType, descriptor.ResponseType, descriptor.KeyType),
-                    AutomationOperationKind.GetMany => typeof(TurtlePath.Queries.GenericGetManyQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolveCollectionItemType(descriptor.ResponseType), descriptor.KeyType),
-                    AutomationOperationKind.GetPaged => typeof(TurtlePath.Queries.GenericGetPagedInfoQueryHandler<,,,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType, ResolvePagedItemType(descriptor.ResponseType), descriptor.KeyType),
-                    _ => throw new NotSupportedException($"Automation operation '{descriptor.OperationKind}' is not supported by handler registration yet.")
-                };
-            }
-            catch (ArgumentException exception)
-            {
-                throw new NotSupportedException(
-                    $"Automation operation '{descriptor.OperationKind}' for request '{descriptor.RequestType.FullName}' cannot be registered with the current TurtlePath generic handler contracts.",
-                    exception);
-            }
         }
 
         private static void RegisterQueryOptions(IServiceCollection services, IEnumerable<AutomationDescriptor> descriptors)
@@ -79,14 +54,6 @@ namespace TurtlePath.Automations
                     services.TryAddScoped(serviceType, implementationType);
                 }
             }
-        }
-
-        private static Type ResolveCollectionItemType(Type responseType)
-        {
-            if (responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                return responseType.GetGenericArguments()[0];
-
-            return responseType;
         }
 
         private static Type ResolveGetOneValueType(AutomationDescriptor descriptor)
