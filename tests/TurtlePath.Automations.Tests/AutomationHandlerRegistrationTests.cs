@@ -2,6 +2,7 @@ namespace TurtlePath.Automations.Tests
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using System.Reflection;
     using TurtlePath.Automations.Descriptors;
     using TurtlePath.Automations.Generation;
     using TurtlePath.Commands;
@@ -113,6 +114,10 @@ namespace TurtlePath.Automations.Tests
             AssertGeneratedHandler(
                 handler.ImplementationType,
                 typeof(GenericGetOneQueryHandler<GetCustomerByEmailQuery, CId, Customer, CustomerResponse, CId>));
+            AssertOverrides(
+                handler.ImplementationType,
+                "GetFilterExpression",
+                typeof(GetCustomerByEmailQuery));
         }
 
         [Fact]
@@ -140,6 +145,12 @@ namespace TurtlePath.Automations.Tests
 
             Assert.NotNull(registeredDescriptor);
             Assert.Equal("Name", registeredDescriptor.DefaultSortProperty);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<SearchCustomersQuery, PagedResponse<CustomerResponse>>));
+
+            Assert.NotNull(handler);
+            AssertOverridesProperty(handler.ImplementationType!, "DefaultSorts");
         }
 
         [Fact]
@@ -166,6 +177,12 @@ namespace TurtlePath.Automations.Tests
             AssertGeneratedHandler(
                 handler.ImplementationType,
                 typeof(GenericPatchCommandHandler<PatchCustomerCommand, CustomerResponse, Customer, CId>));
+            AssertOverrides(
+                handler.ImplementationType,
+                "BuildResponseAsync",
+                typeof(PatchCustomerCommand),
+                typeof(Customer),
+                typeof(CancellationToken));
         }
 
         [Fact]
@@ -278,6 +295,29 @@ namespace TurtlePath.Automations.Tests
             Assert.StartsWith("Generated", implementationType.Name);
             Assert.Equal("TurtlePath.Automations.Generated", implementationType.Assembly.GetName().Name);
             Assert.Equal(expectedBaseType, implementationType.BaseType);
+        }
+
+        private static void AssertOverrides(Type implementationType, string name, params Type[] parameterTypes)
+        {
+            var method = implementationType.GetMethod(
+                name,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                parameterTypes,
+                null);
+
+            Assert.NotNull(method);
+            Assert.Equal(implementationType, method.DeclaringType);
+        }
+
+        private static void AssertOverridesProperty(Type implementationType, string name)
+        {
+            var property = implementationType.GetProperty(
+                name,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+            Assert.NotNull(property);
+            Assert.Equal(implementationType, property.GetMethod!.DeclaringType);
         }
 
         private sealed class StubHandlerTypeGenerator : IAutomationHandlerTypeGenerator
