@@ -1,19 +1,25 @@
 namespace TurtlePath.Automations.Generation
 {
     using DynaBee.FluentApi;
+    using DynaBee.FluentApi.DependencyInjection;
     using System.Reflection;
-    using System.Reflection.Emit;
     using TurtlePath.Automations.Descriptors;
 
     internal sealed class AutomationHandlerTypeGenerator : IAutomationHandlerTypeGenerator
     {
+        private readonly IDynaBeeAssemblyBuilderFactory assemblyBuilderFactory;
+        private readonly AutomationHandlerGenerationOptions options;
         private readonly IAutomationHandlerBaseTypeResolver baseTypeResolver;
         private readonly IAutomationHandlerTypeNamePolicy typeNamePolicy;
 
         public AutomationHandlerTypeGenerator(
+            IDynaBeeAssemblyBuilderFactory assemblyBuilderFactory,
+            AutomationHandlerGenerationOptions options,
             IAutomationHandlerBaseTypeResolver baseTypeResolver,
             IAutomationHandlerTypeNamePolicy typeNamePolicy)
         {
+            this.assemblyBuilderFactory = assemblyBuilderFactory ?? throw new ArgumentNullException(nameof(assemblyBuilderFactory));
+            this.options = options ?? throw new ArgumentNullException(nameof(options));
             this.baseTypeResolver = baseTypeResolver ?? throw new ArgumentNullException(nameof(baseTypeResolver));
             this.typeNamePolicy = typeNamePolicy ?? throw new ArgumentNullException(nameof(typeNamePolicy));
         }
@@ -23,8 +29,8 @@ namespace TurtlePath.Automations.Generation
             if (descriptors == null)
                 throw new ArgumentNullException(nameof(descriptors));
 
-            var assemblyBuilder = DynaBeeBuilder
-                .CreateAssembly("TurtlePath.Automations.Generated")
+            var assemblyBuilder = assemblyBuilderFactory
+                .Create(options.GeneratedAssemblyName)
                 .WithVersion(Guid.NewGuid().ToString("N"));
 
             var classNames = new Dictionary<AutomationDescriptor, string>();
@@ -40,7 +46,7 @@ namespace TurtlePath.Automations.Generation
                     .Inherits(baseType)
                     .AddConstructor(constructor => constructor
                         .WithParameter<IServiceProvider>("serviceProvider")
-                        .Emits(il => EmitServiceProviderConstructor(il, baseType))));
+                        .CallsBase(GetServiceProviderConstructor(baseType), "serviceProvider")));
             }
 
             var assemblyContext = assemblyBuilder.Build();
@@ -52,7 +58,7 @@ namespace TurtlePath.Automations.Generation
             return new AutomationHandlerGenerationResult(handlers);
         }
 
-        private static void EmitServiceProviderConstructor(ILGenerator il, Type baseType)
+        private static ConstructorInfo GetServiceProviderConstructor(Type baseType)
         {
             var baseConstructor = baseType.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -63,11 +69,7 @@ namespace TurtlePath.Automations.Generation
             if (baseConstructor == null)
                 throw new InvalidOperationException($"Handler base type '{baseType.FullName}' must expose a constructor that receives IServiceProvider.");
 
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldarg_1);
-            il.Emit(OpCodes.Call, baseConstructor);
-            il.Emit(OpCodes.Ret);
+            return baseConstructor;
         }
-
     }
 }

@@ -3,6 +3,7 @@ namespace TurtlePath.Automations.Tests
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
     using TurtlePath.Automations.Descriptors;
+    using TurtlePath.Automations.Generation;
     using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
@@ -25,7 +26,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(descriptor =>
                 descriptor.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
@@ -50,7 +51,7 @@ namespace TurtlePath.Automations.Tests
                 typeof(CId),
                 AutomationReturnMode.None);
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(descriptor =>
                 descriptor.ServiceType == typeof(IRequestHandler<DeleteCustomerCommand>));
@@ -76,7 +77,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<GetCustomerByIdQuery, CustomerResponse>));
@@ -102,7 +103,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<GetCustomerByEmailQuery, CustomerResponse>));
@@ -129,7 +130,7 @@ namespace TurtlePath.Automations.Tests
                 typeof(PagedResponse<CustomerResponse>),
                 defaultSortProperty: "Name");
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var registry = services
                 .Select(service => service.ImplementationInstance)
@@ -155,7 +156,7 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            AutomationHandlerRegistration.Register(services, [descriptor]);
+            CreateRegistration().Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<PatchCustomerCommand, CustomerResponse>));
@@ -181,10 +182,33 @@ namespace TurtlePath.Automations.Tests
                 AutomationReturnMode.Response,
                 typeof(CustomerResponse));
 
-            var exception = Assert.Throws<NotSupportedException>(() => AutomationHandlerRegistration.Register(services, [descriptor]));
+            var exception = Assert.Throws<NotSupportedException>(() => CreateRegistration().Register(services, [descriptor]));
 
             Assert.Contains(nameof(AutomationOperationKind.Patch), exception.Message);
             Assert.Contains(nameof(InvalidPatchCustomerCommand), exception.Message);
+        }
+
+        [Fact]
+        public void Register_uses_configured_handler_type_generator()
+        {
+            var services = new ServiceCollection();
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.Create,
+                typeof(CreateCustomerCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse));
+            var generator = new StubHandlerTypeGenerator(typeof(ConfiguredCreateCustomerHandler));
+
+            new AutomationHandlerRegistration(generator).Register(services, [descriptor]);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
+
+            Assert.NotNull(handler);
+            Assert.Equal(typeof(ConfiguredCreateCustomerHandler), handler.ImplementationType);
+            Assert.Same(descriptor, generator.Descriptor);
         }
 
         public sealed class Customer : BaseEntity
@@ -236,11 +260,44 @@ namespace TurtlePath.Automations.Tests
             public CId Id { get; set; }
         }
 
+        public sealed class ConfiguredCreateCustomerHandler : IRequestHandler<CreateCustomerCommand, CustomerResponse>
+        {
+            public Task<CustomerResponse> Handle(CreateCustomerCommand request, CancellationToken cancellationToken = default)
+                => Task.FromResult(new CustomerResponse());
+        }
+
+        private static AutomationHandlerRegistration CreateRegistration()
+            => new(new AutomationHandlerTypeGenerator(
+                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
+                new AutomationHandlerGenerationOptions(),
+                new AutomationHandlerBaseTypeResolver(),
+                new DefaultAutomationHandlerTypeNamePolicy()));
+
         private static void AssertGeneratedHandler(Type implementationType, Type expectedBaseType)
         {
             Assert.StartsWith("Generated", implementationType.Name);
             Assert.Equal("TurtlePath.Automations.Generated", implementationType.Assembly.GetName().Name);
             Assert.Equal(expectedBaseType, implementationType.BaseType);
+        }
+
+        private sealed class StubHandlerTypeGenerator : IAutomationHandlerTypeGenerator
+        {
+            private readonly Type implementationType;
+
+            public StubHandlerTypeGenerator(Type implementationType)
+            {
+                this.implementationType = implementationType;
+            }
+
+            public AutomationDescriptor Descriptor { get; private set; } = null!;
+
+            public AutomationHandlerGenerationResult Generate(IReadOnlyCollection<AutomationDescriptor> descriptors)
+            {
+                Descriptor = descriptors.Single();
+
+                return new AutomationHandlerGenerationResult(
+                    [new AutomationGeneratedHandler(Descriptor, "ConfiguredCreateCustomerHandler", implementationType)]);
+            }
         }
     }
 }

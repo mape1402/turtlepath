@@ -9,20 +9,23 @@ namespace TurtlePath.Automations
     using TurtlePath.Models.Responses;
     using TurtlePath.Queries;
 
-    internal static class AutomationHandlerRegistration
+    internal sealed class AutomationHandlerRegistration
     {
-        public static void Register(IServiceCollection services, IEnumerable<AutomationDescriptor> descriptors)
+        private readonly IAutomationHandlerTypeGenerator handlerTypeGenerator;
+
+        public AutomationHandlerRegistration(IAutomationHandlerTypeGenerator handlerTypeGenerator)
+        {
+            this.handlerTypeGenerator = handlerTypeGenerator ?? throw new ArgumentNullException(nameof(handlerTypeGenerator));
+        }
+
+        public void Register(IServiceCollection services, IEnumerable<AutomationDescriptor> descriptors)
         {
             var registry = new AutomationDescriptorRegistry(descriptors);
             services.TryAddSingleton(registry);
 
             RegisterQueryOptions(services, registry.Descriptors);
 
-            var generator = new AutomationHandlerTypeGenerator(
-                new AutomationHandlerBaseTypeResolver(),
-                new DefaultAutomationHandlerTypeNamePolicy());
-
-            var generationResult = generator.Generate(registry.Descriptors);
+            var generationResult = handlerTypeGenerator.Generate(registry.Descriptors);
             foreach (var descriptor in registry.Descriptors)
                 Register(services, descriptor, generationResult.Find(descriptor).ImplementationType);
         }
