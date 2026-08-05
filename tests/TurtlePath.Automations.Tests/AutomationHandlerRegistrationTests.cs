@@ -5,6 +5,7 @@ namespace TurtlePath.Automations.Tests
     using System.Reflection;
     using TurtlePath.Automations.Descriptors;
     using TurtlePath.Automations.Generation;
+    using TurtlePath.Automations.Generation.DynaBeeIntegration;
     using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
@@ -287,7 +288,7 @@ namespace TurtlePath.Automations.Tests
         }
 
         private static AutomationHandlerRegistration CreateRegistration()
-            => new(new AutomationHandlerTypeGenerator(
+            => new(new DynaBeeAutomationHandlerTypeGenerator(
                 new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
                 new AutomationHandlerGenerationOptions(),
                 new AutomationHandlerBaseTypeResolver(),

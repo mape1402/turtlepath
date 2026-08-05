@@ -38,6 +38,10 @@ All notable changes to TurtlePath will be documented in this file.
 - Added generated-style automation handler registration for create, update, delete, patch, get by id, get one, get many, and paged query flows.
 - Added `IPatchAction<TEntity>` and a replaceable patch step so automated patch commands can apply request-owned changes.
 - Updated the basic sample to use automation profiles for the recommended Customer happy path while retaining manual handlers for custom cases.
+- Switched automation handler generation to DynaBee-backed generated handler types behind a replaceable generation abstraction.
+- Added attribute-based automation examples to the basic sample.
+- Added benchmarks comparing the same TurtlePath create flow through a manually written Pelican handler and a generated TurtlePath automation handler.
+- Added CI package validation and NuGet release workflow support for Trusted Publishing.
 
 ### Changed
 
@@ -47,3 +51,4 @@ All notable changes to TurtlePath will be documented in this file.
 - Hid the default hook runner implementation behind `IHandlerHookRunner`.
 - Made `NotFoundException` inherit `HttpException` with HTTP 404 semantics.
 - Added the TurtlePath package icon and made all source library projects explicitly packable NuGet projects.
+- Removed the default NuGet Trusted Publishing user from the release workflow; the `NUGET_USER` repository variable must be configured by the repository owner.

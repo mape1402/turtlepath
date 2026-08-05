@@ -1,9 +1,8 @@
 namespace TurtlePath.Automations
 {
-    using DynaBee.FluentApi.DependencyInjection;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
     using System.Reflection;
     using TurtlePath.Automations.Generation;
+    using TurtlePath.Automations.Generation.DynaBeeIntegration;
 
     /// <summary>
     /// Registers TurtlePath automation profiles and attributed requests.
@@ -19,15 +18,8 @@ namespace TurtlePath.Automations
                 throw new ArgumentNullException(nameof(builder));
 
             var descriptors = AutomationDescriptorDiscovery.Discover(assemblies);
-            var generationOptions = new AutomationHandlerGenerationOptions();
-            var assemblyBuilderFactory = new DynaBeeAssemblyBuilderFactory();
-            builder.Services.TryAddSingleton<IDynaBeeAssemblyBuilderFactory>(assemblyBuilderFactory);
-
-            var handlerTypeGenerator = new AutomationHandlerTypeGenerator(
-                assemblyBuilderFactory,
-                generationOptions,
-                new AutomationHandlerBaseTypeResolver(),
-                new DefaultAutomationHandlerTypeNamePolicy());
+            var handlerTypeGenerator = new DynaBeeAutomationHandlerTypeGeneratorFactory()
+                .Create(builder.Services);
 
             new AutomationHandlerRegistration(
                 handlerTypeGenerator,

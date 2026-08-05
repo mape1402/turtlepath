@@ -7,7 +7,25 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Domain"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
     directory: "/src/TurtlePath"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Automations"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.AutoMapper"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -20,6 +38,12 @@ updates:
 
   - package-ecosystem: "nuget"
     directory: "/src/TurtlePath.EntityFrameworkCore"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.FluentValidation"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

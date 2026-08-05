@@ -107,11 +107,28 @@ var customerPage = await mediator.Send(new GetCustomersPageQuery(new PagedSettin
     Sorts = "Name"
 }));
 var legacyShipment = await mediator.Send(new GetLegacyShipmentByIdQuery(shipment.Id));
+var catalogItem = await mediator.Send(new CreateCatalogItemRequest(
+    "TP-001",
+    "TurtlePath Field Guide",
+    29.95m));
+var updatedCatalogItem = await mediator.Send(new UpdateCatalogItemRequest
+{
+    Id = catalogItem.Id,
+    Sku = "TP-001",
+    Name = "TurtlePath Field Guide - Revised",
+    Price = 34.95m
+});
+var catalogItemById = await mediator.Send(new GetCatalogItemByIdQuery(updatedCatalogItem.Id));
+var deletedCatalogItem = await mediator.Send(new DeleteCatalogItemRequest
+{
+    Id = catalogItemById.Id
+});
 
 var persistedCustomers = await dbContext.Customers.CountAsync();
 var persistedOrders = await dbContext.TenantOrders.CountAsync();
 var persistedInvoices = await dbContext.LegacyInvoices.CountAsync();
 var persistedShipments = await dbContext.LegacyShipments.CountAsync();
+var persistedCatalogItems = await dbContext.CatalogItems.CountAsync();
 
 Console.WriteLine("TurtlePath commerce sample");
 Console.WriteLine($"Default customer CId: {ada.Id}");
@@ -122,9 +139,11 @@ Console.WriteLine($"Order CId: {order.Id}");
 Console.WriteLine($"Legacy invoice CId: {order.LegacyInvoiceId}");
 Console.WriteLine($"Deleted resource: {deletedOrder.Resource} {deletedOrder.Id}");
 Console.WriteLine($"Generic int-key shipment: {legacyShipment.Id} {legacyShipment.Carrier} {legacyShipment.TrackingNumber}");
+Console.WriteLine($"Attribute catalog item: {catalogItemById.Sku} {catalogItemById.Name} {catalogItemById.Price:C}");
+Console.WriteLine($"Deleted attribute resource: {deletedCatalogItem.Resource} {deletedCatalogItem.Id}");
 Console.WriteLine($"Filtered customers: {matchingCustomers.Count}");
 Console.WriteLine($"Paged customers: page={customerPage.CurrentPage}/{customerPage.PageCount}, rows={customerPage.RowCount}, first={customerPage.Results.First().Name}");
-Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}, shipments={persistedShipments}");
+Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}, shipments={persistedShipments}, catalogItems={persistedCatalogItems}");
 Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");
 
 foreach (var entry in auditLog.Entries)

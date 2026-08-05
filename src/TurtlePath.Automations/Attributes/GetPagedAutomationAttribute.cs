@@ -7,6 +7,11 @@ namespace TurtlePath.Automations.Attributes
     /// </summary>
     public sealed class GetPagedAutomationAttribute : AutomationAttribute
     {
+        /// <summary>
+        /// Initializes a paged query automation.
+        /// </summary>
+        /// <param name="entityType">The entity type queried by the request.</param>
+        /// <param name="responseType">The item response type returned by the request.</param>
         public GetPagedAutomationAttribute(Type entityType, Type responseType) : base(entityType, responseType)
         {
         }

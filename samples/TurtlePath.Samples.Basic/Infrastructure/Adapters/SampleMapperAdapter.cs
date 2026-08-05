@@ -26,11 +26,29 @@ public sealed class SampleMapperAdapter : IMapperAdapter
                 Carrier = request.Carrier,
                 TrackingNumber = request.TrackingNumber
             },
+            CreateCatalogItemRequest request when typeof(TDestination) == typeof(CatalogItem) => new CatalogItem
+            {
+                Sku = request.Sku,
+                Name = request.Name,
+                Price = request.Price
+            },
             Customer customer when typeof(TDestination) == typeof(CustomerResponse) => new CustomerResponse
             {
                 Id = customer.Id,
                 Name = customer.Name,
                 Email = customer.Email
+            },
+            CatalogItem item when typeof(TDestination) == typeof(CatalogItemResponse) => new CatalogItemResponse
+            {
+                Id = item.Id,
+                Sku = item.Sku,
+                Name = item.Name,
+                Price = item.Price
+            },
+            CatalogItem item when typeof(TDestination) == typeof(DeletedResourceResponse) => new DeletedResourceResponse
+            {
+                Id = item.Id,
+                Resource = nameof(CatalogItem)
             },
             CreateTenantOrderRequest request when typeof(TDestination) == typeof(TenantOrder) => new TenantOrder
             {
@@ -67,6 +85,11 @@ public sealed class SampleMapperAdapter : IMapperAdapter
             case (UpdateCustomerRequest request, Customer customer):
                 customer.Name = request.Name;
                 customer.Email = request.Email.Trim().ToLowerInvariant();
+                return ValueTask.CompletedTask;
+            case (UpdateCatalogItemRequest request, CatalogItem item):
+                item.Sku = request.Sku;
+                item.Name = request.Name;
+                item.Price = request.Price;
                 return ValueTask.CompletedTask;
             default:
                 throw new InvalidOperationException($"No sample update mapping exists from {typeof(TSource).Name} to {typeof(TDestination).Name}.");

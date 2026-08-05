@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TurtlePath\TurtlePath.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.Automations\TurtlePath.Automations.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,20 +1,21 @@
-namespace TurtlePath.Automations.Generation
+namespace TurtlePath.Automations.Generation.DynaBeeIntegration
 {
     using DynaBee.FluentApi;
     using DynaBee.FluentApi.DependencyInjection;
     using System.Reflection;
     using TurtlePath.Automations.Descriptors;
+    using TurtlePath.Automations.Generation;
     using TurtlePath.Mapping;
     using TurtlePath.Queries;
 
-    internal sealed class AutomationHandlerTypeGenerator : IAutomationHandlerTypeGenerator
+    internal sealed class DynaBeeAutomationHandlerTypeGenerator : IAutomationHandlerTypeGenerator
     {
         private readonly IDynaBeeAssemblyBuilderFactory assemblyBuilderFactory;
         private readonly AutomationHandlerGenerationOptions options;
         private readonly IAutomationHandlerBaseTypeResolver baseTypeResolver;
         private readonly IAutomationHandlerTypeNamePolicy typeNamePolicy;
 
-        public AutomationHandlerTypeGenerator(
+        public DynaBeeAutomationHandlerTypeGenerator(
             IDynaBeeAssemblyBuilderFactory assemblyBuilderFactory,
             AutomationHandlerGenerationOptions options,
             IAutomationHandlerBaseTypeResolver baseTypeResolver,
