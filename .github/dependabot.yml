@@ -25,6 +25,12 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
+    directory: "/src/TurtlePath.Analyzers"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "nuget"
     directory: "/src/TurtlePath.AutoMapper"
     schedule:
       interval: "weekly"

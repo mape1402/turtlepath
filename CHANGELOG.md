@@ -42,6 +42,7 @@ All notable changes to TurtlePath will be documented in this file.
 - Added attribute-based automation examples to the basic sample.
 - Added benchmarks comparing the same TurtlePath create flow through a manually written Pelican handler and a generated TurtlePath automation handler.
 - Added CI package validation and NuGet release workflow support for Trusted Publishing.
+- Added `TurtlePath.Analyzers` to warn when CId values from entities with different configured value types are compared or assigned.
 
 ### Changed
 

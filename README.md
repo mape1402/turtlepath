@@ -15,6 +15,7 @@ The recommended Elysium stack is:
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
 - `TurtlePath.Sieve`: optional string-based filtering and sorting for query criteria.
+- `TurtlePath.Analyzers`: optional compile-time checks for unsafe `CId` usage across entities with different configured identifier value types.
 
 Alternative adapters are available when a project needs them: `TurtlePath.AutoMapper` and `TurtlePath.FluentValidation`.
 
@@ -35,9 +36,16 @@ dotnet add package TurtlePath.EntityFrameworkCore
 dotnet add package TurtlePath.Sieve
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
+dotnet add package TurtlePath.Analyzers
 ```
 
 Use one mapper adapter package and one validation adapter package. In Elysium projects, prefer `TurtlePath.OctoMap` and `TurtlePath.Crabalidator`.
+
+Analyzer packages should stay private to the project that consumes them:
+
+```xml
+<PackageReference Include="TurtlePath.Analyzers" Version="..." PrivateAssets="all" />
+```
 
 Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
 
@@ -302,6 +310,20 @@ public sealed record CreateCatalogItemRequest(string Sku, string Name, decimal P
 ```
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
+
+## Analyzers
+
+`TurtlePath.Analyzers` protects the main sharp edge of scalar `CId`: two entities can expose `CId` while masking different value types. For example, a clean `Customer` may use the default `Guid` configuration while a legacy `Invoice` stores its id as `int`.
+
+```csharp
+if (customer.Id == invoice.Id) // TP0001
+{
+}
+
+customer.Id = invoice.Id; // TP0002
+```
+
+The analyzer uses the CId registrations it can see in source, such as `UseCId<Guid, string>()` and `UseCIdFor<LegacyInvoice, int, int>()`. It only reports when it can infer both entity id value types.
 
 ## Build
 
