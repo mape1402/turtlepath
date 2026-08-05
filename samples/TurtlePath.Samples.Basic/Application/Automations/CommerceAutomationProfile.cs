@@ -16,5 +16,10 @@ public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
             .ToPatch<PatchCustomerEmailRequest, CustomerResponse>()
             .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
             .ToGetPaged<GetCustomersPageQuery, CustomerResponse>(query => query.DefaultSort("Name"));
+
+        builder.For<LegacyInvoice>()
+            .ToCreate<CreateLegacyInvoiceRequest, LegacyInvoiceResponse>()
+            .ToUpdate<UpdateLegacyInvoiceRequest, LegacyInvoiceResponse>()
+            .ToGetById<GetLegacyInvoiceByIdQuery, LegacyInvoiceResponse>();
     }
 }

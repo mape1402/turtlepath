@@ -1,17 +1,18 @@
+using Crabalidator.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using OctoMap;
 using Pelican.Mediator;
 using TurtlePath.Automations;
+using TurtlePath.Crabalidator;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
-using TurtlePath.Mapping;
+using TurtlePath.OctoMap;
 using TurtlePath.Queries;
-using TurtlePath.Validation;
 using TurtlePath.Samples.Basic.Application.Queries;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Infrastructure;
-using TurtlePath.Samples.Basic.Infrastructure.Adapters;
 using TurtlePath.Samples.Basic.Infrastructure.Persistence;
 
 var sampleAssembly = typeof(Program).Assembly;
@@ -23,11 +24,17 @@ var services = new ServiceCollection();
 services.AddOptions();
 services.AddSingleton(sqliteConnection);
 services.AddSingleton<SampleAuditLog>();
-services.AddScoped<IMapperAdapter, SampleMapperAdapter>();
-services.AddScoped<IValidatorAdapter, SampleValidatorAdapter>();
 services.AddPelican(sampleAssembly);
+services.AddCrabalidator(sampleAssembly);
+services.AddOctoMap(registration =>
+{
+    registration.Options.EnableRuntimeImplicitMaps = false;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(sampleAssembly);
+});
 services.AddDbContext<CommerceDbContext>((provider, options) =>
     options.UseSqlite(provider.GetRequiredService<SqliteConnection>()));
+services.AddScoped<LegacyInvoiceIdFactory>();
 
 services
     .AddTurtlePath(sampleAssembly)
@@ -44,6 +51,8 @@ services
     })
     .UseCIdProfiles(sampleAssembly)
     .UseAutomations(sampleAssembly)
+    .UseOctoMap()
+    .UseCrabalidator()
     .UseSieve()
     .UseEntityFrameworkCore<CommerceDbContext>(options => options with
     {
@@ -107,6 +116,16 @@ var customerPage = await mediator.Send(new GetCustomersPageQuery(new PagedSettin
     Sorts = "Name"
 }));
 var legacyShipment = await mediator.Send(new GetLegacyShipmentByIdQuery(shipment.Id));
+var invoice = await mediator.Send(new CreateLegacyInvoiceRequest(
+    patchedAda.Id,
+    415.50m));
+var updatedInvoice = await mediator.Send(new UpdateLegacyInvoiceRequest
+{
+    Id = invoice.Id,
+    CustomerId = invoice.CustomerId,
+    Amount = 512.75m
+});
+var invoiceById = await mediator.Send(new GetLegacyInvoiceByIdQuery(updatedInvoice.Id));
 var catalogItem = await mediator.Send(new CreateCatalogItemRequest(
     "TP-001",
     "TurtlePath Field Guide",
@@ -138,6 +157,7 @@ Console.WriteLine($"Patched customer email: {customerById.Email}");
 Console.WriteLine($"Order CId: {order.Id}");
 Console.WriteLine($"Legacy invoice CId: {order.LegacyInvoiceId}");
 Console.WriteLine($"Deleted resource: {deletedOrder.Resource} {deletedOrder.Id}");
+Console.WriteLine($"Automated invoice flow: {invoiceById.Id} customer={invoiceById.CustomerId} amount={invoiceById.Amount:C}");
 Console.WriteLine($"Generic int-key shipment: {legacyShipment.Id} {legacyShipment.Carrier} {legacyShipment.TrackingNumber}");
 Console.WriteLine($"Attribute catalog item: {catalogItemById.Sku} {catalogItemById.Name} {catalogItemById.Price:C}");
 Console.WriteLine($"Deleted attribute resource: {deletedCatalogItem.Resource} {deletedCatalogItem.Id}");

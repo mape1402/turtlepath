@@ -3,20 +3,21 @@ using TurtlePath.Domain.Identifier;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Application.Responses;
 using TurtlePath.Samples.Basic.Domain.Entities;
+using TurtlePath.Samples.Basic.Infrastructure.Persistence;
 
 namespace TurtlePath.Samples.Basic.Application.Handlers;
 
 public sealed class CreateTenantOrderCommandHandler : CreateCommandHandler<CreateTenantOrderRequest, TenantOrderResponse, TenantOrder>
 {
-    private readonly ICIdDefinitionRegistry idDefinitions;
+    private readonly LegacyInvoiceIdFactory legacyInvoiceIdFactory;
     private CId legacyInvoiceId = CId.Empty;
 
     public CreateTenantOrderCommandHandler(
         IServiceProvider serviceProvider,
-        ICIdDefinitionRegistry idDefinitions)
+        LegacyInvoiceIdFactory legacyInvoiceIdFactory)
         : base(serviceProvider)
     {
-        this.idDefinitions = idDefinitions;
+        this.legacyInvoiceIdFactory = legacyInvoiceIdFactory;
     }
 
     protected override async Task SaveEntityAsync(
@@ -28,7 +29,7 @@ public sealed class CreateTenantOrderCommandHandler : CreateCommandHandler<Creat
 
         var invoice = new LegacyInvoice
         {
-            Id = idDefinitions.Get(typeof(LegacyInvoice)).Factory(),
+            Id = await legacyInvoiceIdFactory.NewAsync(cancellationToken),
             CustomerId = request.CustomerId,
             Amount = request.Total
         };

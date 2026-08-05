@@ -1,10 +1,14 @@
 # TurtlePath Basic Sample
 
-This sample exercises TurtlePath through Pelican mediator dispatch, automation profiles, manual handler escape hatches, hooks, scalar CId profiles, Sieve criteria, and EF Core with SQLite.
+This sample exercises TurtlePath through Pelican mediator dispatch, automation profiles, attribute automations, manual handler escape hatches, hooks, scalar CId profiles, Sieve criteria, EF Core with SQLite, and the recommended Elysium adapters: OctoMap and Crabalidator.
 
 Covered flows:
 
 - `TurtlePath.Automations` for Customer create, update, patch, get by id, and paged query happy paths.
+- Attribute-based automations for CatalogItem create, update, get by id, and delete.
+- Automated LegacyInvoice create, update, and get by id using `BaseEntity`/`CId` while storing the id with an entity-specific `int` configuration.
+- `TurtlePath.OctoMap` backed by `CommerceMappingProfile` for request/entity/response mapping.
+- `TurtlePath.Crabalidator` backed by request validators under `Application/Validation`.
 - `IPatchAction<TEntity>` for request-owned patch behavior.
 - Manual command and query handlers for custom flows that need full control.
 - `DeleteCommandHandler` with a custom delete response.

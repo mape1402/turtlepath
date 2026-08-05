@@ -39,9 +39,20 @@ dotnet add package TurtlePath.Crabalidator
 
 Use one mapper adapter package and one validation adapter package. In Elysium projects, prefer `TurtlePath.OctoMap` and `TurtlePath.Crabalidator`.
 
-Register TurtlePath and chain each implementation package from your application composition root:
+Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
 
 ```csharp
+services.AddPelican(typeof(MyApplicationMarker).Assembly);
+
+services.AddCrabalidator(typeof(MyApplicationMarker).Assembly);
+
+services.AddOctoMap(registration =>
+{
+    registration.Options.EnableRuntimeImplicitMaps = false;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(MyApplicationMarker).Assembly);
+});
+
 services
     .AddTurtlePath(typeof(MyApplicationMarker).Assembly)
     .UseCId<Guid, string>(config =>
@@ -56,16 +67,16 @@ services
     })
     .UseCIdProfile<LegacyIdentifierProfile>()
     .UseAutomations(typeof(MyApplicationMarker).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseSieve()
     .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
         ApplyBaseEntityConventions = true,
         ApplyCIdConverters = true,
         ConfigurationAssemblies = [typeof(MyPersistenceMarker).Assembly]
-    })
-    .UseOctoMap()
-    .UseCrabalidator()
-    .UseSieve();
+    });
 ```
 
 `UseEntityFrameworkCore<TDbContext>()` maps your context to `IDbContext` and registers the default EF-backed `IStorageReaderAdapter` and `IStorageWriterAdapter`. Register your `DbContext` itself with the normal EF Core APIs:
@@ -128,6 +139,36 @@ public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
             .ToPatch<PatchCustomerEmailRequest, CustomerResponse>()
             .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
             .ToGetPaged<GetCustomersPageQuery, CustomerResponse>(query => query.DefaultSort("Name"));
+    }
+}
+```
+
+The recommended mapper adapter is OctoMap. Keep mappings explicit so the handler pipeline is predictable:
+
+```csharp
+public sealed class CommerceMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap<CreateCustomerRequest, Customer>();
+        builder.CreateMap<UpdateCustomerRequest, Customer>();
+        builder.CreateMap<Customer, CustomerResponse>();
+
+        builder.CreateMap<CatalogItem, DeletedResourceResponse>()
+            .ForMember(x => x.Resource, x => x.MapFrom(_ => nameof(CatalogItem)));
+    }
+}
+```
+
+The recommended validator adapter is Crabalidator. TurtlePath calls `IValidatorAdapter` from its command steps, so validators stay outside handlers:
+
+```csharp
+public sealed class CreateCustomerRequestValidator : CrabValidator<CreateCustomerRequest>
+{
+    public CreateCustomerRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.Email).NotEmpty().MaximumLength(120).Must(value => value.Contains('@'));
     }
 }
 ```
@@ -233,16 +274,34 @@ public sealed class UpdateLegacyCustomerHandler
 
 Manual handlers remain the extension point when a flow has special behavior. The virtual handler methods still exist for local overrides, while the default implementations delegate to replaceable flow steps from DI.
 
-## Extracted Template Surface
+## Automations
 
-- Pelican command and query handler bases.
-- Ordered before/after handler hooks.
-- Storage reader/writer adapter contracts and default EF Core adapters.
-- Mapping contract plus OctoMap-backed and AutoMapper-backed adapters.
-- Validation contract plus Crabalidator-backed and FluentValidation-backed adapters.
-- Application exceptions used by the handler base classes.
-- `BaseEntity`, `IEntity<TId>`, `BaseRequest`, `BaseResponse`, and `PagedResponse<T>`.
-- Configurable `CId` identifier definitions, per-entity identifier overrides, identifier JSON converters, and configurable EF Core base DbContext conventions.
+Automations can be declared in profiles, which is the preferred style for application-wide configuration:
+
+```csharp
+public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
+{
+    public override void Configure(ITurtlePathAutomationBuilder builder)
+    {
+        builder.For<Customer>()
+            .ToCreate<CreateCustomerRequest, CustomerResponse>()
+            .ToUpdate<UpdateCustomerRequest, CustomerResponse>()
+            .ToPatch<PatchCustomerEmailRequest, CustomerResponse>()
+            .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
+            .ToGetPaged<GetCustomersPageQuery, CustomerResponse>(query => query.DefaultSort("Name"));
+    }
+}
+```
+
+Small or local cases can use attributes:
+
+```csharp
+[CreateAutomation(typeof(CatalogItem), typeof(CatalogItemResponse))]
+public sealed record CreateCatalogItemRequest(string Sku, string Name, decimal Price)
+    : IRequest<CatalogItemResponse>;
+```
+
+Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
 
 ## Build
 
@@ -250,6 +309,17 @@ Manual handlers remain the extension point when a flow has special behavior. The
 dotnet restore
 dotnet build --configuration Release
 dotnet test --configuration Release --no-build
+dotnet pack --configuration Release --no-build --output .\nupkgs
 ```
+
+## Release
+
+NuGet publishing is configured through GitHub Actions Trusted Publishing. Create the repository variable `NUGET_USER` with the nuget.org user that owns the Trusted Publishing policy, then run the release workflow from a branch named like:
+
+```text
+releases/v1.0.0
+```
+
+The release workflow validates the changelog section, builds, tests, packs, creates or updates the tag, creates the GitHub release, logs into NuGet through Trusted Publishing, and pushes `.nupkg` plus `.snupkg` packages.
 
 
