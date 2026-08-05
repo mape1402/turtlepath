@@ -2,7 +2,7 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
-## [v1.0.0] - Unreleased
+## [v1.0.0] - 2026-08-05
 
 ### Added
 
@@ -43,13 +43,10 @@ All notable changes to TurtlePath will be documented in this file.
 - Added benchmarks comparing the same TurtlePath create flow through a manually written Pelican handler and a generated TurtlePath automation handler.
 - Added CI package validation and NuGet release workflow support for Trusted Publishing.
 - Added `TurtlePath.Analyzers` to warn when CId values from entities with different configured value types are compared or assigned.
-
-### Changed
-
-- Cleaned the public API surface by renaming concrete adapter implementations to provider-specific names: `AutoMapperAdapter`, `OctoMapAdapter`, `FluentValidationAdapter`, and `CrabalidatorAdapter`.
-- Renamed builder extension types for EF Core and Sieve, keeping the public registration flow centered on `AddTurtlePath(...).Use...()` chaining.
-- Made EF Core register `IStorageReaderAdapter` and `IStorageWriterAdapter` by default when `UseEntityFrameworkCore<TDbContext>()` is used.
-- Hid the default hook runner implementation behind `IHandlerHookRunner`.
-- Made `NotFoundException` inherit `HttpException` with HTTP 404 semantics.
+- Included provider-specific adapter implementations: `AutoMapperAdapter`, `OctoMapAdapter`, `FluentValidationAdapter`, and `CrabalidatorAdapter`.
+- Included builder extension types for EF Core and Sieve, keeping the public registration flow centered on `AddTurtlePath(...).Use...()` chaining.
+- Included EF Core default registrations for `IStorageReaderAdapter` and `IStorageWriterAdapter` when `UseEntityFrameworkCore<TDbContext>()` is used.
+- Included hook runner services behind `IHandlerHookRunner`.
+- Included `NotFoundException` as an HTTP 404 `HttpException`.
 - Added the TurtlePath package icon and made all source library projects explicitly packable NuGet projects.
-- Removed the default NuGet Trusted Publishing user from the release workflow; the `NUGET_USER` repository variable must be configured by the repository owner.
+- Configured the NuGet Trusted Publishing workflow to read the `NUGET_USER` repository variable from the repository owner.

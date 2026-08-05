@@ -325,23 +325,4 @@ customer.Id = invoice.Id; // TP0002
 
 The analyzer uses the CId registrations it can see in source, such as `UseCId<Guid, string>()` and `UseCIdFor<LegacyInvoice, int, int>()`. It only reports when it can infer both entity id value types.
 
-## Build
-
-```powershell
-dotnet restore
-dotnet build --configuration Release
-dotnet test --configuration Release --no-build
-dotnet pack --configuration Release --no-build --output .\nupkgs
-```
-
-## Release
-
-NuGet publishing is configured through GitHub Actions Trusted Publishing. Create the repository variable `NUGET_USER` with the nuget.org user that owns the Trusted Publishing policy, then run the release workflow from a branch named like:
-
-```text
-releases/v1.0.0
-```
-
-The release workflow validates the changelog section, builds, tests, packs, creates or updates the tag, creates the GitHub release, logs into NuGet through Trusted Publishing, and pushes `.nupkg` plus `.snupkg` packages.
-
 
