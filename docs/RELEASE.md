@@ -14,8 +14,11 @@ The solution now contains multiple packable projects. `dotnet pack` should produ
 - `TurtlePath.Domain`
 - `TurtlePath`
 - `TurtlePath.EntityFrameworkCore`
+- `TurtlePath.Automations`
 - `TurtlePath.OctoMap`
+- `TurtlePath.AutoMapper`
 - `TurtlePath.Crabalidator`
+- `TurtlePath.FluentValidation`
 - `TurtlePath.Sieve`
-
+- `TurtlePath.Analyzers`
 
