@@ -12,6 +12,11 @@ The recommended Elysium stack is:
 - `TurtlePath.Automations`: profile and attribute driven handler automation for standard TurtlePath flows.
 - `TurtlePath.Domain`: `BaseEntity`, `IEntity<TKey>`, and configurable `CId` identifiers.
 - `TurtlePath.EntityFrameworkCore`: `BaseDbContext`, model conventions, `IDbContext`, and EF-backed storage adapters.
+- `TurtlePath.ExceptionHandling`: transport-neutral exception mapping to descriptors.
+- `TurtlePath.ExceptionHandling.AspNetCore`: MVC exception filter, HTTP status mapping, and `ProblemDetails` responses.
+- `TurtlePath.ExceptionHandling.Consumers`: exception boundaries for message consumers with complete/rethrow policies.
+- `TurtlePath.ExceptionHandling.Workers`: exception boundaries for background services and one-shot workloads.
+- `TurtlePath.Jobs`: standard one-shot Kubernetes jobs and recurring cron-style background jobs.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
 - `TurtlePath.Sieve`: optional string-based filtering and sorting for query criteria.
@@ -33,6 +38,11 @@ Install the focused packages your application actually uses. For example, a typi
 dotnet add package TurtlePath
 dotnet add package TurtlePath.Automations
 dotnet add package TurtlePath.EntityFrameworkCore
+dotnet add package TurtlePath.ExceptionHandling
+dotnet add package TurtlePath.ExceptionHandling.AspNetCore
+dotnet add package TurtlePath.ExceptionHandling.Consumers
+dotnet add package TurtlePath.ExceptionHandling.Workers
+dotnet add package TurtlePath.Jobs
 dotnet add package TurtlePath.Sieve
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
@@ -310,6 +320,132 @@ public sealed record CreateCatalogItemRequest(string Sku, string Name, decimal P
 ```
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
+
+## Exception Handling
+
+`TurtlePath.ExceptionHandling` keeps exception rules transport-neutral. Applications map exceptions once into an `ExceptionDescriptor`; target adapters decide how to project that descriptor to HTTP, consumers, workers, or jobs.
+
+Use profiles when the exception catalog starts growing:
+
+```csharp
+public sealed class CommerceExceptionHandlingProfile : ExceptionHandlingProfile
+{
+    public override void Configure(ExceptionHandlingOptionsBuilder builder)
+    {
+        builder.For<ValidationException>(
+            _ => ExceptionKind.Validation,
+            _ => "validation",
+            ex => ex.Errors);
+
+        builder.For<PaymentDeclinedException>(
+            new ExceptionKind("payment_declined"),
+            ex => ex.Message);
+    }
+}
+```
+
+Register the profile and adapters from the composition root:
+
+```csharp
+services.AddExceptionHandlingProfile<CommerceExceptionHandlingProfile>();
+
+services.AddTurtlePathAspNetCoreExceptionHandling(builder =>
+{
+    builder.Map(new ExceptionKind("payment_declined"), StatusCodes.Status402PaymentRequired);
+});
+
+services.AddTurtlePathConsumerExceptionHandling(builder =>
+{
+    builder.RethrowWhen((descriptor, _) => descriptor.Kind != ExceptionKind.Validation);
+});
+
+services.AddTurtlePathWorkerExceptionHandling(builder =>
+{
+    builder.RethrowWhen(descriptor => descriptor.Kind == ExceptionKind.Transient);
+    builder.Return(descriptor => $"handled:{descriptor.Code}");
+});
+```
+
+ASP.NET Core can use the packaged MVC filter:
+
+```csharp
+services.AddControllers(options =>
+{
+    options.Filters.Add<GlobalExceptionFilter>();
+});
+```
+
+Consumers can wrap message processing without depending on a specific broker package:
+
+```csharp
+await consumerExceptionBoundary.RunAsync(
+    message,
+    async (message, cancellationToken) =>
+    {
+        await mediator.Send(message, cancellationToken);
+    },
+    new ConsumerExceptionContext
+    {
+        MessageId = messageId,
+        CorrelationId = correlationId,
+        DeliveryCount = deliveryCount
+    },
+    cancellationToken);
+```
+
+Workers and Kubernetes-style one-shot jobs use the background boundary. By default it rethrows handled exceptions so the host or CronJob can observe the failure.
+
+## Jobs
+
+`TurtlePath.Jobs` provides a standard execution path for one-shot jobs and recurring cron-style background jobs. A job only implements the work:
+
+```csharp
+public sealed class ImportCustomersJob : TurtlePathJob
+{
+    public override Task ExecuteAsync(TurtlePathJobContext context, CancellationToken cancellationToken)
+    {
+        // Import customers here.
+        return Task.CompletedTask;
+    }
+}
+```
+
+For Kubernetes CronJobs or console workloads, register one or more one-shot jobs and run the manager. The manager waits for every job and returns when the whole batch is done:
+
+```csharp
+services.AddTurtlePathJobs(options =>
+{
+    options.ExecutionMode = TurtlePathJobExecutionMode.Parallel;
+    options.MaxDegreeOfParallelism = 4;
+    options.Retries = 2;
+    options.RetryDelay = TimeSpan.FromSeconds(10);
+    options.FailureBehavior = TurtlePathJobFailureBehavior.Rethrow;
+})
+.AddJob<ImportCustomersJob>("import-customers")
+.AddJob<ImportInvoicesJob>("import-invoices");
+
+await provider.RunTurtlePathJobsAsync();
+```
+
+For long-running services, register multiple recurring jobs. TurtlePath adds one hosted service that manages independent loops for every registered cron job:
+
+```csharp
+services.AddTurtlePathJobs()
+    .AddCronJob<RefreshCatalogJob>(options =>
+    {
+        options.EveryMinutes(30);
+        options.Retries = 3;
+        options.FailureBehavior = TurtlePathJobFailureBehavior.Continue;
+    })
+    .AddCronJob<SyncCustomersJob>(options =>
+    {
+        options.EveryHours(6);
+        options.RunOnStart = true;
+        options.FailureBehavior = TurtlePathJobFailureBehavior.StopHost;
+    });
+```
+
+Each execution creates a fresh DI scope and runs through `IBackgroundExceptionBoundary`, so retries, reporting, and failure behavior are consistent with the rest of TurtlePath exception handling.
 
 ## Analyzers
 
