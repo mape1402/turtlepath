@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.ExceptionHandling.Workers</PackageId>
+    <Description>Background worker and cron job exception handling adapters for TurtlePath exception handling core.</Description>
+    <PackageTags>exceptions workers background-services cron-jobs turtlepath</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.ExceptionHandling\TurtlePath.ExceptionHandling.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

@@ -2,6 +2,12 @@
 
 This sample exercises TurtlePath through Pelican mediator dispatch, automation profiles, attribute automations, manual handler escape hatches, hooks, scalar CId profiles, Sieve criteria, EF Core with SQLite, and the recommended Elysium adapters: OctoMap and Crabalidator.
 
+Run it with:
+
+```bash
+dotnet run --project samples/TurtlePath.Samples.Basic/TurtlePath.Samples.Basic.csproj
+```
+
 Covered flows:
 
 - `TurtlePath.Automations` for Customer create, update, patch, get by id, and paged query happy paths.
@@ -16,5 +22,10 @@ Covered flows:
 - Hook ordering for mapping, id assignment, and audit logging.
 - Configured CId conversion for the default `Guid` path and a per-entity `int` database representation.
 - Sieve string filters and sorts backed by the storage criteria adapter.
+- `TurtlePath.ExceptionHandling` for transport-neutral exception descriptors.
+- `ExceptionHandlingProfile` to keep exception mappings outside dependency registration.
+- `TurtlePath.ExceptionHandling.AspNetCore` for HTTP status and ProblemDetails projection.
+- `TurtlePath.ExceptionHandling.Consumers` for message consumer retry/complete behavior.
+- `TurtlePath.ExceptionHandling.Workers` for background services and Kubernetes-style cron jobs.
 
 `CId` support is intentionally scalar in the current pipeline: one domain value maps to one database value. Composite keys require entity-aware mapping and are not part of the current CId converter support.

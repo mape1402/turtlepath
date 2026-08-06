@@ -12,6 +12,7 @@ using TurtlePath.OctoMap;
 using TurtlePath.Queries;
 using TurtlePath.Samples.Basic.Application.Queries;
 using TurtlePath.Samples.Basic.Application.Requests;
+using TurtlePath.Samples.Basic.ExceptionHandling;
 using TurtlePath.Samples.Basic.Infrastructure;
 using TurtlePath.Samples.Basic.Infrastructure.Persistence;
 
@@ -168,5 +169,11 @@ Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");
 
 foreach (var entry in auditLog.Entries)
     Console.WriteLine($"- {entry}");
+
+Console.WriteLine();
+Console.WriteLine("Exception handling samples");
+
+foreach (var line in await ExceptionHandlingSampleRunner.RunAsync())
+    Console.WriteLine($"- {line}");
 
 await sqliteConnection.DisposeAsync();

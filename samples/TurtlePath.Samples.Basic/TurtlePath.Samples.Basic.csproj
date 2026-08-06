@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net9.0</TargetFramework>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -9,6 +11,10 @@
     <ProjectReference Include="..\..\src\TurtlePath.Automations\TurtlePath.Automations.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Crabalidator\TurtlePath.Crabalidator.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling\TurtlePath.ExceptionHandling.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.AspNetCore\TurtlePath.ExceptionHandling.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Consumers\TurtlePath.ExceptionHandling.Consumers.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Workers\TurtlePath.ExceptionHandling.Workers.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.OctoMap\TurtlePath.OctoMap.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Sieve\TurtlePath.Sieve.csproj" />
   </ItemGroup>
@@ -16,6 +22,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
 </Project>
