@@ -2,6 +2,20 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.1.0] - 2026-08-06
+
+### Added
+
+- Added transport-neutral exception handling core with profile-based exception mappings.
+- Added ASP.NET Core, consumer, and worker exception handling adapters.
+- Added TurtlePath job infrastructure for one-shot job managers and recurring cron-style background services.
+- Added sample coverage for exception handling and jobs.
+
+### Changed
+
+- Updated package dependencies across TurtlePath projects, samples, benchmarks, and tests.
+- Kept Entity Framework Core on the latest `9.0.x` patch line to preserve the current `net8.0`, `net9.0`, and `net10.0` target support.
+
 ## [v1.0.0] - 2026-08-05
 
 ### Added
