@@ -397,23 +397,63 @@ Workers and Kubernetes-style one-shot jobs use the background boundary. By defau
 
 ## Jobs
 
-`TurtlePath.Jobs` provides a standard execution path for one-shot jobs and recurring cron-style background jobs. A job only implements the work:
+`TurtlePath.Jobs` provides a standard execution path for two common workloads:
+
+- one-shot jobs, usually used by console apps or Kubernetes CronJobs
+- recurring background jobs, usually hosted inside a worker service
+
+A job is a regular DI service. Put dependencies in the constructor and implement only the work in `ExecuteAsync`:
 
 ```csharp
 public sealed class ImportCustomersJob : TurtlePathJob
 {
-    public override Task ExecuteAsync(TurtlePathJobContext context, CancellationToken cancellationToken)
+    private readonly ICustomerImportService customerImportService;
+    private readonly ILogger<ImportCustomersJob> logger;
+
+    public ImportCustomersJob(
+        ICustomerImportService customerImportService,
+        ILogger<ImportCustomersJob> logger)
     {
-        // Import customers here.
-        return Task.CompletedTask;
+        this.customerImportService = customerImportService;
+        this.logger = logger;
+    }
+
+    public override async Task ExecuteAsync(TurtlePathJobContext context, CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Running {JobName}. Execution={ExecutionId}, Attempt={Attempt}",
+            context.JobName,
+            context.ExecutionId,
+            context.Attempt);
+
+        await customerImportService.ImportAsync(cancellationToken);
     }
 }
 ```
 
-For Kubernetes CronJobs or console workloads, register one or more one-shot jobs and run the manager. The manager waits for every job and returns when the whole batch is done:
+### One-Shot Jobs
+
+For Kubernetes CronJobs or console workloads, register one or more jobs with `AddJob<TJob>()` and run the manager from `Program.cs`.
 
 ```csharp
-services.AddTurtlePathJobs(options =>
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using TurtlePath.ExceptionHandling;
+using TurtlePath.Jobs;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddTurtlePathExceptionHandlingCore(options =>
+{
+    options.For<InvalidOperationException>(
+        ExceptionKind.Business,
+        exception => exception.Message);
+});
+
+builder.Services.AddScoped<ICustomerImportService, CustomerImportService>();
+builder.Services.AddScoped<IInvoiceImportService, InvoiceImportService>();
+
+builder.Services.AddTurtlePathJobs(options =>
 {
     options.ExecutionMode = TurtlePathJobExecutionMode.Parallel;
     options.MaxDegreeOfParallelism = 4;
@@ -424,13 +464,47 @@ services.AddTurtlePathJobs(options =>
 .AddJob<ImportCustomersJob>("import-customers")
 .AddJob<ImportInvoicesJob>("import-invoices");
 
-await provider.RunTurtlePathJobsAsync();
+using var host = builder.Build();
+
+var result = await host.Services.RunTurtlePathJobsAsync();
+
+return result.Succeeded ? 0 : 1;
 ```
 
-For long-running services, register multiple recurring jobs. TurtlePath adds one hosted service that manages independent loops for every registered cron job:
+The manager waits for the whole batch to finish. In `Parallel` mode, registered jobs run at the same time up to `MaxDegreeOfParallelism`; in `Sequential` mode, they run one by one. You can also run a selected subset when a process receives the requested job names from command-line arguments:
 
 ```csharp
-services.AddTurtlePathJobs()
+var selectedJobs = args switch
+{
+    [ "customers" ] => new[] { typeof(ImportCustomersJob) },
+    [ "invoices" ] => new[] { typeof(ImportInvoicesJob) },
+    _ => new[] { typeof(ImportCustomersJob), typeof(ImportInvoicesJob) }
+};
+
+var result = await host.Services.RunTurtlePathJobsAsync(selectedJobs);
+```
+
+If a job fails, TurtlePath retries it using the configured `Retries` and `RetryDelay`. After retries are exhausted:
+
+- `Rethrow` throws a `TurtlePathJobManagerException`, which is usually right for Kubernetes because the pod exits as failed.
+- `Continue` records the failed job result and keeps processing the rest of the batch.
+- `StopHost` asks the host to stop when the job is running from a hosted service.
+
+### Recurring Background Jobs
+
+For long-running worker services, register recurring jobs with `AddCronJob<TJob>()`. TurtlePath adds a hosted service that manages independent loops for every registered cron job:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using TurtlePath.Jobs;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddScoped<IRefreshCatalogService, RefreshCatalogService>();
+builder.Services.AddScoped<ICustomerSyncService, CustomerSyncService>();
+
+builder.Services.AddTurtlePathJobs()
     .AddCronJob<RefreshCatalogJob>(options =>
     {
         options.EveryMinutes(30);
@@ -443,9 +517,13 @@ services.AddTurtlePathJobs()
         options.RunOnStart = true;
         options.FailureBehavior = TurtlePathJobFailureBehavior.StopHost;
     });
+
+await builder.Build().RunAsync();
 ```
 
-Each execution creates a fresh DI scope and runs through `IBackgroundExceptionBoundary`, so retries, reporting, and failure behavior are consistent with the rest of TurtlePath exception handling.
+`RunOnStart` runs the job once as soon as the worker starts, then continues using the configured interval. Each execution creates a fresh DI scope and runs through `IBackgroundExceptionBoundary`, so retries, reporting, and failure behavior are consistent with the rest of TurtlePath exception handling.
+
+Use one-shot jobs when the process should finish after the work is done. Use recurring background jobs when the process should stay alive and execute the same work repeatedly.
 
 ## Analyzers
 
