@@ -10,6 +10,10 @@
     <ProjectReference Include="..\..\src\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.AutoMapper\TurtlePath.AutoMapper.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.FluentValidation\TurtlePath.FluentValidation.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling\TurtlePath.ExceptionHandling.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.AspNetCore\TurtlePath.ExceptionHandling.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Consumers\TurtlePath.ExceptionHandling.Consumers.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Workers\TurtlePath.ExceptionHandling.Workers.csproj" />
   </ItemGroup>
 
   <ItemGroup>
