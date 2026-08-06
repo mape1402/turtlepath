@@ -13,6 +13,7 @@ using TurtlePath.Queries;
 using TurtlePath.Samples.Basic.Application.Queries;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.ExceptionHandling;
+using TurtlePath.Samples.Basic.Jobs;
 using TurtlePath.Samples.Basic.Infrastructure;
 using TurtlePath.Samples.Basic.Infrastructure.Persistence;
 
@@ -174,6 +175,12 @@ Console.WriteLine();
 Console.WriteLine("Exception handling samples");
 
 foreach (var line in await ExceptionHandlingSampleRunner.RunAsync())
+    Console.WriteLine($"- {line}");
+
+Console.WriteLine();
+Console.WriteLine("Jobs samples");
+
+foreach (var line in await JobsSampleRunner.RunAsync())
     Console.WriteLine($"- {line}");
 
 await sqliteConnection.DisposeAsync();
