@@ -27,5 +27,6 @@ Covered flows:
 - `TurtlePath.ExceptionHandling.AspNetCore` for HTTP status and ProblemDetails projection.
 - `TurtlePath.ExceptionHandling.Consumers` for message consumer retry/complete behavior.
 - `TurtlePath.ExceptionHandling.Workers` for background services and Kubernetes-style cron jobs.
+- `TurtlePath.Jobs` for one-shot Kubernetes jobs and multiple recurring cron-style background jobs.
 
 `CId` support is intentionally scalar in the current pipeline: one domain value maps to one database value. Composite keys require entity-aware mapping and are not part of the current CId converter support.

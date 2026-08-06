@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.AspNetCore\TurtlePath.ExceptionHandling.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Consumers\TurtlePath.ExceptionHandling.Consumers.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Workers\TurtlePath.ExceptionHandling.Workers.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.Jobs\TurtlePath.Jobs.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.OctoMap\TurtlePath.OctoMap.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Sieve\TurtlePath.Sieve.csproj" />
   </ItemGroup>
