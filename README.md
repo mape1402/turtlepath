@@ -18,6 +18,9 @@ The recommended Elysium stack is:
 - `TurtlePath.ExceptionHandling.Workers`: exception boundaries for background services and one-shot workloads.
 - `TurtlePath.EventSourcing`: Krackend event sourcing bridge for TurtlePath command handler hooks.
 - `TurtlePath.Jobs`: standard one-shot Kubernetes jobs and recurring cron-style background jobs.
+- `TurtlePath.Testing`: test host, delegate adapters, and in-memory storage for TurtlePath handler and automation tests.
+- `TurtlePath.Testing.EntityFrameworkCore`: SQLite-backed integration testing helpers for EF Core TurtlePath applications.
+- `TurtlePath.Testing.EventSourcing`: event stream assertion helpers for TurtlePath event sourcing tests.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
 - `TurtlePath.Sieve`: optional string-based filtering and sorting for query criteria.
@@ -45,6 +48,9 @@ dotnet add package TurtlePath.ExceptionHandling.Consumers
 dotnet add package TurtlePath.ExceptionHandling.Workers
 dotnet add package TurtlePath.EventSourcing
 dotnet add package TurtlePath.Jobs
+dotnet add package TurtlePath.Testing
+dotnet add package TurtlePath.Testing.EntityFrameworkCore
+dotnet add package TurtlePath.Testing.EventSourcing
 dotnet add package TurtlePath.Sieve
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
@@ -57,6 +63,14 @@ Analyzer packages should stay private to the project that consumes them:
 
 ```xml
 <PackageReference Include="TurtlePath.Analyzers" Version="..." PrivateAssets="all" />
+```
+
+Testing packages should normally stay in test projects:
+
+```xml
+<PackageReference Include="TurtlePath.Testing" Version="..." PrivateAssets="all" />
+<PackageReference Include="TurtlePath.Testing.EntityFrameworkCore" Version="..." PrivateAssets="all" />
+<PackageReference Include="TurtlePath.Testing.EventSourcing" Version="..." PrivateAssets="all" />
 ```
 
 Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
@@ -293,6 +307,95 @@ public sealed class UpdateLegacyCustomerHandler
 ```
 
 Manual handlers remain the extension point when a flow has special behavior. The virtual handler methods still exist for local overrides, while the default implementations delegate to replaceable flow steps from DI.
+
+## Testing
+
+`TurtlePath.Testing` gives tests the same composition shape as the application without forcing a mocking framework. The test host registers TurtlePath, delegate mapper and validator adapters, an in-memory storage adapter, and optional Pelican dispatch.
+
+Use it for direct handler unit tests when you want to avoid wiring every dependency by hand:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .Create()
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer
+    {
+        Name = request.Name,
+        Email = request.Email
+    })
+    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse
+    {
+        Id = customer.Id,
+        Name = customer.Name,
+        Email = customer.Email
+    })
+    .WithValidRequest<CreateCustomerRequest>()
+    .BuildAsync();
+
+var handler = new CreateCustomerCommandHandler(host.Services);
+
+var response = await handler.Handle(new CreateCustomerRequest("Ada", "ada@example.com"));
+
+Assert.True(host.Store<Customer>().Contains(customer => customer.Email == "ada@example.com"));
+```
+
+Call `TraceHooks()` when a test needs to assert TurtlePath hook stage execution through `HookTrace`.
+
+Use Pelican when the test should exercise the same dispatch path as production:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .Create()
+    .UsePelican(typeof(CreateCustomerCommandHandler).Assembly)
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
+    .BuildAsync();
+
+var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+```
+
+Automations should be tested as integration flows because the application does not own a concrete handler class:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .Create()
+    .UseAutomations(typeof(CustomerAutomationProfile).Assembly)
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
+    .BuildAsync();
+
+var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+```
+
+The core testing package stays storage-provider neutral. Use it for fast unit and lightweight integration tests; use provider-specific testing packages when a test must verify real infrastructure behavior such as EF Core SQLite persistence.
+
+Use `TurtlePath.Testing.EntityFrameworkCore` when the test should prove real EF behavior:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .Create()
+    .UseAutomations(typeof(CustomerAutomationProfile).Assembly)
+    .UseSqliteDbContext<AppDbContext>(options => options with
+    {
+        ConfigurationAssemblies = [typeof(AppDbContext).Assembly]
+    })
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
+    .BuildAsync();
+
+await host.CreateSchemaAsync<AppDbContext>();
+
+var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+```
+
+Use `UseExceptionHandling()`, `HandleException(...)`, `UseJobs()`, `WithJob<TJob>()`, and `RunJobsAsync()` for TurtlePath exception and job scenarios.
+
+Use `TurtlePath.Testing.EventSourcing` when a command should append events:
+
+```csharp
+var events = await host.ReadEventStreamAsync("customers", customerId);
+
+Assert.Contains(events, item => item.EventType == "customer-created");
+```
 
 ## Automations
 
