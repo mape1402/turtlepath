@@ -2,6 +2,20 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.3.0] - 2026-08-07
+
+### Added
+
+- Added `TurtlePath.Testing` with a reusable test host for TurtlePath handler and automation tests.
+- Added `TurtlePath.Testing.EntityFrameworkCore` with SQLite-backed integration test helpers.
+- Added `TurtlePath.Testing.EventSourcing` with event stream assertion helpers.
+- Added delegate-based mapper and validator adapters for tests without a mocking framework.
+- Added in-memory TurtlePath storage implementing reader and writer adapters with operation tracing.
+- Added testing helpers for TurtlePath exception handling and one-shot jobs.
+- Added test coverage for direct manual handlers, Pelican-dispatched handlers, generated automations, seeded read scenarios, update, delete, paged queries, jobs, exceptions, SQLite persistence, and event stream assertions.
+- Added `samples/TurtlePath.Samples.Testing` with copyable testing examples.
+- Added a testing roadmap under `docs/TESTING_ROADMAP.md`.
+
 ## [v1.2.0] - 2026-08-07
 
 ### Added
