@@ -2,6 +2,19 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.2.0] - 2026-08-07
+
+### Added
+
+- Added `TurtlePath.EventSourcing` as a Krackend-backed bridge from TurtlePath command handler `AfterSave` hooks to event store appends.
+- Added event sourcing profiles for compact command/entity to event payload mappings.
+- Added support for multiple events per command/entity pair, conditional event appends, and configurable Krackend expected-version policies.
+- Added sample coverage for Customer create, update, and patch events stored through the event sourcing hook.
+
+### Notes
+
+- `TurtlePath.EventSourcing` targets `net9.0` and `net10.0` because `Krackend.EventSourcing` 1.1.0 does not target `net8.0`.
+
 ## [v1.1.0] - 2026-08-06
 
 ### Added

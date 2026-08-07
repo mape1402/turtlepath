@@ -16,6 +16,7 @@ The recommended Elysium stack is:
 - `TurtlePath.ExceptionHandling.AspNetCore`: MVC exception filter, HTTP status mapping, and `ProblemDetails` responses.
 - `TurtlePath.ExceptionHandling.Consumers`: exception boundaries for message consumers with complete/rethrow policies.
 - `TurtlePath.ExceptionHandling.Workers`: exception boundaries for background services and one-shot workloads.
+- `TurtlePath.EventSourcing`: Krackend event sourcing bridge for TurtlePath command handler hooks.
 - `TurtlePath.Jobs`: standard one-shot Kubernetes jobs and recurring cron-style background jobs.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
@@ -42,6 +43,7 @@ dotnet add package TurtlePath.ExceptionHandling
 dotnet add package TurtlePath.ExceptionHandling.AspNetCore
 dotnet add package TurtlePath.ExceptionHandling.Consumers
 dotnet add package TurtlePath.ExceptionHandling.Workers
+dotnet add package TurtlePath.EventSourcing
 dotnet add package TurtlePath.Jobs
 dotnet add package TurtlePath.Sieve
 dotnet add package TurtlePath.OctoMap
@@ -320,6 +322,82 @@ public sealed record CreateCatalogItemRequest(string Sku, string Name, decimal P
 ```
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
+
+## Event Sourcing
+
+`TurtlePath.EventSourcing` connects TurtlePath command handlers to Krackend event sourcing through `IAfterSaveHook<TRequest, TEntity>`. The handler saves the entity first, then the hook resolves the Krackend stream, maps `request + entity` to one or more event payloads, and appends them to `IEventStore`.
+
+Use profiles so event mappings do not grow inside dependency registration:
+
+```csharp
+public sealed class CommerceEventSourcingProfile : IEventSourcingProfile
+{
+    public void Configure(IEventSourcingProfileBuilder builder)
+    {
+        builder.For<CreateCustomerRequest, Customer>()
+            .ToEvent<CustomerCreated>(options => options.UseExpectedVersion(ExpectedVersion.NoStream))
+            .ToEvent<CustomerAuditRegistered>(options => options.UseExpectedVersion(ExpectedVersion.NoStream));
+
+        builder.For<UpdateCustomerRequest, Customer>()
+            .ToEvent<CustomerUpdated>();
+    }
+}
+```
+
+Commands use Krackend stream contracts:
+
+```csharp
+[EventStream("customers")]
+public sealed record CreateCustomerRequest(string CustomerId, string Name, string Email)
+    : IRequest<CustomerResponse>, IEventStreamCommand
+{
+    public string StreamId => CustomerId;
+}
+```
+
+Register TurtlePath, the mapper adapter, and the profile from the composition root:
+
+```csharp
+services
+    .AddTurtlePath(typeof(MyApplicationMarker).Assembly)
+    .UseOctoMap()
+    .UseEventSourcingProfile<CommerceEventSourcingProfile>();
+```
+
+Event payloads are mapped through TurtlePath's `IMapperAdapter`. For generated ids, resolve the stream from the saved entity and project the hook context into a small mapper source:
+
+```csharp
+public sealed class CommerceEventSourcingProfile : IEventSourcingProfile
+{
+    public void Configure(IEventSourcingProfileBuilder builder)
+    {
+        builder.For<CreateCustomerRequest, Customer>()
+            .UseStream("customers", context => context.Entity.Id.ToString())
+            .ToEvent<CustomerEventSource, CustomerCreated>(
+                context => new CustomerEventSource(
+                    context.Entity.Id.ToString(),
+                    context.Entity.Name,
+                    context.Entity.Email),
+                options => options.UseExpectedVersion(ExpectedVersion.NoStream));
+    }
+}
+
+public sealed record CustomerEventSource(string CustomerId, string Name, string Email);
+```
+
+Then map the source to the event payload with your mapper adapter:
+
+```csharp
+public sealed class CommerceEventMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap<CustomerEventSource, CustomerCreated>();
+    }
+}
+```
+
+`ToEvent<TEvent>()` can be repeated for the same command/entity pair. Use `When(...)` for conditional events and `UseExpectedVersion(...)` for optimistic concurrency rules.
 
 ## Exception Handling
 

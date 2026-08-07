@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\src\TurtlePath.Automations\TurtlePath.Automations.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Crabalidator\TurtlePath.Crabalidator.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.EntityFrameworkCore\TurtlePath.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\TurtlePath.EventSourcing\TurtlePath.EventSourcing.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling\TurtlePath.ExceptionHandling.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.AspNetCore\TurtlePath.ExceptionHandling.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.ExceptionHandling.Consumers\TurtlePath.ExceptionHandling.Consumers.csproj" />

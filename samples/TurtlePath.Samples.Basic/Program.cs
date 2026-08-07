@@ -1,4 +1,5 @@
 using Crabalidator.DependencyInjection;
+using Krackend.EventSourcing.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ using TurtlePath.Automations;
 using TurtlePath.Crabalidator;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
+using TurtlePath.EventSourcing;
 using TurtlePath.OctoMap;
 using TurtlePath.Queries;
 using TurtlePath.Samples.Basic.Application.Queries;
@@ -54,6 +56,7 @@ services
     .UseCIdProfiles(sampleAssembly)
     .UseAutomations(sampleAssembly)
     .UseOctoMap()
+    .UseEventSourcingProfiles(sampleAssembly)
     .UseCrabalidator()
     .UseSieve()
     .UseEntityFrameworkCore<CommerceDbContext>(options => options with
@@ -150,6 +153,8 @@ var persistedOrders = await dbContext.TenantOrders.CountAsync();
 var persistedInvoices = await dbContext.LegacyInvoices.CountAsync();
 var persistedShipments = await dbContext.LegacyShipments.CountAsync();
 var persistedCatalogItems = await dbContext.CatalogItems.CountAsync();
+var eventStore = scopedProvider.GetRequiredService<IEventStore>();
+var customerEvents = await eventStore.ReadStreamAsync("customers", patchedAda.Id.ToString(), 1, 20);
 
 Console.WriteLine("TurtlePath commerce sample");
 Console.WriteLine($"Default customer CId: {ada.Id}");
@@ -167,9 +172,13 @@ Console.WriteLine($"Filtered customers: {matchingCustomers.Count}");
 Console.WriteLine($"Paged customers: page={customerPage.CurrentPage}/{customerPage.PageCount}, rows={customerPage.RowCount}, first={customerPage.Results.First().Name}");
 Console.WriteLine($"Persisted rows: customers={persistedCustomers}, orders={persistedOrders}, invoices={persistedInvoices}, shipments={persistedShipments}, catalogItems={persistedCatalogItems}");
 Console.WriteLine($"Audit entries: {auditLog.Entries.Count}");
+Console.WriteLine($"Event sourcing entries for Ada: {customerEvents.Count}");
 
 foreach (var entry in auditLog.Entries)
     Console.WriteLine($"- {entry}");
+
+foreach (var envelope in customerEvents.OrderBy(envelope => envelope.StreamVersion))
+    Console.WriteLine($"- event {envelope.StreamVersion}: {envelope.EventType} payload={envelope.Payload}");
 
 Console.WriteLine();
 Console.WriteLine("Exception handling samples");
