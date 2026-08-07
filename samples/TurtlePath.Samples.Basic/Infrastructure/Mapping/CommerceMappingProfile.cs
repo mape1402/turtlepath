@@ -1,4 +1,6 @@
 using OctoMap;
+using TurtlePath.Samples.Basic.Application.EventSourcing;
+using TurtlePath.Samples.Basic.Application.Events;
 using TurtlePath.Samples.Basic.Application.Requests;
 using TurtlePath.Samples.Basic.Application.Responses;
 using TurtlePath.Samples.Basic.Domain.Entities;
@@ -12,6 +14,10 @@ public sealed class CommerceMappingProfile : OctoMapProfile
         builder.CreateMap<CreateCustomerRequest, Customer>();
         builder.CreateMap<UpdateCustomerRequest, Customer>();
         builder.CreateMap<Customer, CustomerResponse>();
+        builder.CreateMap<CustomerEventSource, CustomerCreated>();
+        builder.CreateMap<CustomerEventSource, CustomerUpdated>();
+        builder.CreateMap<CustomerAuditEventSource, CustomerAuditEventRegistered>();
+        builder.CreateMap<CustomerAuditEventSource, CustomerEmailPatched>();
 
         builder.CreateMap<CreateTenantOrderRequest, TenantOrder>();
         builder.CreateMap<TenantOrder, TenantOrderResponse>();
