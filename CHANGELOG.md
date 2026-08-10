@@ -2,6 +2,12 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.3.1] - 2026-08-10
+
+### Fixed
+
+- Rebuilt `TurtlePath.Analyzers` against Roslyn `5.0.0` so projects using the current .NET 10 SDK can load the analyzer without compiler-version warnings.
+
 ## [v1.3.0] - 2026-08-07
 
 ### Added
