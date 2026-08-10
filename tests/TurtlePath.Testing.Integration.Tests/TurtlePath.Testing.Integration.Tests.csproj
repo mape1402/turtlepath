@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TurtlePath.Testing\TurtlePath.Testing.csproj" />
-    <ProjectReference Include="..\..\src\TurtlePath.Testing.EntityFrameworkCore\TurtlePath.Testing.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\TurtlePath.Testing.Integration\TurtlePath.Testing.Integration.csproj" />
   </ItemGroup>
 

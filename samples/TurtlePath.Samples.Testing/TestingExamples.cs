@@ -2,6 +2,8 @@ namespace TurtlePath.Samples.Testing
 {
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Metadata.Builders;
+    using DataScorpio.Profiles;
+    using DataScorpio.Testing;
     using Pelican.Mediator;
     using TurtlePath.Automations.Profiles;
     using TurtlePath.Commands;
@@ -16,6 +18,7 @@ namespace TurtlePath.Samples.Testing
     using TurtlePath.Testing;
     using TurtlePath.Testing.EntityFrameworkCore;
     using TurtlePath.Testing.Hooks;
+    using TurtlePath.Testing.Integration;
 
     public sealed class TestingExamples
     {
@@ -103,6 +106,29 @@ namespace TurtlePath.Samples.Testing
         }
 
         [Fact]
+        public async Task Integration_test_datascorpio_helpers_from_turtlepath_host()
+        {
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .UseDataScorpioTesting(profiles => profiles.AddProfile<CustomerQueryProfile>())
+                .BuildAsync();
+
+            var dataScorpio = host.Resolve<IDataScorpioTesting<Customer>>();
+
+            await dataScorpio.SeedAsync(
+            [
+                new Customer { Id = 1, Name = "Ada" },
+                new Customer { Id = 2, Name = "Grace" },
+                new Customer { Id = 3, Name = "Adam" }
+            ]);
+
+            var result = await dataScorpio.ApplyAsync(filters: "Name@=*ada", sorts: "-Name");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(["Adam", "Ada"], result.Result.Items.Select(customer => customer.Name));
+        }
+
+        [Fact]
         public async Task Test_exception_handling_and_jobs()
         {
             SampleJob.Executions = 0;
@@ -182,6 +208,16 @@ namespace TurtlePath.Samples.Testing
                 builder
                     .For<Customer, int>()
                     .ToCreate<CreateAutomatedCustomerRequest, CustomerResponse>();
+            }
+        }
+
+        private sealed class CustomerQueryProfile : QueryProfile<Customer>
+        {
+            public override void Configure(IQueryProfileBuilder<Customer> builder)
+            {
+                builder
+                    .AllowFilter(customer => customer.Name)
+                    .AllowSort(customer => customer.Name);
             }
         }
 
