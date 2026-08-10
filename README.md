@@ -22,6 +22,7 @@ The recommended Elysium stack is:
 - `TurtlePath.Testing.EntityFrameworkCore`: SQLite-backed integration testing helpers for EF Core TurtlePath applications.
 - `TurtlePath.Testing.EventSourcing`: event stream assertion helpers for TurtlePath event sourcing tests.
 - `TurtlePath.Testing.Integration`: thin test-host wrappers for Elysium testing adapters such as Pelican, OctoMap, Crabalidator, Pigeon, Spider, DynaBee, Krackend event sourcing, and DataScorpio.
+- `TurtlePath.Template`: official `dotnet new` template for creating TurtlePath services.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
 - `TurtlePath.DataScorpio`: recommended DataScorpio filtering and sorting adapter for query criteria.
@@ -34,6 +35,24 @@ Alternative adapters are available when a project needs them: `TurtlePath.AutoMa
 
 ```powershell
 dotnet add package TurtlePath
+```
+
+Install the service template when you want to create a new TurtlePath project:
+
+```powershell
+dotnet new install TurtlePath.Template
+```
+
+Create the default API/consumer host:
+
+```powershell
+dotnet new turtlepath -n MyService --host api-consumer
+```
+
+Create a one-shot job host for console or Kubernetes CronJob execution:
+
+```powershell
+dotnet new turtlepath -n MyJob --host job
 ```
 
 ## Basic Usage
@@ -76,6 +95,8 @@ Testing packages should normally stay in test projects:
 <PackageReference Include="TurtlePath.Testing.EventSourcing" Version="..." PrivateAssets="all" />
 <PackageReference Include="TurtlePath.Testing.Integration" Version="..." PrivateAssets="all" />
 ```
+
+`TurtlePath.Template` is installed through `dotnet new install` instead of referenced from an application project.
 
 Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
 
