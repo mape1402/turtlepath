@@ -1,0 +1,28 @@
+<section class="studio-panel log-panel">
+    <div class="panel-heading">
+        <p>Terminal</p>
+        <h2>Execution Log</h2>
+    </div>
+
+    @if (Commands.Count == 0)
+    {
+        <div class="empty-state">No commands have been executed.</div>
+    }
+    else
+    {
+        <ol class="command-list">
+            @foreach (var command in Commands)
+            {
+                <li>
+                    <strong>@command.Command.DisplayText</strong>
+                    <span class="exit-code @(command.Succeeded ? "ok" : "error")">Exit @command.ExitCode</span>
+                    <pre>@string.Join(Environment.NewLine, command.Output.Select(line => line.Text))</pre>
+                </li>
+            }
+        </ol>
+    }
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<CommandExecutionResult> Commands { get; set; } = [];
+}

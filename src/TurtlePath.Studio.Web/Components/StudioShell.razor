@@ -1,0 +1,43 @@
+<main class="studio-shell">
+    <aside class="studio-sidebar">
+        <div class="studio-brand">
+            <span class="studio-brand-mark">TP</span>
+            <div>
+                <strong>TurtlePath Studio</strong>
+                <span>Project workspace</span>
+            </div>
+        </div>
+
+        <nav class="studio-nav" aria-label="Studio navigation">
+            <button type="button" class="active">New project</button>
+            <button type="button">Templates</button>
+            <button type="button">Examples</button>
+            <button type="button">Docs</button>
+        </nav>
+    </aside>
+
+    <section class="studio-content">
+        <header class="studio-header">
+            <div>
+                <p>Environment</p>
+                <h1>Create a TurtlePath project</h1>
+            </div>
+            <EnvironmentStatus Report="EnvironmentReport" />
+        </header>
+
+        <div class="studio-grid">
+            <NewProjectWizard Model="ProjectModel" />
+            <ExecutionLog Commands="Commands" />
+            <DocsLanding />
+        </div>
+    </section>
+</main>
+
+@code {
+    [Parameter] public StudioEnvironmentReport EnvironmentReport { get; set; }
+
+    [Parameter] public CreateProjectRequest ProjectModel { get; set; } =
+        new("MyService", string.Empty, ProjectHostMode.ApiConsumer);
+
+    [Parameter] public IReadOnlyList<CommandExecutionResult> Commands { get; set; } = [];
+}
