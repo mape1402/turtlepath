@@ -24,7 +24,7 @@
     <None Remove="..\..\README.md" />
     <None Remove="..\..\assets\turtlepath.png" />
     <Content Include="templates\**\*"
-             Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\.vs\**;templates\**\.git\**"
+             Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\.vs\**;templates\**\.git\**;templates\**\Properties\launchSettings.json"
              Pack="true"
              PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="README.md" Pack="true" PackagePath="" />

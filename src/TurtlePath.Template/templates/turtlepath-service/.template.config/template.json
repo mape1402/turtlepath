@@ -8,7 +8,7 @@
         "language": "C#",
         "type": "project"
     },
-    "sourceName": "DTemplate",
+    "sourceName": "TurtlePath.Template",
     "preferNameDirectory" : "true",
     "sources": [
         {
@@ -23,20 +23,20 @@
                 {
                     "condition": "(host == \"job\")",
                     "exclude": [
-                        "src/DTemplate.Api/Controllers/**",
-                        "src/DTemplate.Api/HubConsumers/**",
-                        "src/DTemplate.Api/Swagger/**",
-                        "src/DTemplate.Api/DependencyInjection/HealthCheckExtensions.cs",
-                        "src/DTemplate.Api/DependencyInjection/MessagingExtensions.cs",
-                        "src/DTemplate.Api/DependencyInjection/MvcExtensions.cs",
-                        "src/DTemplate.Api/DependencyInjection/SwaggerExtensions.cs",
-                        "tests/DTemplate.Tests/TemplateCompositionTests.cs"
+                        "src/TurtlePath.Template.Api/Controllers/**",
+                        "src/TurtlePath.Template.Api/HubConsumers/**",
+                        "src/TurtlePath.Template.Api/Swagger/**",
+                        "src/TurtlePath.Template.Api/DependencyInjection/HealthCheckExtensions.cs",
+                        "src/TurtlePath.Template.Api/DependencyInjection/MessagingExtensions.cs",
+                        "src/TurtlePath.Template.Api/DependencyInjection/MvcExtensions.cs",
+                        "src/TurtlePath.Template.Api/DependencyInjection/SwaggerExtensions.cs",
+                        "tests/TurtlePath.Template.Tests/TemplateCompositionTests.cs"
                     ]
                 },
                 {
                     "condition": "(host != \"job\")",
                     "exclude": [
-                        "tests/DTemplate.Tests/JobCompositionTests.cs"
+                        "tests/TurtlePath.Template.Tests/JobCompositionTests.cs"
                     ]
                 }
             ]
@@ -48,7 +48,7 @@
             "datatype": "choice",
             "defaultValue": "api-consumer",
             "description": "Selects the generated host composition.",
-            "replaces": "DTemplateHostMode",
+            "replaces": "TurtlePath.TemplateHostMode",
             "choices": [
                 {
                     "choice": "api-consumer",
@@ -85,8 +85,8 @@
         "HostProjectName": {
             "type": "generated",
             "generator": "join",
-            "replaces": "DTemplate.Api",
-            "fileRename": "DTemplate.Api",
+            "replaces": "TurtlePath.Template.Api",
+            "fileRename": "TurtlePath.Template.Api",
             "parameters": {
                 "symbols": [
                     {
