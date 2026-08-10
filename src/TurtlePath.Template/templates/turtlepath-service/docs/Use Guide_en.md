@@ -1,4 +1,4 @@
-# DTemplate Use Guide
+# TurtlePath.Template Use Guide
 
 Usage guide for ASP.NET Core services built with TurtlePath.
 
@@ -766,7 +766,7 @@ TurtlePath handlers and automations call the registered validator adapter before
 
 ## Testing
 
-The template includes a test project ready for TurtlePath unit and integration tests. Use `TemplateTestHost` from `tests/DTemplate.Tests/Testing` so each test only adds the feature-specific maps, validators, seeds, or query profiles it needs.
+The template includes a test project ready for TurtlePath unit and integration tests. Use `TemplateTestHost` from `tests/TurtlePath.Template.Tests/Testing` so each test only adds the feature-specific maps, validators, seeds, or query profiles it needs.
 
 ### Handler Unit Test
 
@@ -906,14 +906,14 @@ By default:
 
 Use this checklist when migrating a service created with the previous template.
 
-- Replace `DTemplate.Domain.Identifier` usages with `TurtlePath.Domain.Identifier`.
-- Replace `DTemplate.Domain.Contracts` usages with `TurtlePath.Domain.Contracts`.
-- Replace `DTemplate.Business.Core.Commands` usages with `TurtlePath.Commands`.
-- Replace `DTemplate.Business.Core.Queries` usages with `TurtlePath.Queries`.
-- Replace `DTemplate.Business.Core.Models.Requests` usages with `TurtlePath.Models.Requests`.
-- Replace `DTemplate.Business.Core.Models.Responses` usages with `TurtlePath.Models.Responses`.
-- Replace `DTemplate.Business.Core.Hooks` usages with `TurtlePath.Hooks`.
-- Replace `DTemplate.Business.Core.Exceptions` usages with `TurtlePath.Exceptions` or `TurtlePath.Validation`.
+- Replace `TurtlePath.Template.Domain.Identifier` usages with `TurtlePath.Domain.Identifier`.
+- Replace `TurtlePath.Template.Domain.Contracts` usages with `TurtlePath.Domain.Contracts`.
+- Replace `TurtlePath.Template.Business.Core.Commands` usages with `TurtlePath.Commands`.
+- Replace `TurtlePath.Template.Business.Core.Queries` usages with `TurtlePath.Queries`.
+- Replace `TurtlePath.Template.Business.Core.Models.Requests` usages with `TurtlePath.Models.Requests`.
+- Replace `TurtlePath.Template.Business.Core.Models.Responses` usages with `TurtlePath.Models.Responses`.
+- Replace `TurtlePath.Template.Business.Core.Hooks` usages with `TurtlePath.Hooks`.
+- Replace `TurtlePath.Template.Business.Core.Exceptions` usages with `TurtlePath.Exceptions` or `TurtlePath.Validation`.
 - Replace local `IDbContext` usages with `TurtlePath.EntityFrameworkCore.IDbContext`.
 - Make the concrete DbContext inherit from `TurtlePath.EntityFrameworkCore.BaseDbContext`.
 - Remove local handler core, local CId implementation, local storage adapters, local mapper adapter, and local validator adapter.
@@ -935,9 +935,9 @@ The template was updated to consume the published TurtlePath NuGet packages inst
 
 Key changes:
 
-- `DTemplate.Domain` keeps service-owned entities and domain code only.
-- `DTemplate.Business` keeps service-owned commands, queries, validators, mappings, hooks, automations, and services.
-- `DTemplate.Persistence` keeps the concrete EF Core context and service-owned EF configurations only.
+- `TurtlePath.Template.Domain` keeps service-owned entities and domain code only.
+- `TurtlePath.Template.Business` keeps service-owned commands, queries, validators, mappings, hooks, automations, and services.
+- `TurtlePath.Template.Persistence` keeps the concrete EF Core context and service-owned EF configurations only.
 - Shared handler and identifier infrastructure now lives in TurtlePath packages.
 - Business dependency registration moved to the API composition root.
 - The transaction behavior moved from a Pelican pipeline behavior to a Spider execution boundary.
@@ -946,7 +946,7 @@ Key changes:
 Verification:
 
 ```powershell
-dotnet restore DTemplate.sln --verbosity minimal
-dotnet build DTemplate.sln --configuration Release --no-restore --verbosity minimal
-dotnet test DTemplate.sln --configuration Release --no-build --verbosity minimal
+dotnet restore TurtlePath.Template.sln --verbosity minimal
+dotnet build TurtlePath.Template.sln --configuration Release --no-restore --verbosity minimal
+dotnet test TurtlePath.Template.sln --configuration Release --no-build --verbosity minimal
 ```
