@@ -1,0 +1,39 @@
+<section class="studio-panel wizard-panel">
+    <div class="panel-heading">
+        <p>Wizard</p>
+        <h2>New Project</h2>
+    </div>
+
+    <div class="field-stack">
+        <label>
+            <span>Project name</span>
+            <input value="@Model.ProjectName" placeholder="Billing" />
+        </label>
+
+        <label>
+            <span>Output folder</span>
+            <input value="@Model.OutputDirectory" placeholder="C:\work\Billing" />
+        </label>
+
+        <fieldset>
+            <legend>Host</legend>
+            <div class="segmented">
+                <button type="button" class="@(Model.HostMode == ProjectHostMode.ApiConsumer ? "selected" : null)">API / Consumer</button>
+                <button type="button" class="@(Model.HostMode == ProjectHostMode.Job ? "selected" : null)">Job</button>
+            </div>
+        </fieldset>
+
+        <div class="checks">
+            <label><input type="checkbox" checked="@Model.RestoreAfterCreation" /> Restore</label>
+            <label><input type="checkbox" checked="@Model.BuildAfterCreation" /> Build</label>
+            <label><input type="checkbox" checked="@Model.TestAfterCreation" /> Test</label>
+        </div>
+
+        <button type="button" class="primary-action">Create project</button>
+    </div>
+</section>
+
+@code {
+    [Parameter] public CreateProjectRequest Model { get; set; } =
+        new("MyService", string.Empty, ProjectHostMode.ApiConsumer);
+}
