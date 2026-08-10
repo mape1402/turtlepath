@@ -118,7 +118,8 @@ public class ProjectStructureTests
         var matches = Directory
             .EnumerateDirectories(src, folderName, SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
-                           !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+                           !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") &&
+                           !path.Contains($"{Path.DirectorySeparatorChar}TurtlePath.Template{Path.DirectorySeparatorChar}"))
             .ToArray();
 
         Assert.Empty(matches);

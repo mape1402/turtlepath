@@ -1,0 +1,106 @@
+{
+    "author": "Elysium Coding",
+    "classifications": [ "TurtlePath", "Microservice", "CQRS" ],
+    "name": "TurtlePath Service",
+    "identity": "TurtlePath.Service",
+    "shortName": "turtlepath",
+    "tags": { 
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "DTemplate",
+    "preferNameDirectory" : "true",
+    "sources": [
+        {
+            "exclude": [
+                ".git/**",
+                ".template.config/**",
+                ".vs/**",
+                "**/bin/**",
+                "**/obj/**"
+            ],
+            "modifiers": [
+                {
+                    "condition": "(host == \"job\")",
+                    "exclude": [
+                        "src/DTemplate.Api/Controllers/**",
+                        "src/DTemplate.Api/HubConsumers/**",
+                        "src/DTemplate.Api/Swagger/**",
+                        "src/DTemplate.Api/DependencyInjection/HealthCheckExtensions.cs",
+                        "src/DTemplate.Api/DependencyInjection/MessagingExtensions.cs",
+                        "src/DTemplate.Api/DependencyInjection/MvcExtensions.cs",
+                        "src/DTemplate.Api/DependencyInjection/SwaggerExtensions.cs",
+                        "tests/DTemplate.Tests/TemplateCompositionTests.cs"
+                    ]
+                },
+                {
+                    "condition": "(host != \"job\")",
+                    "exclude": [
+                        "tests/DTemplate.Tests/JobCompositionTests.cs"
+                    ]
+                }
+            ]
+        }
+    ],
+    "symbols":{
+        "host": {
+            "type": "parameter",
+            "datatype": "choice",
+            "defaultValue": "api-consumer",
+            "description": "Selects the generated host composition.",
+            "replaces": "DTemplateHostMode",
+            "choices": [
+                {
+                    "choice": "api-consumer",
+                    "description": "Generates the default API host with REST controllers and Pigeon consumers."
+                },
+                {
+                    "choice": "job",
+                    "description": "Generates a one-shot job host intended for console or Kubernetes CronJob execution."
+                }
+            ]
+        },
+        "JobHost": {
+            "type": "computed",
+            "value": "(host == \"job\")"
+        },
+        "HostProjectSuffix": {
+            "type": "generated",
+            "generator": "switch",
+            "datatype": "string",
+            "parameters": {
+                "evaluator": "C++",
+                "cases": [
+                    {
+                        "condition": "(host == \"job\")",
+                        "value": "Job"
+                    },
+                    {
+                        "condition": "(host == \"api-consumer\")",
+                        "value": "Api"
+                    }
+                ]
+            }
+        },
+        "HostProjectName": {
+            "type": "generated",
+            "generator": "join",
+            "replaces": "DTemplate.Api",
+            "fileRename": "DTemplate.Api",
+            "parameters": {
+                "symbols": [
+                    {
+                        "type": "ref",
+                        "value": "name"
+                    },
+                    {
+                        "type": "ref",
+                        "value": "HostProjectSuffix"
+                    }
+                ],
+                "separator": ".",
+                "removeEmptyValues": true
+            }
+        }
+    }
+}

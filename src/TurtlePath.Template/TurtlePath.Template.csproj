@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+    <PackageId>TurtlePath.Template</PackageId>
+    <Title>TurtlePath Template</Title>
+    <Description>dotnet new template for creating TurtlePath services with API, consumer, job, automation, DataScorpio, OctoMap, Crabalidator, and testing defaults.</Description>
+    <PackageTags>dotnet-new template turtlepath cqrs microservice api consumer jobs testing datascorpio octomap crabalidator</PackageTags>
+    <PackageType>Template</PackageType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="..\..\README.md" />
+    <None Remove="..\..\assets\turtlepath.png" />
+    <Content Include="templates\**\*"
+             Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\.vs\**;templates\**\.git\**"
+             Pack="true"
+             PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\assets\turtlepath.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+</Project>
