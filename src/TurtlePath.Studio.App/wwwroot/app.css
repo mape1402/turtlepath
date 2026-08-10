@@ -1,0 +1,38 @@
+html,
+body,
+#app {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow: hidden;
+    background: #f6f8f5;
+}
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1000;
+    max-width: 520px;
+    border-radius: 8px;
+    background: #8b241a;
+    color: white;
+    padding: 12px 44px 12px 14px;
+    box-shadow: 0 16px 48px rgba(8, 33, 28, 0.22);
+}
+
+#blazor-error-ui a {
+    color: white;
+    font-weight: 700;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    cursor: pointer;
+}
