@@ -5,9 +5,9 @@ public class ProjectStructureTests
     [Theory]
     [InlineData("README.md")]
     [InlineData("CHANGELOG.md")]
+    [InlineData(".release")]
     [InlineData("Directory.Build.props")]
-    [InlineData(".github/workflows/CI.yml")]
-    [InlineData(".github/workflows/release.yml")]
+    [InlineData(".github/workflows/build-and-release.yml")]
     public void Repository_contains_expected_solution_items(string path)
     {
         var root = FindRepositoryRoot();
