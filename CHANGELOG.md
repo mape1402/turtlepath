@@ -2,6 +2,16 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.4.0] - 2026-08-10
+
+### Added
+
+- Added `TurtlePath.Template` as the official NuGet-distributed `dotnet new` template package.
+- Added API/consumer and one-shot job host generation through the `turtlepath` template short name.
+- Added DataScorpio, OctoMap, Crabalidator, TurtlePath testing foundations, TurtlePath jobs, exception handling, and EF Core defaults to generated projects.
+- Added Pigeon Azure Service Bus messaging defaults with EF Core outbox enabled by default and explicit ambient transaction suppression for direct broker publishing.
+- Added generated-project validation coverage for both API/consumer and job host modes.
+
 ## [v1.3.1] - 2026-08-10
 
 ### Fixed
