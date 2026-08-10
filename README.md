@@ -21,9 +21,11 @@ The recommended Elysium stack is:
 - `TurtlePath.Testing`: test host, delegate adapters, and in-memory storage for TurtlePath handler and automation tests.
 - `TurtlePath.Testing.EntityFrameworkCore`: SQLite-backed integration testing helpers for EF Core TurtlePath applications.
 - `TurtlePath.Testing.EventSourcing`: event stream assertion helpers for TurtlePath event sourcing tests.
+- `TurtlePath.Testing.Integration`: thin test-host wrappers for Elysium testing adapters such as Pelican, OctoMap, Crabalidator, Pigeon, Spider, DynaBee, Krackend event sourcing, and DataScorpio.
 - `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
 - `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
-- `TurtlePath.Sieve`: optional string-based filtering and sorting for query criteria.
+- `TurtlePath.DataScorpio`: recommended DataScorpio filtering and sorting adapter for query criteria.
+- `TurtlePath.Sieve`: optional Sieve filtering and sorting adapter kept for projects that still use Sieve.
 - `TurtlePath.Analyzers`: optional compile-time checks for unsafe `CId` usage across entities with different configured identifier value types.
 
 Alternative adapters are available when a project needs them: `TurtlePath.AutoMapper` and `TurtlePath.FluentValidation`.
@@ -51,7 +53,8 @@ dotnet add package TurtlePath.Jobs
 dotnet add package TurtlePath.Testing
 dotnet add package TurtlePath.Testing.EntityFrameworkCore
 dotnet add package TurtlePath.Testing.EventSourcing
-dotnet add package TurtlePath.Sieve
+dotnet add package TurtlePath.Testing.Integration
+dotnet add package TurtlePath.DataScorpio
 dotnet add package TurtlePath.OctoMap
 dotnet add package TurtlePath.Crabalidator
 dotnet add package TurtlePath.Analyzers
@@ -71,6 +74,7 @@ Testing packages should normally stay in test projects:
 <PackageReference Include="TurtlePath.Testing" Version="..." PrivateAssets="all" />
 <PackageReference Include="TurtlePath.Testing.EntityFrameworkCore" Version="..." PrivateAssets="all" />
 <PackageReference Include="TurtlePath.Testing.EventSourcing" Version="..." PrivateAssets="all" />
+<PackageReference Include="TurtlePath.Testing.Integration" Version="..." PrivateAssets="all" />
 ```
 
 Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
@@ -103,7 +107,7 @@ services
     .UseAutomations(typeof(MyApplicationMarker).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
-    .UseSieve()
+    .UseDataScorpio(profiles => profiles.FromAssemblyOf<MyApplicationMarker>())
     .UseEntityFrameworkCore<AppDbContext>(options => options with
     {
         ApplyConfigurations = true,
@@ -310,65 +314,79 @@ Manual handlers remain the extension point when a flow has special behavior. The
 
 ## Testing
 
-`TurtlePath.Testing` gives tests the same composition shape as the application without forcing a mocking framework. The test host registers TurtlePath, delegate mapper and validator adapters, an in-memory storage adapter, and optional Pelican dispatch.
+TurtlePath testing packages give test projects the same composition shape as the application without forcing Moq, NSubstitute, or any other mock framework. The full guide lives in `docs/TESTING_GUIDE.md`, and the runnable examples live in `samples/TurtlePath.Samples.Testing`.
 
-Use it for direct handler unit tests when you want to avoid wiring every dependency by hand:
+Use `TurtlePath.Testing` for fast handler unit tests and lightweight integration tests:
+
+- `TurtlePathTestHost.Create()` starts the fluent test host builder.
+- `WithMap<TSource, TDestination>(...)` configures mapper behavior with delegates.
+- `WithUpdateMap<TSource, TDestination>(...)` configures update/patch-style mapping.
+- `WithValidRequest<TRequest>()` and `WithValidator<TRequest>(...)` configure validation.
+- `WithSeed(...)` seeds the in-memory storage.
+- `UsePelican(...)` dispatches requests through Pelican.
+- `UseAutomations(...)` registers automation profiles and generated handlers.
+- `TraceHooks()` records hook stage execution through `HookTrace`.
+- `Store<TEntity>()` exposes assertion-friendly in-memory entities.
+- `Storage.Operations` records add, update, remove, and save operations.
+
+Direct handler unit test:
 
 ```csharp
 await using var host = await TurtlePathTestHost
     .Create()
     .WithMap<CreateCustomerRequest, Customer>(request => new Customer
     {
-        Name = request.Name,
-        Email = request.Email
+        Id = request.Id,
+        Name = request.Name
     })
     .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse
     {
         Id = customer.Id,
-        Name = customer.Name,
-        Email = customer.Email
+        Name = customer.Name
     })
     .WithValidRequest<CreateCustomerRequest>()
+    .TraceHooks()
     .BuildAsync();
 
 var handler = new CreateCustomerCommandHandler(host.Services);
 
-var response = await handler.Handle(new CreateCustomerRequest("Ada", "ada@example.com"));
+var response = await handler.Handle(new CreateCustomerRequest(1, "Ada"));
 
-Assert.True(host.Store<Customer>().Contains(customer => customer.Email == "ada@example.com"));
+Assert.Equal("Ada", response.Name);
+Assert.True(host.Store<Customer>().Contains(customer => customer.Id == 1));
+Assert.Contains(host.Storage.Operations, operation => operation.Action == "SaveChanges");
+Assert.Contains(host.Resolve<HookTrace>().Entries, entry => entry.Stage == "AfterSave");
 ```
 
-Call `TraceHooks()` when a test needs to assert TurtlePath hook stage execution through `HookTrace`.
+`TurtlePath.Sieve` remains available for services that still depend on Sieve attributes or Sieve query configuration. New Elysium services should prefer `TurtlePath.DataScorpio`.
 
-Use Pelican when the test should exercise the same dispatch path as production:
+Pelican integration test for a manual handler:
 
 ```csharp
 await using var host = await TurtlePathTestHost
     .Create()
     .UsePelican(typeof(CreateCustomerCommandHandler).Assembly)
-    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Id = request.Id, Name = request.Name })
     .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
     .BuildAsync();
 
-var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+var response = await host.SendAsync(new CreateCustomerRequest(1, "Ada"));
 ```
 
-Automations should be tested as integration flows because the application does not own a concrete handler class:
+Automation integration test:
 
 ```csharp
 await using var host = await TurtlePathTestHost
     .Create()
     .UseAutomations(typeof(CustomerAutomationProfile).Assembly)
-    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Id = request.Id, Name = request.Name })
     .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
     .BuildAsync();
 
-var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+var response = await host.SendAsync(new CreateCustomerRequest(1, "Ada"));
 ```
 
-The core testing package stays storage-provider neutral. Use it for fast unit and lightweight integration tests; use provider-specific testing packages when a test must verify real infrastructure behavior such as EF Core SQLite persistence.
-
-Use `TurtlePath.Testing.EntityFrameworkCore` when the test should prove real EF behavior:
+Use `TurtlePath.Testing.EntityFrameworkCore` when the test must prove real EF Core behavior with SQLite:
 
 ```csharp
 await using var host = await TurtlePathTestHost
@@ -378,16 +396,14 @@ await using var host = await TurtlePathTestHost
     {
         ConfigurationAssemblies = [typeof(AppDbContext).Assembly]
     })
-    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Name = request.Name })
+    .WithMap<CreateCustomerRequest, Customer>(request => new Customer { Id = request.Id, Name = request.Name })
     .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse { Id = customer.Id, Name = customer.Name })
     .BuildAsync();
 
 await host.CreateSchemaAsync<AppDbContext>();
 
-var response = await host.SendAsync(new CreateCustomerRequest("Ada", "ada@example.com"));
+var response = await host.SendAsync(new CreateCustomerRequest(1, "Ada"));
 ```
-
-Use `UseExceptionHandling()`, `HandleException(...)`, `UseJobs()`, `WithJob<TJob>()`, and `RunJobsAsync()` for TurtlePath exception and job scenarios.
 
 Use `TurtlePath.Testing.EventSourcing` when a command should append events:
 
@@ -396,6 +412,26 @@ var events = await host.ReadEventStreamAsync("customers", customerId);
 
 Assert.Contains(events, item => item.EventType == "customer-created");
 ```
+
+The test host also supports `UseExceptionHandling()`, `HandleException(...)`, `UseJobs()`, `WithJob<TJob>()`, and `RunJobsAsync()` for TurtlePath exception and job scenarios.
+
+Use `TurtlePath.Testing.Integration` when a test should compose TurtlePath with the real testing adapters owned by the Elysium libraries:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .Create()
+    .UsePelicanTesting(typeof(CreateCustomerCommandHandler).Assembly)
+    .UseOctoMapTesting(typeof(CustomerMappingProfile).Assembly)
+    .UseCrabalidatorTesting(typeof(CreateCustomerRequestValidator).Assembly)
+    .UsePigeonTesting(typeof(CustomersHubConsumer).Assembly)
+    .UseSpiderTesting(typeof(TransactionBoundary).Assembly)
+    .UseDynaBeeTesting()
+    .UseKrackendTesting()
+    .UseDataScorpioTesting(profiles => profiles.FromAssemblyOf<CustomerQueryProfile>())
+    .BuildAsync();
+```
+
+These methods are intentionally thin wrappers. OctoMap owns mapping assertions, Crabalidator owns validator assertions, Pelican owns dispatch tracing, Pigeon owns message transport assertions, Spider owns boundary tracing, DynaBee owns generated assembly assertions, Krackend owns event store assertions, and DataScorpio owns filter/sort/paging assertions.
 
 ## Automations
 
@@ -719,5 +755,13 @@ customer.Id = invoice.Id; // TP0002
 ```
 
 The analyzer uses the CId registrations it can see in source, such as `UseCId<Guid, string>()` and `UseCIdFor<LegacyInvoice, int, int>()`. It only reports when it can infer both entity id value types.
+
+## Documentation
+
+Public documentation lives under `docs`:
+
+- `docs/ARCHITECTURE.md` covers the package boundaries and design intent.
+- `docs/TESTING_GUIDE.md` covers unit and integration testing helpers.
+- `docs/RELEASE.md` covers the release checklist.
 
 

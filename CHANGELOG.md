@@ -14,7 +14,7 @@ All notable changes to TurtlePath will be documented in this file.
 - Added testing helpers for TurtlePath exception handling and one-shot jobs.
 - Added test coverage for direct manual handlers, Pelican-dispatched handlers, generated automations, seeded read scenarios, update, delete, paged queries, jobs, exceptions, SQLite persistence, and event stream assertions.
 - Added `samples/TurtlePath.Samples.Testing` with copyable testing examples.
-- Added a testing roadmap under `docs/TESTING_ROADMAP.md`.
+- Added an internal testing roadmap for the TurtlePath testing package work.
 
 ## [v1.2.0] - 2026-08-07
 
@@ -27,7 +27,7 @@ All notable changes to TurtlePath will be documented in this file.
 
 ### Notes
 
-- `TurtlePath.EventSourcing` targets `net9.0` and `net10.0` because `Krackend.EventSourcing` 1.1.0 does not target `net8.0`.
+- TurtlePath runtime and testing packages target `net9.0` and `net10.0`.
 
 ## [v1.1.0] - 2026-08-06
 
@@ -41,7 +41,7 @@ All notable changes to TurtlePath will be documented in this file.
 ### Changed
 
 - Updated package dependencies across TurtlePath projects, samples, benchmarks, and tests.
-- Kept Entity Framework Core on the latest `9.0.x` patch line to preserve the current `net8.0`, `net9.0`, and `net10.0` target support.
+- Kept Entity Framework Core on the latest `9.0.x` patch line while moving TurtlePath runtime and testing packages to `net9.0` and `net10.0`.
 
 ## [v1.0.0] - 2026-08-05
 

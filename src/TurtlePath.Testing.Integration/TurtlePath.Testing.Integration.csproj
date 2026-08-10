@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.Testing.Integration</PackageId>
+    <Description>Integration testing wrappers that compose TurtlePath.Testing with Elysium testing adapters.</Description>
+    <PackageTags>testing integration octomap crabalidator pelican pigeon spider dynabee datascorpio turtlepath</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Testing\TurtlePath.Testing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Crabalidator.Testing" Version="1.0.3" />
+    <PackageReference Include="DataScorpio.Testing" Version="1.0.0" />
+    <PackageReference Include="DataScorpio.Testing.Sqlite" Version="1.0.0" />
+    <PackageReference Include="DynaBee.Testing" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+    <PackageReference Include="OctoMap.Testing" Version="1.1.0" />
+    <PackageReference Include="Pelican.Testing" Version="2.0.0" />
+    <PackageReference Include="Pigeon.Testing" Version="2.2.0" />
+    <PackageReference Include="Spider.Testing" Version="2.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Krackend.EventSourcing.Testing" Version="1.2.1" />
+  </ItemGroup>
+</Project>

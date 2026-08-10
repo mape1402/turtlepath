@@ -8,7 +8,7 @@ The library is intentionally organized around the same boundaries as the origina
 - `TurtlePath.Domain` provides opaque identifier primitives, JSON converters for identifiers, and domain entity contracts.
 - `TurtlePath` provides Pelican handler base classes, hooks, request/response primitives, and application errors.
 - `TurtlePath.EntityFrameworkCore` provides EF Core storage adapters and a base DbContext with TurtlePath entity conventions.
-- `TurtlePath.OctoMap`, `TurtlePath.Crabalidator`, and `TurtlePath.Sieve` provide optional stack adapters.
+- `TurtlePath.OctoMap`, `TurtlePath.Crabalidator`, `TurtlePath.DataScorpio`, and `TurtlePath.Sieve` provide optional stack adapters.
 
 Applications keep their domain-specific handlers, entities, validators, maps, controllers, and DbContext. TurtlePath supplies the common behavior those pieces build on.
 
@@ -23,6 +23,7 @@ EntityFrameworkCore -> Abstractions, Domain
 OctoMap -> Abstractions
 Crabalidator -> Abstractions
 Sieve -> Abstractions
+DataScorpio -> Abstractions
 ```
 
 
