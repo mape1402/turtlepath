@@ -708,8 +708,70 @@ public partial class MainPage : ContentPage
         };
 
         overlay.Add(modalFrame);
+        if (viewModel.IsBusy)
+            overlay.Add(BuildBusyDialog());
+
         modalHost.Content = overlay;
         modalHost.IsVisible = true;
+    }
+
+    private View BuildBusyDialog()
+    {
+        var content = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 16,
+            Padding = new Thickness(24, 20),
+            BackgroundColor = Colors.White
+        };
+
+        content.Add(new ActivityIndicator
+        {
+            IsRunning = true,
+            Color = Primary,
+            WidthRequest = 34,
+            HeightRequest = 34,
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+
+        var copy = new VerticalStackLayout { Spacing = 4 };
+        copy.Add(new Label
+        {
+            Text = "Creating project",
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        copy.Add(new Label
+        {
+            Text = "Studio is running the template commands. This can take a moment.",
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        content.Add(copy, 1, 0);
+
+        return new Border
+        {
+            WidthRequest = 460,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Colors.White,
+            Stroke = Color.FromArgb("#89AA99"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(16) },
+            Shadow = new Shadow
+            {
+                Brush = Brush.Black,
+                Offset = new Point(0, 14),
+                Radius = 34,
+                Opacity = 0.28f
+            },
+            Content = content
+        };
     }
 
     private View BuildWizardHeader()
@@ -910,7 +972,9 @@ public partial class MainPage : ContentPage
             }),
             WizardStep.Review => CreateButton("Create project", async () =>
             {
-                await viewModel.CreateProjectAsync();
+                var creation = viewModel.CreateProjectAsync();
+                Render();
+                await creation;
                 Render();
             }, disabled: viewModel.IsBusy),
             WizardStep.Result => CreateButton(viewModel.IsCreated && viewModel.HideGuideAfterCreation ? "Done" : "Open guide", () =>
