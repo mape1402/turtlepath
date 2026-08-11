@@ -1,171 +1,191 @@
-# Guía De Uso De TurtlePath.Template
+# Guia De Uso De TurtlePath Template
 
-Guía de uso para servicios ASP.NET Core construidos con TurtlePath.
+Esta guia explica como crear y crecer un servicio generado con `TurtlePath.Template`. Esta pensada para el dev que acaba de crear un proyecto y necesita saber donde va cada clase, que defaults ya vienen configurados, y cuando usar automations, handlers, hooks, jobs, consumers y exception handling.
 
-## Índice
+## Indice
 
-- [Stack](#stack)
-- [Primeros Pasos](#primeros-pasos)
-- [Organización Por Feature](#organización-por-feature)
-- [Convenciones De Nomenclatura](#convenciones-de-nomenclatura)
-- [Automations](#automations)
-- [Handlers Custom](#handlers-custom)
-- [Hooks](#hooks)
-- [Mapeo Y Validación](#mapeo-y-validación)
-- [Testing](#testing)
-- [Transacciones](#transacciones)
-- [Checklist De Migración](#checklist-de-migración)
-- [Notas De Actualización Del Template](#notas-de-actualización-del-template)
+- [1. Que Te Da El Template](#1-que-te-da-el-template)
+- [2. Crear Un Proyecto](#2-crear-un-proyecto)
+- [3. Estructura Del Proyecto](#3-estructura-del-proyecto)
+- [4. Convenciones De Nomenclatura](#4-convenciones-de-nomenclatura)
+- [5. Registro De Dependencias Por Default](#5-registro-de-dependencias-por-default)
+- [6. Crear Un Feature De Inicio A Fin](#6-crear-un-feature-de-inicio-a-fin)
+- [7. Mapping Con OctoMap](#7-mapping-con-octomap)
+- [8. Validacion Con Crabalidator](#8-validacion-con-crabalidator)
+- [9. Filtros Y Paginado Con DataScorpio](#9-filtros-y-paginado-con-datascorpio)
+- [10. Automations](#10-automations)
+- [11. Handlers Custom](#11-handlers-custom)
+- [12. Hooks](#12-hooks)
+- [13. Controllers Y Rutas REST](#13-controllers-y-rutas-rest)
+- [14. Spider Pipelines Y Transacciones](#14-spider-pipelines-y-transacciones)
+- [15. Consumers Con Pigeon Y Outbox](#15-consumers-con-pigeon-y-outbox)
+- [16. Exception Handling](#16-exception-handling)
+- [17. Jobs](#17-jobs)
+- [18. Testing](#18-testing)
+- [19. Documentacion Externa](#19-documentacion-externa)
 
-## Stack
+## 1. Que Te Da El Template
 
-- `TurtlePath` para handlers, hooks, requests, responses y excepciones de aplicación.
+El proyecto generado no es un ASP.NET Core vacio. Ya trae configurado el stack estandar:
+
+- `TurtlePath` para requests, responses, command handlers, query handlers, hooks, storage abstractions, validation y mapping adapters.
 - `TurtlePath.Domain` para `CId`, `BaseEntity` e `IEntity<TKey>`.
-- `TurtlePath.EntityFrameworkCore` para `BaseDbContext`, `IDbContext`, adapters de almacenamiento y convenciones de EF.
-- `TurtlePath.OctoMap` para mapeo.
-- `TurtlePath.Crabalidator` para validación.
-- `TurtlePath.DataScorpio` para filtros, ordenamiento y paginación.
-- `TurtlePath.Analyzers` en Domain y Business para detectar comparaciones y asignaciones inseguras de `CId`.
-- `Pigeon.Messaging` con Azure Service Bus como broker predeterminado y Outbox con EF Core habilitado por defecto.
-- `Spider.Pipelines` para boundaries de mensajería y el boundary transaccional.
+- `TurtlePath.EntityFrameworkCore` para `BaseDbContext`, `IDbContext`, storage adapters de EF Core y conversion de `CId`.
+- `TurtlePath.Automations` para generar handlers de Pelican desde profiles o attributes.
+- `TurtlePath.OctoMap` como adapter de mapping.
+- `TurtlePath.Crabalidator` como adapter de validacion.
+- `TurtlePath.DataScorpio` como motor default de filtros, sort, search y paging.
+- `TurtlePath.ExceptionHandling` para descriptores de excepcion independientes del transporte.
+- `TurtlePath.ExceptionHandling.AspNetCore` para respuestas HTTP `ProblemDetails`.
+- `TurtlePath.ExceptionHandling.Consumers` para consumers de Pigeon.
+- `TurtlePath.ExceptionHandling.Workers` para jobs y background work.
+- `TurtlePath.Jobs` para jobs one-shot y jobs recurrentes.
+- `Pelican.Mediator` para dispatch de requests.
+- `Spider.Pipelines` para execution boundaries, incluyendo el transaction boundary.
+- `Pigeon.Messaging` con Azure Service Bus y EF Core outbox por default.
+- `TurtlePath.Analyzers` para evitar comparaciones y asignaciones inseguras de `CId`.
 
-## Primeros Pasos
+La regla recomendada:
 
-El template mantiene la infraestructura compartida en paquetes TurtlePath y organiza el código del servicio por feature.
+- Usa automations para CRUD happy paths.
+- Agrega hooks cuando el happy path esta bien pero necesita pasos de negocio.
+- Crea handlers cuando cambia el flujo.
+- Deja codigo especifico del servicio en el proyecto generado.
+- Deja infraestructura reusable en paquetes NuGet.
 
-### Registro Del Stack
+## 2. Crear Un Proyecto
 
-La capa API registra el assembly de Business, TurtlePath, adapters, configuración de identificadores, EF Core, Pigeon y Spider:
+Instala el template:
 
-```csharp
-services.AddCrabalidator(typeof(Constants).Assembly);
-
-services.AddOctoMap(registration =>
-{
-    registration.Options.EnableRuntimeImplicitMaps = true;
-    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
-    registration.AddMaps(typeof(Constants).Assembly);
-});
-
-services.AddScoped<IMapperAdapter, OctoMapAdapter>();
-services.AddScoped<IValidatorAdapter, CrabalidatorAdapter>();
-
-services.AddTurtlePath(typeof(Constants).Assembly)
-    .UseOctoMap()
-    .UseCrabalidator()
-    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
-    .UseCId<Ulid, string>(config =>
-    {
-        config.DefaultFactory = () => CId.From(Ulid.NewUlid());
-        config.ConvertToDb = id => id.ToString();
-        config.ConvertFromDb = value => CId.From(Ulid.Parse(value));
-        config.JsonConverter = value => string.IsNullOrEmpty(value) ? CId.From(Ulid.Empty) : CId.From(Ulid.Parse(value));
-        config.NullableJsonConverter = value => string.IsNullOrEmpty(value) ? null : CId.From(Ulid.Parse(value));
-        config.ParseFunction = value => CId.From(Ulid.Parse(value));
-    })
-    .UseEntityFrameworkCore<AppDbContext>();
+```powershell
+dotnet new install TurtlePath.Template
 ```
 
-Pigeon usa Azure Service Bus por defecto:
+Crea el host API/consumer:
 
-```csharp
-services.AddPigeon(configuration, builder =>
-{
-    // builder.ScanConsumersFromAssemblies(typeof(Program).Assembly);
-    builder.ConfigurePublishing(publishing =>
-    {
-        publishing.AmbientTransactionBehavior = AmbientTransactionPublishBehavior.SuppressTransaction;
-    });
-
-    builder.UseAzureServiceBus();
-    builder.UseEntityFrameworkOutbox<AppDbContext>(outbox =>
-    {
-        outbox.Enabled = true;
-        outbox.SchemaMode = OutboxSchemaMode.AutoCreate;
-    });
-});
+```powershell
+dotnet new turtlepath -n Billing.Service -o C:\work\Billing.Service --host api-consumer
 ```
 
-La configuracion de Outbox se puede ajustar desde `Pigeon:Outbox`. El template usa almacenamiento EF Core por defecto, creacion automatica de schema, despacho inmediato despues del commit, reintentos y limpieza periodica. Cuando se publica directo al broker dentro de una transaccion ambiental sin Outbox, Pigeon suprime explicitamente el transaction scope.
+Crea un host de jobs one-shot:
 
-### Flujo Manual Mínimo
-
-Entidad:
-
-```csharp
-using TurtlePath.Domain.Contracts;
-
-public sealed class Customer : BaseEntity
-{
-    public string Name { get; set; }
-}
+```powershell
+dotnet new turtlepath -n Billing.Jobs -o C:\work\Billing.Jobs --host job
 ```
 
-Request y response:
+Verifica el proyecto:
 
-```csharp
-using Pelican.Mediator;
-using TurtlePath.Models.Responses;
-
-public sealed class CreateCustomerRequest : IRequest<CustomerResponse>
-{
-    public string Name { get; set; }
-}
-
-public sealed class CustomerResponse : BaseResponse
-{
-    public string Name { get; set; }
-}
+```powershell
+dotnet restore
+dotnet build --configuration Release --no-restore
+dotnet test --configuration Release --no-build
 ```
 
-Handler:
+Ambos hosts comparten la misma forma de Business, Domain, Persistence y tests. La diferencia principal es la capa de presentacion:
 
-```csharp
-using TurtlePath.Commands;
+- `api-consumer` levanta ASP.NET Core con controllers, Pigeon consumers, Swagger, health checks, Spider, Pigeon y exception filters.
+- `job` levanta un generic host, ejecuta los jobs registrados y termina con exit code `0` si todo salio bien.
 
-public sealed class CreateCustomerCommandHandler
-    : CreateCommandHandler<CreateCustomerRequest, CustomerResponse, Customer>
-{
-    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
-    {
-    }
-}
-```
+## 3. Estructura Del Proyecto
 
-Controller:
-
-```csharp
-[HttpPost]
-public Task<CustomerResponse> Create(CreateCustomerRequest request, CancellationToken cancellationToken)
-{
-    return Mediator.Send(request, cancellationToken);
-}
-```
-
-Usa handlers manuales cuando el flujo tiene comportamiento de negocio custom que debe ser explícito en código. Usa automations para CRUD happy paths estándar.
-
-## Organización Por Feature
-
-El código de Business debe organizarse por feature, no por carpetas técnicas globales.
+La solucion generada esta separada por responsabilidad:
 
 ```text
-Feature/
-  Commands/
-  Queries/
-  Validators/
-  Mappings/
-  Hooks/
-  Automations/
-  Querying/
-  Models/
-    Requests/
-    Responses/
-  Services/
+src/
+  TurtlePath.Template.Api/
+    Boundaries/
+      ITransactionBoundaryRequestFilter.cs
+      SkipTransactionBoundaryAttribute.cs
+      TransactionBoundaryOptions.cs
+      TransactionBoundaryRequestFilter.cs
+      TransactionExecutionBoundary.cs
+    Controllers/
+      BaseController.cs
+    DependencyInjection/
+      ApplicationExtensions.cs
+      CustomContainerExtensions.cs
+      ExceptionHandlingExtensions.cs
+      HealthCheckExtensions.cs
+      MessagingExtensions.cs
+      MvcExtensions.cs
+      PersistenceExtensions.cs
+      PipelineExtensions.cs
+      StartupExtensions.cs
+      SwaggerExtensions.cs
+      TransactionBoundaryExtensions.cs
+    HubConsumers/
+      BaseHubConsumer.cs
+    Swagger/
+      CIdSchemaFilter.cs
+      ConfigureSwaggerOptions.cs
+      RemoveVersionParametersFilter.cs
+      SetVersionInPathsFilter.cs
+      SwaggerConstants.cs
+    Program.cs
+    appsettings.json
+    appsettings.Development.json
+    TurtlePath.Template.Api.csproj
+  TurtlePath.Template.Business/
+    Feature/
+      README.md
+      Commands/
+        CreateFeatureCommandHandler.cs
+        UpdateFeatureCommandHandler.cs
+        ChangeFeatureStatusCommandHandler.cs
+      Queries/
+        GetFeatureByIdQuery.cs
+        GetPagedFeaturesQuery.cs
+      Validators/
+        CreateFeatureRequestValidator.cs
+        UpdateFeatureRequestValidator.cs
+      Mappings/
+        FeatureMappingProfile.cs
+      Hooks/
+        StampFeatureBeforeSaveHook.cs
+        PublishFeatureAfterSaveHook.cs
+      Automations/
+        FeatureAutomationProfile.cs
+      Querying/
+        FeatureQueryProfile.cs
+      Models/
+        Requests/
+          CreateFeatureRequest.cs
+          UpdateFeatureRequest.cs
+          ChangeFeatureStatusRequest.cs
+        Responses/
+          FeatureResponse.cs
+          ChangeFeatureStatusResponse.cs
+      Services/
+        ExternalProvider/
+          IExternalProviderService.cs
+          ExternalProviderService.cs
+          ExternalProviderResult.cs
+    Services/
+      Audit/
+        IAuditService.cs
+        AuditService.cs
+        AuditEntry.cs
+    Constants.cs
+    TurtlePath.Template.Business.csproj
+  TurtlePath.Template.Domain/
+    TurtlePath.Template.Domain.csproj
+  TurtlePath.Template.Persistence/
+    AppDbContext.cs
+    TurtlePath.Template.Persistence.csproj
+tests/
+  TurtlePath.Template.Tests/
+    Testing/
+      TemplateTestHost.cs
+    JobCompositionTests.cs
+    TemplateCompositionTests.cs
+    TransactionExecutionBoundaryTests.cs
+    TurtlePathTestingExamplesTests.cs
+    TurtlePath.Template.Tests.csproj
 ```
 
-`Feature` es un placeholder. Sustitúyelo por la capacidad real de negocio al crear código.
+`Api` es la capa host. Ahi viven controllers, consumers, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion de Pigeon, Swagger, health checks y el punto para registrar dependencias custom.
 
-Ejemplos:
+`Business` contiene los casos de uso. El template incluye una carpeta `Feature` solo como placeholder para mostrar la estructura esperada. En codigo real se sustituye por el nombre del feature:
 
 ```text
 Customers/
@@ -180,7 +200,24 @@ Customers/
     Requests/
     Responses/
   Services/
+```
 
+Uso recomendado de cada carpeta del feature:
+
+- `Commands/`: command handlers manuales cuando las automations no alcanzan, por ejemplo `CreateCustomerCommandHandler` o `ChangeOrderStatusCommandHandler`.
+- `Queries/`: mensajes de query y query handlers manuales, por ejemplo `GetCustomerByIdQuery` con `GetCustomerByIdQueryHandler` anidado, o `GetPagedInvoicesQuery`.
+- `Validators/`: validadores de Crabalidator como `CreateCustomerRequestValidator`.
+- `Mappings/`: profiles de OctoMap como `CustomerMappingProfile`.
+- `Hooks/`: hooks de TurtlePath para customizar etapas del handler sin reemplazar el handler completo.
+- `Automations/`: automation profiles de TurtlePath como `CustomerAutomationProfile`.
+- `Querying/`: configuracion de filtros y sorts con DataScorpio para queries paginados.
+- `Models/Requests/`: DTOs de entrada. Las mutaciones usan sufijo `Request`, por ejemplo `CreateCustomerRequest`.
+- `Models/Responses/`: DTOs de salida que devuelven handlers, controllers o consumers.
+- `Services/`: servicios propios del feature. Agrupa cada servicio en su propia carpeta.
+
+Ejemplos:
+
+```text
 Invoices/
   Commands/
   Queries/
@@ -208,39 +245,58 @@ Orders/
   Services/
 ```
 
-No crees un contenedor genérico `Features`. Cada feature vive directamente debajo del proyecto Business.
+Cada feature vive directamente debajo del proyecto Business. No crees un contenedor global `Features/` salvo que tu equipo lo decida explicitamente.
 
-Guías:
+Los servicios propios del feature van dentro del feature:
 
-- Coloca comandos que mutan estado en `Commands`.
-- Coloca requests de lectura en `Queries`.
-- Coloca DTOs de request/response en `Models/Requests` y `Models/Responses`.
-- Coloca validators de Crabalidator en `Validators`.
-- Coloca maps/profiles de OctoMap en `Mappings`.
-- Coloca hooks de TurtlePath en `Hooks`.
-- Coloca automation profiles o attributes de TurtlePath en `Automations`.
-- Coloca perfiles `QueryProfile<TEntity>` de DataScorpio en `Querying`.
-- Coloca colaboradores propios del feature en `Services`.
-- Cuando un feature necesita una integración externa, colócala dentro de `Services` usando una carpeta específica del servicio, como `Services/SAT`.
+```text
+Customers/
+  Services/
+    SAT/
+      ISatService.cs
+      SatService.cs
+      SatValidationResult.cs
+```
 
-Los servicios compartidos por varios features deben vivir en la raíz de Business y también agruparse por servicio:
+Los servicios compartidos entre features van en la raiz de Business agrupados por servicio:
 
 ```text
 Services/
   Audit/
+    IAuditService.cs
+    AuditService.cs
+    AuditEntry.cs
 ```
 
-Esto deja limpio el camino de extracción futura si el servicio se convierte en una librería compartida.
+Esta estructura deja limpio el camino para extraer servicios a librerias compartidas si despues se vuelven reutilizables.
 
-## Convenciones De Nomenclatura
+Las dependencias custom se registran en `Api/DependencyInjection/CustomContainerExtensions.cs`. Mantén los defaults enfocados en configuracion base del framework y encadena las dependencias propias desde el custom container.
+
+`Domain` nace limpio a proposito. Coloca ahi entidades, value objects, enums y contratos de dominio propios del servicio usando la estructura que realmente necesite el servicio. Los identificadores de TurtlePath vienen desde los paquetes de TurtlePath, no desde carpetas generadas por el template.
+
+`Persistence` contiene la integracion con base de datos. Mantén `AppDbContext` limpio y no agregues propiedades `DbSet<TEntity>` solo para exponer tablas. Cuando agregues entidades, crea mappings como `IEntityTypeConfiguration<TEntity>` dentro de una carpeta `Configurations/`. Asi el DbContext se queda enfocado en convenciones de TurtlePath y las configuraciones definen tablas, llaves, indices, relaciones y conversiones de base de datos.
+
+## 4. Convenciones De Nomenclatura
+
+Usa la misma nomenclatura en todos los servicios. Eso hace que cualquier dev encuentre rapido requests, responses, handlers, validators, maps, controllers y consumers.
 
 ### Requests
 
-Los mensajes de mutación son conceptualmente commands, pero sus clases deben conservar el sufijo `Request`:
+Los mensajes de mutacion son conceptualmente commands, pero conservan el sufijo `Request`:
 
 - `CreateCustomerRequest`
 - `UpdateInvoiceRequest`
 - `ChangeOrderStatusRequest`
+- `CancelInvoiceRequest`
+
+Los requests que apuntan a una entidad existente normalmente heredan `BaseRequest`:
+
+```csharp
+public sealed class UpdateInvoiceRequest : BaseRequest, IRequest<InvoiceResponse>
+{
+    public decimal Amount { get; set; }
+}
+```
 
 ### Responses
 
@@ -250,44 +306,49 @@ Los responses representan la salida de cualquier handler:
 - `InvoiceResponse`
 - `ChangeOrderStatusResponse`
 
+Para entidades con `BaseEntity`, hereda `BaseResponse`:
+
+```csharp
+public sealed class InvoiceResponse : BaseResponse
+{
+    public string Folio { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+}
+```
+
 ### Command Handlers
 
-Los command handlers expresan la acción y terminan con `CommandHandler`:
+Los command handlers expresan la accion y terminan con `CommandHandler`:
 
 - `CreateCustomerCommandHandler`
 - `UpdateInvoiceCommandHandler`
 - `ChangeOrderStatusCommandHandler`
+- `CancelInvoiceCommandHandler`
 
-Ejemplo:
-
-```csharp
-public sealed class ChangeOrderStatusCommandHandler
-    : CreateCommandHandler<ChangeOrderStatusRequest, ChangeOrderStatusResponse, Order>
-{
-    public ChangeOrderStatusCommandHandler(IServiceProvider services) : base(services)
-    {
-    }
-}
-```
+Si una operacion esta automatizada, no crees handler manual. La automation es la fuente de verdad.
 
 ### Queries
 
-Los mensajes query y sus handlers usan terminología `Query`:
+Los query messages y sus handlers usan terminologia `Query`:
 
 - `GetCustomerByIdQuery`
 - `GetCustomerByIdQueryHandler`
 - `GetPagedInvoicesQuery`
 - `GetPagedInvoicesQueryHandler`
 
-Para flujos pequeños, deja el handler anidado dentro del query:
+Para queries pequenos, puedes anidar el handler dentro del query:
 
 ```csharp
-public sealed class GetCustomerByIdQuery : IRequest<CustomerResponse>
+public sealed class GetCustomerByIdQuery : GetByIdQuery<Customer, CustomerResponse>
 {
-    public CId Id { get; set; }
+    public GetCustomerByIdQuery(CId id)
+        : base(id)
+    {
+    }
 
     public sealed class GetCustomerByIdQueryHandler
-        : QueryByIdHandler<GetCustomerByIdQuery, CustomerResponse, Customer>
+        : GetByIdQueryHandler<GetCustomerByIdQuery, Customer, CustomerResponse>
     {
         public GetCustomerByIdQueryHandler(IServiceProvider services) : base(services)
         {
@@ -296,19 +357,47 @@ public sealed class GetCustomerByIdQuery : IRequest<CustomerResponse>
 }
 ```
 
-Cuando un flujo se genera con automations, omite command handlers y query handlers manuales.
+Los queries paginados usan `GetPagedInfoQuery<TEntity, TResponse>` como base. No uses una base `PagedRequest`.
+
+```csharp
+using Billing.Service.Domain;
+using Billing.Service.Business.Invoices.Models.Responses;
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Queries;
+
+namespace Billing.Service.Business.Invoices.Queries;
+
+public sealed class GetPagedInvoicesQuery : GetPagedInfoQuery<Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+
+    public CId? CustomerId { get; set; }
+}
+
+public sealed class GetPagedInvoicesQueryHandler
+    : GetPagedInfoQueryHandler<GetPagedInvoicesQuery, Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQueryHandler(IServiceProvider services)
+        : base(services)
+    {
+    }
+}
+```
 
 ### Validators
 
-Los validators usan el nombre del request más `Validator`:
+Los validators usan el nombre del request mas `Validator`:
 
 - `CreateCustomerRequestValidator`
 - `UpdateInvoiceRequestValidator`
-- `ChangeOrderStatusRequestValidator`
+- `CancelInvoiceRequestValidator`
 
 ### Mappings
 
-Los mapping profiles usan el nombre del feature o aggregate más `MappingProfile`:
+Los mapping profiles usan el nombre del feature o aggregate mas `MappingProfile`:
 
 - `CustomerMappingProfile`
 - `InvoiceMappingProfile`
@@ -316,7 +405,7 @@ Los mapping profiles usan el nombre del feature o aggregate más `MappingProfile
 
 ### Automations
 
-Los automation profiles usan el nombre del feature o aggregate más `AutomationProfile`:
+Los automation profiles usan el nombre del feature o aggregate mas `AutomationProfile`:
 
 - `CustomerAutomationProfile`
 - `InvoiceAutomationProfile`
@@ -324,15 +413,16 @@ Los automation profiles usan el nombre del feature o aggregate más `AutomationP
 
 ### Hooks
 
-Los hooks deben describir la acción y el punto donde se ejecutan:
+El nombre del hook debe decir que hace y en que stage corre:
 
 - `AssignCustomerNumberBeforeSaveHook`
+- `NormalizeCustomerEmailAfterMapHook`
 - `PublishInvoiceCanceledAfterSaveHook`
-- `NormalizeOrderStatusBeforeValidationHook`
+- `AttachInvoiceSummaryAfterQueryHook`
 
 ### Services
 
-Los servicios propios del feature viven dentro del feature, bajo una carpeta específica del servicio.
+Los servicios propios del feature viven bajo una carpeta especifica:
 
 ```text
 Customers/
@@ -342,16 +432,7 @@ Customers/
       SatService.cs
 ```
 
-Ejemplo de método:
-
-```csharp
-public interface ISatService
-{
-    Task<bool> ValidateCustomerRfc(string rfc, CancellationToken cancellationToken);
-}
-```
-
-Los servicios compartidos viven en la raíz de Business, también agrupados por servicio:
+Los servicios compartidos van en la raiz de Business:
 
 ```text
 Services/
@@ -360,222 +441,1002 @@ Services/
     AuditService.cs
 ```
 
-### Controllers
+### Controllers Y Consumers
 
-Los controllers usan nombres de recursos en plural:
+Controllers y hub consumers usan nombres plurales:
 
 - `CustomersController`
 - `InvoicesController`
 - `OrdersController`
-
-Usa rutas RESTful para CRUD:
-
-- `[POST] customers` crea un recurso.
-- `[PUT] customers/{id}` actualiza un recurso.
-- `[DELETE] customers/{id}` elimina un recurso.
-- `[GET] customers` lee la colección, normalmente paginada.
-- `[GET] customers/{id}` lee un recurso por id.
-
-Los filtros adicionales de consultas paginadas se agregan como query filters y se resuelven dinámicamente con DataScorpio.
-
-Usa `POST` para acciones fuera de CRUD:
-
-- `[POST] customers/{id}/deactivate`
-- `[POST] invoices/{id}/cancel`
-
-Usa rutas anidadas para subrecursos:
-
-- `[GET] customers/{id}/orders`
-- `[DELETE] orders/{id}/details/{detailId}`
-
-### Hub Consumers
-
-Los hub consumers también usan el nombre del recurso en plural:
-
 - `CustomersHubConsumer`
 - `InvoicesHubConsumer`
 
 ### Entity Configurations
 
-Las configuraciones de entidad usan el nombre de la entidad más `Configuration`:
+Las configuraciones de EF usan el nombre de la entidad mas `Configuration`:
 
 - `CustomerConfiguration`
 - `InvoiceConfiguration`
 - `OrderConfiguration`
 
-## Automations
+## 5. Registro De Dependencias Por Default
 
-Usa `TurtlePath.Automations` cuando el feature sigue el happy path estándar y no necesita un handler custom.
+La mayor parte del wiring vive en `TurtlePath.Template.Api/DependencyInjection`.
 
-### Fluent Profile
+### Startup Defaults
+
+El host API/consumer usa `AddDefaults`:
 
 ```csharp
+public static IServiceCollection AddDefaults(
+    this IServiceCollection services,
+    IConfiguration configuration,
+    IWebHostEnvironment environment)
+{
+    return services
+        .AddMvcDefaults()
+        .AddSwaggerDefaults()
+        .AddHealthCheckDefaults(configuration)
+        .AddPersistenceDefaults(configuration)
+        .AddApplicationDefaults()
+        .AddMessagingDefaults(configuration)
+        .AddPipelineDefaults(configuration)
+        .AddCustomContainer();
+}
+```
+
+`AddCustomContainer` es el punto obligatorio para inyeccion de dependencias custom. Va al final para que puedas registrar dependencias del servicio sin tocar los defaults del template:
+
+```csharp
+internal static IServiceCollection AddCustomContainer(this IServiceCollection services)
+{
+    services.AddScoped<ICustomerNumberService, CustomerNumberService>();
+    services.AddScoped<Services.Audit.IAuditService, Services.Audit.AuditService>();
+
+    return services;
+}
+```
+
+No metas dependencias de negocio en `AddDefaults`, `AddApplicationDefaults`, `AddMessagingDefaults` o `AddPipelineDefaults` salvo que estes cambiando el template base. Para un servicio real, usa `AddCustomContainer`.
+
+### Application Defaults
+
+`AddApplicationDefaults` registra Pelican, Crabalidator, OctoMap, TurtlePath, DataScorpio, CId y EF Core:
+
+```csharp
+services.AddPelican(typeof(Constants).Assembly);
+services.AddCrabalidator(typeof(Constants).Assembly);
+
+services.AddOctoMap(registration =>
+{
+    registration.Options.EnableRuntimeImplicitMaps = true;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(Constants).Assembly);
+});
+
+services.AddScoped<IMapperAdapter, OctoMapAdapter>();
+services.AddScoped<IValidatorAdapter, CrabalidatorAdapter>();
+
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseCId<Ulid, string>(config =>
+    {
+        config.DefaultFactory = () => CId.From(Ulid.NewUlid());
+        config.ConvertToDb = id => id.ToString();
+        config.ConvertFromDb = value => CId.From(Ulid.Parse(value));
+        config.JsonConverter = value => string.IsNullOrEmpty(value)
+            ? CId.From(Ulid.Empty)
+            : CId.From(Ulid.Parse(value));
+        config.NullableJsonConverter = value => string.IsNullOrEmpty(value)
+            ? null
+            : CId.From(Ulid.Parse(value));
+        config.ParseFunction = value => CId.From(Ulid.Parse(value));
+    })
+    .UseEntityFrameworkCore<AppDbContext>();
+```
+
+Para proyectos nuevos, lo sano es usar un solo tipo de `CId` en todas las entidades. El default del template es `CId` envolviendo `Ulid` en C# y persistido como `string`.
+
+## 6. Crear Un Feature De Inicio A Fin
+
+Este ejemplo crea `Invoices` usando el camino recomendado: automations + hooks. Despues la guia explica cuando reemplazarlo por handlers manuales.
+
+### Entidad
+
+`Domain/Invoice.cs`:
+
+```csharp
+using TurtlePath.Domain.Contracts;
+using TurtlePath.Domain.Identifier;
+
+namespace Billing.Service.Domain;
+
+public sealed class Invoice : BaseEntity
+{
+    public CId CustomerId { get; set; }
+
+    public string Folio { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public DateTimeOffset? CanceledAt { get; set; }
+}
+
+public enum InvoiceStatus
+{
+    Draft,
+    Issued,
+    Canceled
+}
+```
+
+### Configuracion EF
+
+`Persistence/Configurations/InvoiceConfiguration.cs`:
+
+```csharp
+using Billing.Service.Domain;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Billing.Service.Persistence.Configurations;
+
+public sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
+{
+    public void Configure(EntityTypeBuilder<Invoice> builder)
+    {
+        builder.ToTable("Invoices");
+        builder.HasKey(invoice => invoice.Id);
+
+        builder.Property(invoice => invoice.Folio)
+            .HasMaxLength(40)
+            .IsRequired();
+
+        builder.Property(invoice => invoice.Amount)
+            .HasPrecision(18, 2);
+
+        builder.Property(invoice => invoice.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.HasIndex(invoice => invoice.Folio)
+            .IsUnique();
+    }
+}
+```
+
+No agregues una propiedad `DbSet<Invoice>` al `AppDbContext`. El template mantiene limpio el DbContext y usa clases `IEntityTypeConfiguration<TEntity>` para describir el modelo. `BaseDbContext` aplica las convenciones de identificadores de TurtlePath y tus configuraciones definen nombres de tabla, max lengths, indices, relaciones y conversiones.
+
+### Requests
+
+`Business/Invoices/Models/Requests`:
+
+```csharp
+using Pelican.Mediator;
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Models.Requests;
+
+namespace Billing.Service.Business.Invoices.Models.Requests;
+
+public sealed class CreateInvoiceRequest : IRequest<InvoiceResponse>
+{
+    public CId CustomerId { get; set; }
+
+    public decimal Amount { get; set; }
+}
+
+public sealed class UpdateInvoiceRequest : BaseRequest, IRequest<InvoiceResponse>
+{
+    public decimal Amount { get; set; }
+}
+
+public sealed class CancelInvoiceRequest : BaseRequest, IRequest<InvoiceResponse>
+{
+    public string Reason { get; set; } = string.Empty;
+}
+```
+
+Queries:
+
+```csharp
+using Billing.Service.Domain;
+using Pelican.Mediator;
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Models.Requests;
+using TurtlePath.Models.Responses;
+using TurtlePath.Queries;
+
+namespace Billing.Service.Business.Invoices.Queries;
+
+public sealed class GetInvoiceByIdQuery : BaseRequest, IRequest<InvoiceResponse>;
+
+public sealed class GetPagedInvoicesQuery : GetPagedInfoQuery<Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+
+    public CId? CustomerId { get; set; }
+}
+```
+
+### Response
+
+```csharp
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Models.Responses;
+
+namespace Billing.Service.Business.Invoices.Models.Responses;
+
+public sealed class InvoiceResponse : BaseResponse
+{
+    public CId CustomerId { get; set; }
+
+    public string Folio { get; set; } = string.Empty;
+
+    public decimal Amount { get; set; }
+
+    public string Status { get; set; } = string.Empty;
+
+    public DateTimeOffset CreatedAt { get; set; }
+}
+```
+
+### Mapping
+
+```csharp
+using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
+using Billing.Service.Domain;
+using OctoMap;
+
+namespace Billing.Service.Business.Invoices.Mappings;
+
+public sealed class InvoiceMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap<CreateInvoiceRequest, Invoice>();
+        builder.CreateMap<UpdateInvoiceRequest, Invoice>();
+
+        builder.CreateMap<Invoice, InvoiceResponse>()
+            .ForMember(response => response.Status, map => map.MapFrom(invoice => invoice.Status.ToString()));
+    }
+}
+```
+
+### Validacion
+
+```csharp
+using Billing.Service.Business.Invoices.Models.Requests;
+using Crabalidator;
+
+namespace Billing.Service.Business.Invoices.Validators;
+
+public sealed class CreateInvoiceRequestValidator : CrabValidator<CreateInvoiceRequest>
+{
+    public CreateInvoiceRequestValidator()
+    {
+        RuleFor(request => request.CustomerId).Must(id => !id.IsEmpty);
+        RuleFor(request => request.Amount).Must(amount => amount > 0m);
+    }
+}
+
+public sealed class CancelInvoiceRequestValidator : CrabValidator<CancelInvoiceRequest>
+{
+    public CancelInvoiceRequestValidator()
+    {
+        RuleFor(request => request.Id).Must(id => !id.IsEmpty);
+        RuleFor(request => request.Reason).NotEmpty().MaximumLength(200);
+    }
+}
+```
+
+### DataScorpio
+
+```csharp
+using Billing.Service.Domain;
+using DataScorpio.Profiles;
+
+namespace Billing.Service.Business.Invoices.Querying;
+
+public sealed class InvoiceQueryProfile : QueryProfile<Invoice>
+{
+    public override void Configure(IQueryProfileBuilder<Invoice> builder)
+    {
+        builder
+            .AllowFilter(invoice => invoice.Folio)
+            .AllowFilter(invoice => invoice.CustomerId)
+            .AllowFilter(invoice => invoice.Status)
+            .AllowSort(invoice => invoice.Folio)
+            .AllowSort(invoice => invoice.Amount)
+            .AllowSort(invoice => invoice.CreatedAt)
+            .AllowSearch(invoice => invoice.Folio);
+    }
+}
+```
+
+Ejemplo:
+
+```http
+GET /api/v1/invoices?page=1&pageSize=20&filters=Folio@=*2026&sorts=-CreatedAt
+```
+
+### Automation Profile
+
+```csharp
+using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
+using Billing.Service.Business.Invoices.Queries;
+using Billing.Service.Domain;
 using TurtlePath.Automations.Profiles;
 
-public sealed class CustomerAutomationProfile : AutomationProfile
+namespace Billing.Service.Business.Invoices.Automations;
+
+public sealed class InvoiceAutomationProfile : TurtlePathAutomationProfile
 {
-    public override void Configure(IAutomationProfileBuilder builder)
+    public override void Configure(ITurtlePathAutomationBuilder builder)
     {
-        builder.For<Customer>()
-            .ToCreate<CreateCustomerRequest, CustomerResponse>()
-            .ToUpdate<UpdateCustomerRequest, CustomerResponse>()
-            .ToDelete<DeleteCustomerRequest>()
-            .ToQueryById<GetCustomerByIdQuery, CustomerResponse>()
-            .ToQueryPaged<GetPagedCustomersQuery, CustomerResponse>();
+        builder.For<Invoice>()
+            .ToCreate<CreateInvoiceRequest, InvoiceResponse>()
+            .ToUpdate<UpdateInvoiceRequest, InvoiceResponse>()
+            .ToUpdate<CancelInvoiceRequest, InvoiceResponse>()
+            .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>()
+            .ToGetPaged<GetPagedInvoicesQuery, InvoiceResponse>(query => query.DefaultSort("CreatedAt"));
     }
 }
 ```
 
-Registra los automation profiles desde la composición de API cuando el servicio empiece a usar automations.
+Con esto no creas handlers para esos happy paths. TurtlePath genera handlers Pelican desde la declaracion.
 
-### Attributes
-
-Los attributes son útiles para features pequeños donde el request puede declarar la intención de automation.
+### Hooks
 
 ```csharp
-[AutomateCreate(typeof(Customer), typeof(CustomerResponse))]
-public sealed class CreateCustomerRequest : IRequest<CustomerResponse>
+using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Domain;
+using TurtlePath.Hooks;
+
+namespace Billing.Service.Business.Invoices.Hooks;
+
+public sealed class StampInvoiceBeforeSaveHook : IBeforeSaveHook<CreateInvoiceRequest, Invoice>
 {
-    public string Name { get; set; }
+    public ValueTask BeforeSaveAsync(
+        CommandHookContext<CreateInvoiceRequest, Invoice> context,
+        CancellationToken cancellationToken)
+    {
+        context.Entity.CreatedAt = DateTimeOffset.UtcNow;
+        context.Entity.Status = InvoiceStatus.Issued;
+        context.Entity.Folio = $"INV-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+
+        return ValueTask.CompletedTask;
+    }
 }
 ```
 
-### Customización Sin Handlers
+```csharp
+using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Domain;
+using TurtlePath.Exceptions;
+using TurtlePath.Hooks;
 
-Prefiere hooks cuando el flujo predeterminado sigue siendo correcto pero necesita un paso de negocio. Revisa [Hooks](#hooks) para la lista completa de command hooks y query hooks.
+namespace Billing.Service.Business.Invoices.Hooks;
 
-Usa un handler custom cuando el flujo cambia bastante, la operación toca varios aggregates o el comportamiento sería difícil de entender solo con hooks.
+public sealed class CancelInvoiceAfterMapHook : IAfterMapHook<CancelInvoiceRequest, Invoice>
+{
+    public ValueTask AfterMapAsync(
+        CommandHookContext<CancelInvoiceRequest, Invoice> context,
+        CancellationToken cancellationToken)
+    {
+        if (context.Entity.Status == InvoiceStatus.Canceled)
+            throw new BadRequestException("Invoice is already canceled.");
 
-## Handlers Custom
+        context.Entity.Status = InvoiceStatus.Canceled;
+        context.Entity.CanceledAt = DateTimeOffset.UtcNow;
 
-Usa handlers custom cuando el happy path de TurtlePath no es suficiente.
+        return ValueTask.CompletedTask;
+    }
+}
+```
 
-Los handlers recomendados usan `BaseEntity` y `CId`:
+### Controller
 
 ```csharp
-public sealed class CreateCustomerCommandHandler
-    : CreateCommandHandler<CreateCustomerRequest, CustomerResponse, Customer>
+using Asp.Versioning;
+using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
+using Billing.Service.Business.Invoices.Queries;
+using Microsoft.AspNetCore.Mvc;
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Models.Responses;
+using TurtlePath.Template.Api.Controllers;
+
+namespace Billing.Service.Api.Controllers;
+
+[ApiVersion("1.0")]
+[Route("invoices")]
+public sealed class InvoicesController : BaseController
 {
-    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
+    [HttpPost]
+    public Task<InvoiceResponse> Create(
+        [FromBody] CreateInvoiceRequest request,
+        CancellationToken cancellationToken)
+        => Mediator.Send(request, cancellationToken);
+
+    [HttpPut("{id}")]
+    public Task<InvoiceResponse> Update(
+        [FromRoute] CId id,
+        [FromBody] UpdateInvoiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        request.Id = id;
+        return Mediator.Send(request, cancellationToken);
+    }
+
+    [HttpPost("{id}/cancel")]
+    public Task<InvoiceResponse> Cancel(
+        [FromRoute] CId id,
+        [FromBody] CancelInvoiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        request.Id = id;
+        return Mediator.Send(request, cancellationToken);
+    }
+
+    [HttpGet("{id}")]
+    public Task<InvoiceResponse> GetById(
+        [FromRoute] CId id,
+        CancellationToken cancellationToken)
+        => Mediator.Send(new GetInvoiceByIdQuery { Id = id }, cancellationToken);
+
+    [HttpGet]
+    public Task<PagedResponse<InvoiceResponse>> GetPaged(
+        [FromQuery] GetPagedInvoicesQuery query,
+        CancellationToken cancellationToken)
+        => Mediator.Send(query, cancellationToken);
+}
+```
+
+Ese es el happy path completo: entidad, EF, requests, response, mapping, validation, filtering, automation, hooks y controller.
+
+## 7. Mapping Con OctoMap
+
+Usa OctoMap para transformar requests a entidades, entidades a responses y eventos a mensajes.
+
+```csharp
+public sealed class InvoiceMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap<CreateInvoiceRequest, Invoice>();
+        builder.CreateMap<UpdateInvoiceRequest, Invoice>();
+        builder.CreateMap<Invoice, InvoiceResponse>();
+    }
+}
+```
+
+Usa mapeos explicitos cuando el response no coincide con la entidad:
+
+```csharp
+builder.CreateMap<Invoice, InvoiceResponse>()
+    .ForMember(response => response.Status, map => map.MapFrom(invoice => invoice.Status.ToString()))
+    .ForMember(response => response.CanCancel, map => map.MapFrom(invoice => invoice.Status == InvoiceStatus.Issued));
+```
+
+Usa mapping para cambios de forma. No escondas reglas de negocio en maps; si requiere servicios, base de datos o side effects, usa hooks o handlers.
+
+## 8. Validacion Con Crabalidator
+
+Usa validators para validar requests:
+
+```csharp
+public sealed class CreateInvoiceRequestValidator : CrabValidator<CreateInvoiceRequest>
+{
+    public CreateInvoiceRequestValidator()
+    {
+        RuleFor(request => request.CustomerId).Must(id => !id.IsEmpty);
+        RuleFor(request => request.Amount).Must(amount => amount > 0m);
+    }
+}
+```
+
+Usa validators para:
+
+- requeridos
+- longitudes
+- rangos
+- valores de enum/state recibidos del cliente
+- `CId` validos
+
+Usa handlers o hooks cuando la regla necesita entidades cargadas o servicios externos.
+
+## 9. Filtros Y Paginado Con DataScorpio
+
+Los queries paginados heredan `GetPagedInfoQuery<TEntity, TResponse>` y retornan `PagedResponse<TResponse>`:
+
+```csharp
+public sealed class GetPagedInvoicesQuery : GetPagedInfoQuery<Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+
+    public CId? CustomerId { get; set; }
+}
+```
+
+DataScorpio aplica `filters`, `sorts` y `search` sobre campos permitidos por el profile.
+
+```csharp
+public sealed class InvoiceQueryProfile : QueryProfile<Invoice>
+{
+    public override void Configure(IQueryProfileBuilder<Invoice> builder)
+    {
+        builder
+            .AllowFilter(invoice => invoice.Folio)
+            .AllowFilter(invoice => invoice.CustomerId)
+            .AllowFilter(invoice => invoice.Status)
+            .AllowSort(invoice => invoice.CreatedAt)
+            .AllowSort(invoice => invoice.Amount)
+            .AllowSearch(invoice => invoice.Folio);
+    }
+}
+```
+
+Ejemplos:
+
+```http
+GET /api/v1/invoices?page=1&pageSize=20
+GET /api/v1/invoices?filters=Status==Issued
+GET /api/v1/invoices?filters=Folio@=*INV-2026&sorts=-CreatedAt
+GET /api/v1/invoices?search=ACME&sorts=Folio
+```
+
+Si un filtro es parte obligatoria del endpoint, usa una propiedad tipada en el query y un handler custom en la seccion de `Handlers Custom`.
+
+### Profiles Avanzados De DataScorpio
+
+Usa aliases cuando el nombre publico del query no debe exponer el nombre de la propiedad C#:
+
+```csharp
+public sealed class InvoiceQueryProfile : QueryProfile<Invoice>
+{
+    public override void Configure(IQueryProfileBuilder<Invoice> builder)
+    {
+        builder
+            .AllowFilter("folio", invoice => invoice.Folio)
+            .AllowFilter("customer", invoice => invoice.CustomerId)
+            .AllowSort("created", invoice => invoice.CreatedAt)
+            .AllowSearch(invoice => invoice.Folio)
+            .DefaultSort(invoice => invoice.CreatedAt, SortDirection.Descending)
+            .MaxPageSize(100);
+    }
+}
+```
+
+El cliente usa nombres de API, no necesariamente nombres CLR:
+
+```http
+GET /api/v1/invoices?filters=customer==01J7V8R7RXA6MG9A4R8ZNZ5E3P&sorts=-created
+```
+
+Usa custom filters para conceptos de negocio que no son simplemente una propiedad:
+
+```csharp
+public sealed class InvoiceQueryProfile : QueryProfile<Invoice>
+{
+    public override void Configure(IQueryProfileBuilder<Invoice> builder)
+    {
+        builder
+            .AllowFilter(invoice => invoice.Status)
+            .AllowFilter(invoice => invoice.DueDate)
+            .AllowSort(invoice => invoice.CreatedAt)
+            .CustomFilter("Overdue", (query, value) =>
+            {
+                var enabled = Convert.ToBoolean(value.Value);
+
+                return enabled
+                    ? query.Where(invoice =>
+                        invoice.Status == InvoiceStatus.Issued &&
+                        invoice.DueDate < DateTimeOffset.UtcNow)
+                    : query;
+            })
+            .CustomFilterDescriptor("DueWindow", (query, filter) =>
+            {
+                var days = Convert.ToInt32(filter.Value.Value);
+                var limit = DateTimeOffset.UtcNow.AddDays(days);
+
+                return query.Where(invoice =>
+                    invoice.Status == InvoiceStatus.Issued &&
+                    invoice.DueDate <= limit);
+            });
+    }
+}
+```
+
+Ejemplos:
+
+```http
+GET /api/v1/invoices?filters=Overdue==true
+GET /api/v1/invoices?filters=DueWindow==15
+```
+
+Usa custom sorts cuando el ordenamiento tiene significado de negocio:
+
+```csharp
+public sealed class InvoiceQueryProfile : QueryProfile<Invoice>
+{
+    public override void Configure(IQueryProfileBuilder<Invoice> builder)
+    {
+        builder
+            .AllowSort(invoice => invoice.CreatedAt)
+            .CustomSort("Priority", (query, direction) =>
+                direction == SortDirection.Descending
+                    ? query
+                        .OrderByDescending(invoice => invoice.Status == InvoiceStatus.Overdue)
+                        .ThenByDescending(invoice => invoice.Amount)
+                        .ThenBy(invoice => invoice.DueDate)
+                    : query
+                        .OrderBy(invoice => invoice.Status == InvoiceStatus.Overdue)
+                        .ThenBy(invoice => invoice.Amount)
+                        .ThenBy(invoice => invoice.DueDate));
+    }
+}
+```
+
+Ejemplo:
+
+```http
+GET /api/v1/invoices?sorts=-Priority
+```
+
+Usa conventions globales cuando varias entidades comparten comportamiento de query:
+
+```csharp
+public interface ITenantScoped
+{
+    string TenantId { get; }
+}
+
+public interface IAuditedEntity
+{
+    DateTimeOffset CreatedAt { get; }
+}
+
+public sealed class AppQueryConventions : QueryConventionSet
+{
+    public override void Configure(IQueryConventionBuilder builder)
+    {
+        builder
+            .CustomFilter<ITenantScoped>("ForTenant", value =>
+                entity => entity.TenantId == Convert.ToString(value.Value))
+            .CustomSort<IAuditedEntity>("RecentlyCreated", entity => entity.CreatedAt);
+    }
+}
+```
+
+Coloca los query profiles y conventions dentro del feature, normalmente en `Business/Invoices/Querying`. El default del template ya descubre los profiles y conventions de DataScorpio desde el assembly de la aplicacion:
+
+```csharp
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly));
+```
+
+No registres cada query profile uno por uno. Agrega la clase al assembly y el discovery la toma. Cualquier profile cuya entidad implemente el contrato de la convention recibe automaticamente el custom filter o sort.
+
+## 10. Automations
+
+Automations generan handlers desde declaracion. Usalas cuando el flujo es estandar:
+
+- validar request
+- mapear request a entidad o cargar entidad
+- ejecutar hooks
+- guardar o eliminar
+- mapear response
+- aplicar filtros/paging en queries
+
+Profile recomendado:
+
+```csharp
+public sealed class InvoiceAutomationProfile : TurtlePathAutomationProfile
+{
+    public override void Configure(ITurtlePathAutomationBuilder builder)
+    {
+        builder.For<Invoice>()
+            .ToCreate<CreateInvoiceRequest, InvoiceResponse>()
+            .ToUpdate<UpdateInvoiceRequest, InvoiceResponse>()
+            .ToDelete<DeleteInvoiceRequest>()
+            .ToPatch<PatchInvoiceEmailRequest, InvoiceResponse>()
+            .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>()
+            .ToGetPaged<GetPagedInvoicesQuery, InvoiceResponse>(query => query.DefaultSort("CreatedAt"));
+    }
+}
+```
+
+Para entidades legacy con llave custom:
+
+```csharp
+builder.For<LegacyShipment, int>()
+    .ToCreate<CreateLegacyShipmentRequest, LegacyShipmentResponse>()
+    .ToGetById<GetLegacyShipmentByIdQuery, LegacyShipmentResponse>(query => query.GetKeyFrom(x => x.Id));
+```
+
+Attributes para flujos pequenos:
+
+```csharp
+[CreateAutomation(typeof(Invoice), typeof(InvoiceResponse))]
+public sealed class CreateInvoiceRequest : IRequest<InvoiceResponse>
+{
+    public CId CustomerId { get; set; }
+
+    public decimal Amount { get; set; }
+}
+```
+
+Attributes disponibles:
+
+- `CreateAutomationAttribute`
+- `UpdateAutomationAttribute`
+- `DeleteAutomationAttribute`
+- `PatchAutomationAttribute`
+- `GetByIdAutomationAttribute`
+- `GetManyAutomationAttribute`
+- `GetPagedAutomationAttribute`
+
+No uses automations si la operacion toca varios aggregates, requiere side effects antes de persistir, necesita un flujo transaccional distinto o el comportamiento seria dificil de entender con hooks.
+
+## 11. Handlers Custom
+
+Usa handlers custom cuando el flujo importa. Commands y queries tienen caminos manuales.
+
+### Referencia De Clases Base
+
+Usa las clases base no genericas para el modelo recomendado de TurtlePath: entidades que heredan `BaseEntity`, ids con `CId` y responses que heredan `BaseResponse`.
+
+Command handlers con response:
+
+- Create: `CreateCommandHandler<TRequest, TResponse, TEntity>`
+- Update: `UpdateCommandHandler<TRequest, TResponse, TEntity>`
+- Delete: `DeleteCommandHandler<TRequest, TResponse, TEntity>`
+- Patch: `PatchCommandHandler<TRequest, TResponse, TEntity>`
+
+Command handlers sin response:
+
+- Create: `CreateCommandHandler<TRequest, TEntity>`
+- Update: `UpdateCommandHandler<TRequest, TEntity>`
+- Delete: `DeleteCommandHandler<TRequest, TEntity>`
+- Patch: `PatchCommandHandler<TRequest, TEntity>`
+
+Query messages y handlers:
+
+- Get by id message: `GetByIdQuery<TEntity, TResponse>`
+- Get by id handler: `GetByIdQueryHandler<TQuery, TEntity, TResponse>`
+- Get one por un valor que no es id message: `GetOneQuery<TValue, TEntity, TResponse>`
+- Get one por un valor que no es id handler: `GetOneQueryHandler<TQuery, TValue, TEntity, TResponse>`
+- Get many message: `GetManyQuery<TEntity, TResponse>`
+- Get many handler: `GetManyQueryHandler<TQuery, TEntity, TResponse>`
+- Get all: usa `GetManyQuery<TEntity, TResponse>` sin filtros obligatorios
+- Get paged message: `GetPagedInfoQuery<TEntity, TResponse>`
+- Get paged handler: `GetPagedInfoQueryHandler<TQuery, TEntity, TResponse>`
+
+Usa las clases base genericas solo cuando una entidad legacy/custom implementa `IEntity<TKey>` sin usar `BaseEntity` y `CId`:
+
+- `GenericCreateCommandHandler<TRequest, TResponse, TEntity, TKey>`
+- `GenericCreateCommandHandler<TRequest, TEntity, TKey>`
+- `GenericUpdateCommandHandler<TRequest, TResponse, TEntity, TKey>`
+- `GenericUpdateCommandHandler<TRequest, TEntity, TKey>`
+- `GenericDeleteCommandHandler<TRequest, TResponse, TEntity, TKey>`
+- `GenericDeleteCommandHandler<TRequest, TEntity, TKey>`
+- `GenericPatchCommandHandler<TRequest, TResponse, TEntity, TKey>`
+- `GenericPatchCommandHandler<TRequest, TEntity, TKey>`
+- `GenericGetByIdQuery<TEntity, TResponse, TKey>`
+- `GenericGetByIdQueryHandler<TQuery, TEntity, TResponse, TKey>`
+- `GenericGetOneQuery<TValue, TEntity, TResponse, TKey>`
+- `GenericGetOneQueryHandler<TQuery, TValue, TEntity, TResponse, TKey>`
+- `GenericGetManyQuery<TEntity, TResponse, TKey>`
+- `GenericGetManyQueryHandler<TQuery, TEntity, TResponse, TKey>`
+- `GenericGetPagedInfoQuery<TEntity, TResponse, TKey>`
+- `GenericGetPagedInfoQueryHandler<TQuery, TEntity, TResponse, TKey>`
+
+### Command Handlers
+
+Los handlers recomendados dependen de `BaseEntity` y `CId`:
+
+```csharp
+public sealed class CreateInvoiceCommandHandler
+    : CreateCommandHandler<CreateInvoiceRequest, InvoiceResponse, Invoice>
+{
+    public CreateInvoiceCommandHandler(IServiceProvider services) : base(services)
     {
     }
 }
 ```
 
-Para contratos legacy o llaves custom, usa los handlers genéricos:
+Usa la sobrecarga sin response cuando el command solo necesita terminar correctamente:
 
 ```csharp
-public sealed class CreateLegacyCustomerCommandHandler
-    : GenericCreateCommandHandler<CreateLegacyCustomerRequest, LegacyCustomerResponse, LegacyCustomer, int>
+public sealed class DeleteInvoiceCommandHandler
+    : DeleteCommandHandler<DeleteInvoiceRequest, Invoice>
 {
-    public CreateLegacyCustomerCommandHandler(IServiceProvider services) : base(services)
+    public DeleteInvoiceCommandHandler(IServiceProvider services) : base(services)
     {
     }
 }
 ```
 
-Los handlers conservan métodos virtuales para customización puntual. Prefiere sobreescribir un método cuando el cambio pertenece solo a ese handler. Prefiere un hook cuando el comportamiento será reutilizable entre handlers o automations.
-
-### Métodos Virtuales De Command Handlers
-
-Create handlers:
-
-- `ValidateRequest`: habilita o deshabilita validación del request. Por defecto es `true`.
-- `UseProjectionFromStorage`: mapea el response desde una proyección fresca de storage después de guardar. Solo aplica a handlers con response. Por defecto es `false`.
-- `ValidateAsync(request, cancellationToken)`: valida el request.
-- `MapToEntityAsync(request, cancellationToken)`: crea la entidad desde el request.
-- `SaveEntityAsync(request, entity, cancellationToken)`: persiste la nueva entidad.
-- `MapToResponseAsync(request, entity, cancellationToken)`: construye el response. Solo aplica a handlers con response.
-
-Update handlers:
-
-- `ValidateRequest`: habilita o deshabilita validación del request. Por defecto es `true`.
-- `UseProjectionFromStorage`: mapea el response desde una proyección fresca de storage después de guardar. Solo aplica a handlers con response. Por defecto es `false`.
-- `GetEntityAsync(request, cancellationToken)`: carga la entidad a actualizar.
-- `ValidateAsync(request, entity, cancellationToken)`: valida el request con la entidad cargada.
-- `MapEntityAsync(request, entity, cancellationToken)`: mapea valores del request sobre la entidad.
-- `UpdateEntityAsync(request, entity, cancellationToken)`: guarda la entidad actualizada.
-- `MapToResponseAsync(request, entity, cancellationToken)`: construye el response. Solo aplica a handlers con response.
-
-Delete handlers:
-
-- `ValidateRequest`: habilita o deshabilita validación del request. Por defecto es `false`.
-- `GetEntityAsync(request, cancellationToken)`: carga la entidad a eliminar.
-- `ValidateAsync(request, entity, cancellationToken)`: valida si el delete está permitido.
-- `DeleteEntityAsync(entity, cancellationToken)`: elimina la entidad.
-- `BuildResponseAsync(request, entity, cancellationToken)`: construye el response. Solo aplica a handlers con response.
-
-Patch handlers:
-
-- `ValidateRequest`: habilita o deshabilita validación del request. Por defecto es `false`.
-- `GetEntityAsync(request, cancellationToken)`: carga la entidad a aplicar patch.
-- `ValidateAsync(request, entity, cancellationToken)`: valida si el patch está permitido.
-- `PatchEntityAsync(request, entity, cancellationToken)`: aplica la acción de patch sobre la entidad.
-- `UpdateEntityAsync(request, entity, cancellationToken)`: guarda la entidad modificada.
-- `BuildResponseAsync(request, entity, cancellationToken)`: construye el response. Solo aplica a handlers con response.
-
-Ejemplo: deshabilitar validación para un comando interno idempotente.
+Para llaves legacy:
 
 ```csharp
-public sealed class TouchCustomerCommandHandler
-    : UpdateCommandHandler<TouchCustomerRequest, Customer>
+public sealed class CreateLegacyShipmentCommandHandler
+    : GenericCreateCommandHandler<CreateLegacyShipmentRequest, LegacyShipmentResponse, LegacyShipment, int>
 {
-    public TouchCustomerCommandHandler(IServiceProvider services) : base(services)
+    public CreateLegacyShipmentCommandHandler(IServiceProvider services) : base(services)
     {
-    }
-
-    protected override bool ValidateRequest => false;
-}
-```
-
-Ejemplo: agregar una regla de lookup específica del feature.
-
-```csharp
-public sealed class CancelInvoiceCommandHandler
-    : UpdateCommandHandler<CancelInvoiceRequest, InvoiceResponse, Invoice>
-{
-    public CancelInvoiceCommandHandler(IServiceProvider services) : base(services)
-    {
-    }
-
-    protected override async Task<Invoice> GetEntityAsync(CancelInvoiceRequest request, CancellationToken cancellationToken)
-    {
-        var invoice = await StorageReaderAdapter
-            .For<Invoice>()
-            .Where(x => x.Id == request.Id && !x.IsCanceled)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return invoice ?? throw new NotFoundException(nameof(Invoice), request.Id.ToString());
     }
 }
 ```
 
-### Métodos Virtuales De Query Handlers
+### Metodos Virtuales En Command Handlers
 
-Get one y get by id handlers:
+Usa metodos virtuales para ajustes especificos del handler. Usa hooks para comportamiento reusable.
 
-- `Handle(query, cancellationToken)`: se puede sobreescribir cuando debe cambiar todo el flujo de query.
-- `GetFilterExpression(query)`: define cómo se localiza la entidad.
+- Create: `ValidateRequest`, `UseProjectionFromStorage`, `ValidateAsync`, `MapToEntityAsync`, `SaveEntityAsync`, `MapToResponseAsync`.
+- Update: `ValidateRequest`, `UseProjectionFromStorage`, `GetEntityAsync`, `ValidateAsync`, `MapEntityAsync`, `UpdateEntityAsync`, `MapToResponseAsync`.
+- Delete: `ValidateRequest`, `GetEntityAsync`, `ValidateAsync`, `DeleteEntityAsync`, `BuildResponseAsync`.
+- Patch: `ValidateRequest`, `GetEntityAsync`, `ValidateAsync`, `PatchEntityAsync`, `UpdateEntityAsync`, `BuildResponseAsync`.
 
-Get many handlers:
+### Query Handlers
 
-- `Handle(query, cancellationToken)`: se puede sobreescribir cuando debe cambiar todo el flujo de query.
-- `GetFilterExpression(query)`: agrega filtros tipados antes de los filtros string de DataScorpio.
-- `GetSortingExpression(query)`: agrega ordenamiento tipado antes del ordenamiento string de DataScorpio.
+Usa query handlers cuando el endpoint necesita filtros obligatorios, reglas custom de busqueda o comportamiento especifico del feature que no debe expresarse como filtro publico de DataScorpio.
 
-Get paged handlers:
-
-- `DefaultSorts`: define el ordenamiento compatible con DataScorpio cuando el request no especifica sorts.
-- `GetFiltersExpression(query)`: agrega filtros tipados antes de los filtros string de DataScorpio.
-- `GetSortingExpression(query)`: agrega ordenamiento tipado antes del ordenamiento string de DataScorpio.
-
-Ejemplo: forzar una lista de invoices por customer, manteniendo filtros de DataScorpio.
+Get-by-id query handlers:
 
 ```csharp
+public sealed class GetCustomerByIdQuery : GetByIdQuery<Customer, CustomerResponse>
+{
+    public GetCustomerByIdQuery(CId id)
+        : base(id)
+    {
+    }
+}
+
+public sealed class GetCustomerByIdQueryHandler
+    : GetByIdQueryHandler<GetCustomerByIdQuery, Customer, CustomerResponse>
+{
+    public GetCustomerByIdQueryHandler(IServiceProvider services)
+        : base(services)
+    {
+    }
+}
+```
+
+Paged query handlers:
+
+```csharp
+public sealed class GetPagedInvoicesQuery : GetPagedInfoQuery<Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+
+    public CId? CustomerId { get; set; }
+}
+
 public sealed class GetPagedInvoicesQueryHandler
     : GetPagedInfoQueryHandler<GetPagedInvoicesQuery, Invoice, InvoiceResponse>
 {
-    public GetPagedInvoicesQueryHandler(IServiceProvider services) : base(services)
+    public GetPagedInvoicesQueryHandler(IServiceProvider services)
+        : base(services)
+    {
+    }
+}
+```
+
+Usa generic query handlers cuando una entidad implementa `IEntity<TKey>` sin usar `BaseEntity` y `CId`:
+
+```csharp
+public sealed class GetPagedLegacyShipmentsQuery
+    : GenericGetPagedInfoQuery<LegacyShipment, LegacyShipmentResponse, int>
+{
+    public GetPagedLegacyShipmentsQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+}
+
+public sealed class GetPagedLegacyShipmentsQueryHandler
+    : GenericGetPagedInfoQueryHandler<GetPagedLegacyShipmentsQuery, LegacyShipment, LegacyShipmentResponse, int>
+{
+    public GetPagedLegacyShipmentsQueryHandler(IServiceProvider services)
+        : base(services)
+    {
+    }
+}
+```
+
+### Metodos Virtuales En Query Handlers
+
+Get-by-id query handlers:
+
+- `Handle(request, cancellationToken)`
+- `GetFilterExpression(request)`
+
+Paged query handlers:
+
+- `DefaultSorts`
+- `GetFiltersExpression(request)`
+- `GetSortingExpression(request)`
+
+Sobreescribe `Handle` solo cuando cambia todo el flujo del query. Prefiere `GetFilterExpression`, `GetFiltersExpression`, `GetSortingExpression` o `DefaultSorts` cuando todavia sirve el flujo estandar de storage, hooks, paging, proyeccion y response.
+
+### Ejemplos De Commands
+
+Deshabilitar validacion:
+
+```csharp
+protected override bool ValidateRequest => false;
+```
+
+Lookup custom:
+
+```csharp
+protected override async Task<Invoice> GetEntityAsync(
+    CancelInvoiceRequest request,
+    CancellationToken cancellationToken)
+{
+    var invoice = await StorageReaderAdapter
+        .For<Invoice>()
+        .Where(x => x.Id == request.Id && x.Status == InvoiceStatus.Issued)
+        .FirstOrDefaultAsync(cancellationToken);
+
+    return invoice ?? throw new NotFoundException(nameof(Invoice), request.Id.ToString());
+}
+```
+
+Response desde storage despues de guardar:
+
+```csharp
+protected override bool UseProjectionFromStorage => true;
+```
+
+Usalo cuando EF, triggers, columnas calculadas o includes son necesarios para el response.
+
+### Ejemplos De Queries
+
+Override de un query paginado cuando el endpoint necesita filtros obligatorios o comportamiento especifico del feature:
+
+```csharp
+using System.Linq.Expressions;
+using Billing.Service.Domain;
+using Billing.Service.Business.Invoices.Models.Responses;
+using TurtlePath.Domain.Identifier;
+using TurtlePath.Queries;
+
+namespace Billing.Service.Business.Invoices.Queries;
+
+public sealed class GetPagedInvoicesQuery : GetPagedInfoQuery<Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQuery(PagedSettings pagedSettings)
+        : base(pagedSettings)
+    {
+    }
+
+    public CId? CustomerId { get; set; }
+}
+
+public sealed class GetPagedInvoicesQueryHandler
+    : GetPagedInfoQueryHandler<GetPagedInvoicesQuery, Invoice, InvoiceResponse>
+{
+    public GetPagedInvoicesQueryHandler(IServiceProvider services)
+        : base(services)
     {
     }
 
@@ -583,285 +1444,158 @@ public sealed class GetPagedInvoicesQueryHandler
 
     protected override Expression<Func<Invoice, bool>> GetFiltersExpression(GetPagedInvoicesQuery query)
     {
-        return invoice => invoice.CustomerId == query.CustomerId;
+        if (query.CustomerId is null)
+            return invoice => invoice.Status != InvoiceStatus.Canceled;
+
+        var customerId = query.CustomerId.Value;
+
+        return invoice =>
+            invoice.CustomerId == customerId &&
+            invoice.Status != InvoiceStatus.Canceled;
     }
 }
 ```
 
-## Hooks
+## 12. Hooks
 
-Los hooks permiten customizar el path estándar sin reemplazar el handler.
+Hooks extienden el flujo estandar sin reemplazar el handler.
 
-Usa hooks cuando el flujo predeterminado es correcto y solo necesitas agregar comportamiento en un punto conocido. Los hooks se descubren con dependency injection, se ejecutan en orden de registro y pueden implementar `IOrderedHook` cuando varios hooks apuntan al mismo stage.
+Command hooks:
 
-Los command hooks usan `CommandHookContext<TRequest, TEntity>` o `CommandHookContext<TRequest, TEntity, TResponse>`. El contexto expone `Request`, `Entity`, `Response` cuando está disponible, y almacenamiento tipado key/value para compartir datos entre hooks en la misma ejecución del handler.
+- `IBeforeValidationHook<TRequest, TEntity>`
+- `IAfterValidationHook<TRequest, TEntity>`
+- `IBeforeGetEntityHook<TRequest, TEntity>`
+- `IAfterGetEntityHook<TRequest, TEntity>`
+- `IBeforeMapHook<TRequest, TEntity>`
+- `IAfterMapHook<TRequest, TEntity>`
+- `IBeforePatchHook<TRequest, TEntity>`
+- `IAfterPatchHook<TRequest, TEntity>`
+- `IBeforeSaveHook<TRequest, TEntity>`
+- `IAfterSaveHook<TRequest, TEntity>`
+- `IBeforeDeleteHook<TRequest, TEntity>`
+- `IAfterDeleteHook<TRequest, TEntity>`
+- `IBeforeResponseHook<TRequest, TEntity, TResponse>`
+- `IAfterResponseHook<TRequest, TEntity, TResponse>`
 
-Command hooks disponibles:
+Query hooks:
 
-- `IBeforeValidationHook<TRequest, TEntity>`: normaliza datos del request o carga contexto antes de validar.
-- `IAfterValidationHook<TRequest, TEntity>`: ejecuta lógica que depende de un request válido.
-- `IBeforeGetEntityHook<TRequest, TEntity>`: prepara datos antes de que update, delete o patch carguen la entidad.
-- `IAfterGetEntityHook<TRequest, TEntity>`: inspecciona o enriquece la entidad cargada antes de validación o mutación.
-- `IBeforeMapHook<TRequest, TEntity>`: normaliza datos antes del mapeo de create o update.
-- `IAfterMapHook<TRequest, TEntity>`: fuerza valores derivados de la entidad después del mapeo.
-- `IBeforePatchHook<TRequest, TEntity>`: valida precondiciones de patch.
-- `IAfterPatchHook<TRequest, TEntity>`: fuerza valores derivados después de aplicar patch.
-- `IBeforeSaveHook<TRequest, TEntity>`: asigna campos de auditoría, números de negocio o prepara efectos antes de persistir.
-- `IAfterSaveHook<TRequest, TEntity>`: publica mensajes, escribe auditoría o dispara trabajo async después de persistir.
-- `IBeforeDeleteHook<TRequest, TEntity>`: bloquea eliminación o prepara limpieza relacionada.
-- `IAfterDeleteHook<TRequest, TEntity>`: publica eventos de eliminación o escribe auditoría.
-- `IBeforeResponseHook<TRequest, TEntity, TResponse>`: enriquece datos antes de construir el response.
-- `IAfterResponseHook<TRequest, TEntity, TResponse>`: ajusta o enriquece el response antes de devolverlo.
+- `IBeforeQueryHook<TQuery, TResult>`
+- `IAfterQueryHook<TQuery, TResult>`
 
-Query hooks disponibles:
-
-- `IBeforeQueryHook<TQuery, TResult>`: aplica contexto de lectura, captura datos de telemetría o valida precondiciones del query.
-- `IAfterQueryHook<TQuery, TResult>`: enriquece resultados, captura métricas o escribe auditoría de lectura.
-
-Ejemplo: asignar un número de negocio antes de guardar un customer.
+Usa `IOrderedHook` cuando varios hooks corren en el mismo stage:
 
 ```csharp
-public sealed class AssignCustomerNumberBeforeSaveHook
-    : IBeforeSaveHook<CreateCustomerRequest, Customer>
+public sealed class NormalizeInvoiceBeforeValidationHook
+    : IBeforeValidationHook<CreateInvoiceRequest, Invoice>, IOrderedHook
 {
-    private readonly ICustomerNumberService customerNumberService;
+    public int Order => 0;
 
-    public AssignCustomerNumberBeforeSaveHook(ICustomerNumberService customerNumberService)
+    public ValueTask BeforeValidationAsync(
+        CommandHookContext<CreateInvoiceRequest, Invoice> context,
+        CancellationToken cancellationToken)
     {
-        this.customerNumberService = customerNumberService;
-    }
-
-    public async ValueTask BeforeSaveAsync(CommandHookContext<CreateCustomerRequest, Customer> context, CancellationToken cancellationToken)
-    {
-        context.Entity.CustomerNumber = await customerNumberService.NextAsync(cancellationToken);
-    }
-}
-```
-
-Ejemplo: publicar un evento de integración después de guardar.
-
-```csharp
-public sealed class PublishCustomerCreatedAfterSaveHook
-    : IAfterSaveHook<CreateCustomerRequest, Customer>
-{
-    private readonly ISpider spider;
-
-    public PublishCustomerCreatedAfterSaveHook(ISpider spider)
-    {
-        this.spider = spider;
-    }
-
-    public async ValueTask AfterSaveAsync(CommandHookContext<CreateCustomerRequest, Customer> context, CancellationToken cancellationToken)
-    {
-        await spider.Send(new CustomerCreatedEvent(context.Entity.Id), cancellationToken);
-    }
-}
-```
-
-Ejemplo: enriquecer el resultado de un query paginado después de ejecutarse.
-
-```csharp
-public sealed class AttachInvoiceSummaryAfterQueryHook
-    : IAfterQueryHook<GetPagedInvoicesQuery, PagedResponse<InvoiceResponse>>
-{
-    public ValueTask AfterQueryAsync(QueryHookContext<GetPagedInvoicesQuery, PagedResponse<InvoiceResponse>> context, CancellationToken cancellationToken)
-    {
-        foreach (var invoice in context.Result.Results)
-            invoice.CanBeCanceled = invoice.Status == InvoiceStatus.Pending;
-
+        context.Request.Folio = context.Request.Folio?.Trim();
         return ValueTask.CompletedTask;
     }
 }
 ```
 
-Usa hooks para:
+Publicar evento despues de persistir:
 
-- auditoría y telemetría transversal
-- enriquecimiento específico del feature
-- normalización del request antes de validar o mapear
-- efectos secundarios después de guardar o eliminar
-- enriquecimiento de response
-- validaciones de negocio que encajan naturalmente en un stage
-
-Evita hooks cuando el flujo principal se vuelve difícil de entender sin abrir muchos archivos. En ese caso, usa un handler custom.
-
-## Filtros Con DataScorpio
-
-DataScorpio es el motor predeterminado de filtros y ordenamiento para queries paginadas de TurtlePath en este template. Mantén los query profiles dentro del feature dueño de la entidad:
-
-`	ext
-Customers/
-  Querying/
-    CustomerQueryProfile.cs
-`
-
-Ejemplo de profile:
-
-`csharp
-using DataScorpio.Profiles;
-
-public sealed class CustomerQueryProfile : QueryProfile<Customer>
+```csharp
+public sealed class PublishInvoiceCreatedAfterSaveHook
+    : IAfterSaveHook<CreateInvoiceRequest, Invoice>
 {
-    public override void Configure(IQueryProfileBuilder<Customer> builder)
+    private readonly ISpider spider;
+
+    public PublishInvoiceCreatedAfterSaveHook(ISpider spider)
     {
-        builder
-            .AllowFilter(customer => customer.Name)
-            .AllowFilter(customer => customer.Email)
-            .AllowSort(customer => customer.Name)
-            .AllowSort(customer => customer.CreatedAt)
-            .AllowSearch(customer => customer.Name)
-            .AllowSearch(customer => customer.Email);
+        this.spider = spider;
+    }
+
+    public ValueTask AfterSaveAsync(
+        CommandHookContext<CreateInvoiceRequest, Invoice> context,
+        CancellationToken cancellationToken)
+    {
+        return new ValueTask(spider.Send(new InvoiceCreatedEvent(context.Entity.Id), cancellationToken));
     }
 }
-`
+```
 
-Los profiles se descubren desde la composición de API:
+Usa hooks para auditoria, asignacion de ids o folios, normalizacion, enriquecimiento de responses, publicacion despues de save y reglas simples en stages claros.
 
-`csharp
-services.AddTurtlePath(typeof(Constants).Assembly)
-    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly));
-`
+## 13. Controllers Y Rutas REST
 
-Solo los campos declarados en el profile pueden filtrarse, ordenarse o buscarse. Agrega aliases o custom filters en el profile cuando el nombre público del query deba diferir de la propiedad de la entidad o cuando el filtro necesite comportamiento de negocio específico.
-## Mapeo Y Validación
+Controllers heredan `BaseController`, que expone `Mediator` y `Spider`.
 
-El template usa OctoMap y Crabalidator mediante adapters de TurtlePath.
+Rutas recomendadas:
 
-### Mapeo
+- `POST /customers`
+- `PUT /customers/{id}`
+- `DELETE /customers/{id}`
+- `GET /customers`
+- `GET /customers/{id}`
+- `POST /customers/{id}/deactivate`
+- `GET /customers/{id}/orders`
+- `DELETE /orders/{id}/details/{detailId}`
 
-Registra maps en el assembly de Business. La composición de API escanea ese assembly:
+Ejemplo completo:
 
 ```csharp
-services.AddOctoMap(registration =>
+[ApiVersion("1.0")]
+[Route("customers")]
+public sealed class CustomersController : BaseController
 {
-    registration.Options.EnableRuntimeImplicitMaps = true;
-    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
-    registration.AddMaps(typeof(Constants).Assembly);
-});
-```
+    [HttpPost]
+    public Task<CustomerResponse> Create(
+        [FromBody] CreateCustomerRequest request,
+        CancellationToken cancellationToken)
+        => Mediator.Send(request, cancellationToken);
 
-Mantén los maps cerca del feature que los posee:
-
-```text
-Feature/Mappings/
-```
-
-### Validación
-
-Registra validators en el assembly de Business. La composición de API escanea ese assembly:
-
-```csharp
-services.AddCrabalidator(typeof(Constants).Assembly);
-```
-
-Mantén los validators cerca del request del feature:
-
-```text
-Feature/Validators/
-```
-
-Los handlers y automations de TurtlePath llaman el validator adapter registrado antes de mapear o guardar.
-
-## Testing
-
-El template incluye un proyecto de pruebas listo para unit tests e integration tests de TurtlePath. Usa `TemplateTestHost` desde `tests/TurtlePath.Template.Tests/Testing` para que cada prueba solo agregue los maps, validators, seeds o query profiles específicos del feature.
-
-### Unit Test De Handler
-
-Usa el host en memoria para pruebas rápidas de handlers:
-
-```csharp
-await using var host = await TemplateTestHost
-    .CreateUnitHost()
-    .WithMap<CreateCustomerRequest, Customer>(request => new Customer
+    [HttpPut("{id}")]
+    public Task<CustomerResponse> Update(
+        [FromRoute] CId id,
+        [FromBody] UpdateCustomerRequest request,
+        CancellationToken cancellationToken)
     {
-        Id = request.Id,
-        Name = request.Name
-    })
-    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse
-    {
-        Id = customer.Id,
-        Name = customer.Name
-    })
-    .WithValidRequest<CreateCustomerRequest>()
-    .BuildAsync();
+        request.Id = id;
+        return Mediator.Send(request, cancellationToken);
+    }
 
-var handler = new CreateCustomerCommandHandler(host.Services);
+    [HttpGet]
+    public Task<PagedResponse<CustomerResponse>> GetPaged(
+        [FromQuery] GetPagedCustomersQuery query,
+        CancellationToken cancellationToken)
+        => Mediator.Send(query, cancellationToken);
 
-var response = await handler.Handle(new CreateCustomerRequest(1, "Ada"));
+    [HttpGet("{id}")]
+    public Task<CustomerResponse> GetById(
+        [FromRoute] CId id,
+        CancellationToken cancellationToken)
+        => Mediator.Send(new GetCustomerByIdQuery { Id = id }, cancellationToken);
 
-Assert.Equal("Ada", response.Name);
-Assert.True(host.Store<Customer>().Contains(customer => customer.Id == 1));
+    [HttpPost("{id}/deactivate")]
+    public Task<CustomerResponse> Deactivate(
+        [FromRoute] CId id,
+        CancellationToken cancellationToken)
+        => Spider.Send(new DeactivateCustomerRequest { Id = id }, cancellationToken);
+}
 ```
 
-Esto mantiene la prueba enfocada en el comportamiento del handler mientras TurtlePath aporta los dobles de prueba por defecto.
+Usa `Mediator.Send` para dispatch normal. Usa `Spider.Send` cuando el request debe pasar explicitamente por boundaries de Spider.
 
-### Integration Test Con SQLite
+## 14. Spider Pipelines Y Transacciones
 
-Usa `TurtlePath.Testing.EntityFrameworkCore` cuando el flujo debe ejecutar mappings de EF Core, queries y persistencia:
-
-```csharp
-await using var host = await TemplateTestHost
-    .CreateIntegrationHost<AppDbContext>()
-    .UsePelican(typeof(CreateCustomerCommandHandler).Assembly)
-    .WithMap<CreateCustomerRequest, Customer>(request => new Customer
-    {
-        Id = request.Id,
-        Name = request.Name
-    })
-    .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse
-    {
-        Id = customer.Id,
-        Name = customer.Name
-    })
-    .WithValidRequest<CreateCustomerRequest>()
-    .BuildAsync();
-
-await host.CreateSchemaAsync<AppDbContext>();
-
-var response = await host.SendAsync(new CreateCustomerRequest(1, "Ada"));
-```
-
-Usa integration tests con SQLite también para automations, porque los handlers generados son infraestructura de runtime y el valor está en probar el happy path completo.
-
-### Testing De Adapters Elysium
-
-`TurtlePath.Testing.Integration` compone TurtlePath con los paquetes de testing de Elysium:
-
-- `UsePelicanTesting(...)` registra servicios de testing de Pelican y descubrimiento de handlers.
-- `UseOctoMapTesting(...)` registra los maps reales de OctoMap.
-- `UseCrabalidatorTesting(...)` registra los validators reales de Crabalidator.
-- `UsePigeonTesting(...)` registra el transporte en memoria de messaging.
-- `UseSpiderTesting(...)` registra boundaries y trazas de Spider para testing.
-- `UseDataScorpioTesting(...)` registra testing de queries DataScorpio.
-
-Ejemplo:
-
-```csharp
-await using var host = await TurtlePathTestHost
-    .Create()
-    .UsePelicanTesting(typeof(Constants).Assembly)
-    .UseOctoMapTesting(typeof(Constants).Assembly)
-    .UseCrabalidatorTesting(typeof(Constants).Assembly)
-    .UseDataScorpioTesting(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
-    .BuildAsync();
-```
-
-Usa los helpers con delegates para unit tests aislados y los adapters de testing de Elysium cuando la prueba debe validar los maps, validators, filtros, messaging o boundaries reales.
-
-## Transacciones
-
-El template usa un execution boundary de Spider para transacciones ambientales en lugar de un pipeline behavior de Pelican.
-
-Registro:
+El template usa Spider execution boundaries para comportamiento transversal. El default es el transaction boundary.
 
 ```csharp
 services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
 services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
 {
-    var filter = new TransactionBoundaryRequestFilter(provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
-    filter.Discover(typeof(Constants).Assembly);
+    var filter = new TransactionBoundaryRequestFilter(
+        provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
 
+    filter.Discover(typeof(Constants).Assembly);
     return filter;
 });
 
@@ -870,8 +1604,6 @@ services.AddSpider(builder =>
     builder.AddExecutionBoundary<TransactionExecutionBoundary>();
 });
 ```
-
-Configuración:
 
 ```json
 "TransactionBoundary": {
@@ -883,68 +1615,605 @@ Configuración:
 }
 ```
 
-Por defecto:
+Por default:
 
-- las mutaciones corren dentro de un `TransactionScope`
-- los query requests se omiten
-- los requests marcados con `[SkipTransactionBoundary]` se omiten
-- los tipos listados en `ExcludedRequestTypes` se omiten
-- las decisiones del boundary se descubren y cachean por tipo de request
+- mutations corren dentro de `TransactionScope`
+- queries se omiten salvo que `IncludeQueries` sea `true`
+- `[SkipTransactionBoundary]` omite la transaccion
+- tipos en `ExcludedRequestTypes` se omiten
+- las decisiones por tipo se descubren una vez y quedan cacheadas
 
-`ExcludedRequestTypes` acepta el nombre completo del tipo o el nombre corto.
-
-```json
-"ExcludedRequestTypes": [
-  "RebuildSearchIndexCommand",
-  "MyService.Features.Health.Commands.PingExternalDependencyCommand"
-]
+```csharp
+[SkipTransactionBoundary]
+public sealed class RebuildSearchIndexRequest : IRequest
+{
+}
 ```
 
-## Checklist De Migración
+## 15. Consumers Con Pigeon Y Outbox
 
-Usa este checklist al migrar un servicio creado con la versión anterior del template.
+El template usa Pigeon con Azure Service Bus y EF Core outbox.
 
-- Reemplaza usos de `TurtlePath.Template.Domain.Identifier` con `TurtlePath.Domain.Identifier`.
-- Reemplaza usos de `TurtlePath.Template.Domain.Contracts` con `TurtlePath.Domain.Contracts`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Commands` con `TurtlePath.Commands`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Queries` con `TurtlePath.Queries`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Models.Requests` con `TurtlePath.Models.Requests`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Models.Responses` con `TurtlePath.Models.Responses`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Hooks` con `TurtlePath.Hooks`.
-- Reemplaza usos de `TurtlePath.Template.Business.Core.Exceptions` con `TurtlePath.Exceptions` o `TurtlePath.Validation`.
-- Reemplaza usos locales de `IDbContext` con `TurtlePath.EntityFrameworkCore.IDbContext`.
-- Haz que el DbContext concreto herede de `TurtlePath.EntityFrameworkCore.BaseDbContext`.
-- Elimina handler core local, implementación local de CId, adapters locales de storage, mapper adapter local y validator adapter local.
-- Elimina entity configurations que hereden del viejo `BaseEntityConfiguration<TEntity>`.
-- Registra dependencias de Business desde la composición de API.
-- Registra TurtlePath desde la composición de API.
-- Registra OctoMap mediante `TurtlePath.OctoMap`.
-- Registra Crabalidator mediante `TurtlePath.Crabalidator`.
-- Registra DataScorpio mediante `TurtlePath.DataScorpio`.
-- Habilita Pigeon Outbox con EF Core y asegura que el schema de outbox se cree por auto-create, migraciones o el proceso de despliegue del servicio.
-- Manten el comportamiento de publicacion transaccional de Pigeon en `SuppressTransaction`, salvo que quieras fallar cuando alguien publique directo al broker dentro de una transaccion.
-- Reemplaza el transaction pipeline behavior de Pelican con el transaction boundary de Spider.
-- Agrega `TurtlePath.Analyzers` de forma privada en los proyectos Domain y Business.
-- Compila y ejecuta las pruebas de composición antes de migrar código de features.
+```csharp
+services.AddPigeon(configuration, builder =>
+{
+    builder.ConfigurePublishing(publishing =>
+    {
+        publishing.AmbientTransactionBehavior = AmbientTransactionPublishBehavior.SuppressTransaction;
+    });
 
-## Notas De Actualización Del Template
+    builder.UseAzureServiceBus();
+    builder.UseEntityFrameworkOutbox<AppDbContext>(outbox =>
+    {
+        outbox.Enabled = true;
+        outbox.SchemaMode = OutboxSchemaMode.AutoCreate;
+        configuration.GetSection("Pigeon:Outbox").Bind(outbox);
+    });
+});
+```
 
-El template se actualizó para consumir los paquetes NuGet publicados de TurtlePath en lugar de cargar localmente la infraestructura extraída de handlers, identificadores, persistencia, mapeo y validación.
+Consumer:
 
-Cambios clave:
+```csharp
+using Billing.Service.Business.Invoices.Models.Requests;
+using Pigeon.Messaging.Consuming;
+using TurtlePath.Template.Api.HubConsumers;
 
-- `TurtlePath.Template.Domain` conserva solo entidades y código de dominio propio del servicio.
-- `TurtlePath.Template.Business` conserva commands, queries, validators, mappings, hooks, automations y services propios del servicio.
-- `TurtlePath.Template.Persistence` conserva el contexto EF Core concreto y configuraciones EF propias del servicio.
-- La infraestructura compartida de handlers e identificadores ahora vive en paquetes TurtlePath.
-- El registro de dependencias de Business se movió a la composición de API.
-- El comportamiento transaccional cambió de un pipeline behavior de Pelican a un execution boundary de Spider.
-- Pigeon usa Azure Service Bus con Outbox EF Core por defecto.
+namespace Billing.Service.Api.HubConsumers;
 
-Verificación:
+public sealed class InvoicesHubConsumer : BaseHubConsumer
+{
+    public Task Consume(InvoiceIssuedMessage message, CancellationToken cancellationToken)
+    {
+        return ConsumerExceptionBoundary.RunAsync(
+            token => Spider.Send(new CreateInvoiceRequest
+            {
+                CustomerId = message.CustomerId,
+                Amount = message.Amount
+            }, token),
+            Context,
+            cancellationToken);
+    }
+}
+
+public sealed record InvoiceIssuedMessage(CId CustomerId, decimal Amount);
+```
+
+`BaseHubConsumer` expone `Mediator`, `Spider` y `ConsumerExceptionBoundary`. Deja la logica de negocio en requests, handlers, automations y hooks.
+
+## 16. Exception Handling
+
+TurtlePath genera un `ExceptionDescriptor` neutral:
+
+- `Kind`
+- `Code`
+- `Messages`
+- `Metadata`
+- `TraceIdentifier`
+
+HTTP, consumers y workers deciden como representarlo.
+
+Defaults:
+
+```csharp
+services.AddTurtlePathExceptionHandlingCore(builder =>
+{
+    builder.For<ValidationException>(
+        _ => ExceptionKind.Validation,
+        exception => "validation",
+        exception => exception.Errors);
+
+    builder.For<BadRequestException>(ExceptionKind.Validation, exception => exception.Message);
+    builder.For<ForbiddenException>(ExceptionKind.Forbidden, exception => exception.Message);
+    builder.For<NotFoundException>(ExceptionKind.NotFound, exception => exception.Message);
+    builder.For<UnauthorizedException>(ExceptionKind.Unauthorized, exception => exception.Message);
+});
+```
+
+Agrega excepciones propias:
+
+```csharp
+services.AddExceptionHandlingDefaults(builder =>
+{
+    builder.For<InvoiceAlreadyCanceledException>(
+        ExceptionKind.Conflict,
+        exception => $"Invoice '{exception.InvoiceId}' is already canceled.");
+
+    builder.For<SatUnavailableException>(
+        _ => ExceptionKind.Transient,
+        exception => "sat_unavailable",
+        exception => new[] { exception.Message },
+        exception => new Dictionary<string, object>
+        {
+            ["provider"] = "SAT",
+            ["retryable"] = true
+        });
+});
+```
+
+HTTP usa `ProblemDetails`, consumers usan `IConsumerExceptionBoundary` y jobs usan `IBackgroundExceptionBoundary`.
+
+## 17. Jobs
+
+Usa TurtlePath jobs cuando un workload no encaja como endpoint HTTP ni como consumer.
+
+Hay dos formas estandar:
+
+- one-shot jobs: el proceso arranca, ejecuta uno o varios jobs registrados, devuelve exit code y termina. Es el camino recomendado para Kubernetes `CronJob`.
+- cron jobs recurrentes: el host se queda vivo y ejecuta uno o varios jobs en intervalos manejados por la aplicacion.
+
+Puedes crear el template directamente como host one-shot:
 
 ```powershell
-dotnet restore TurtlePath.Template.sln --verbosity minimal
-dotnet build TurtlePath.Template.sln --configuration Release --no-restore --verbosity minimal
-dotnet test TurtlePath.Template.sln --configuration Release --no-build --verbosity minimal
+dotnet new turtlepath -n Billing.Jobs -o C:\work\Billing.Jobs --host job
 ```
+
+El mismo Business, Domain, Persistence, automations, handlers, hooks, exception handling, boundaries de Spider, mappings de OctoMap, validators de Crabalidator y configuracion de queries con DataScorpio siguen disponibles. Solo cambia el arranque del host.
+
+### Crear Un Job
+
+```csharp
+using TurtlePath.Jobs;
+
+namespace Billing.Service.Business.Invoices.Jobs;
+
+public sealed class CloseExpiredInvoicesJob : TurtlePathJob
+{
+    private readonly IInvoiceExpirationService invoiceExpirationService;
+    private readonly ILogger<CloseExpiredInvoicesJob> logger;
+
+    public CloseExpiredInvoicesJob(
+        IInvoiceExpirationService invoiceExpirationService,
+        ILogger<CloseExpiredInvoicesJob> logger)
+    {
+        this.invoiceExpirationService = invoiceExpirationService;
+        this.logger = logger;
+    }
+
+    public override async Task ExecuteAsync(
+        TurtlePathJobContext context,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Closing expired invoices from job {JobName}.", context.Name);
+
+        await invoiceExpirationService.CloseExpiredInvoicesAsync(cancellationToken);
+    }
+}
+```
+
+Mantén las clases de job delgadas. El camino recomendado es `Job -> Service` porque un proceso calendarizado normalmente orquesta trabajo de fondo de forma directa. Usa `Mediator.Send(...)` solo cuando el job reutiliza intencionalmente un request/handler existente que tambien se usa desde HTTP o consumers. No crees un handler solo para que el job lo llame; eso solo agrega boilerplate.
+
+### One-Shot Para Kubernetes CronJob
+
+Registra uno o varios jobs one-shot:
+
+```csharp
+services.AddTurtlePathJobs(options =>
+{
+    options.ExecutionMode = TurtlePathJobExecutionMode.Parallel;
+    options.MaxDegreeOfParallelism = Environment.ProcessorCount;
+    options.Retries = 2;
+    options.RetryDelay = TimeSpan.FromSeconds(10);
+    options.FailureBehavior = TurtlePathJobFailureBehavior.Rethrow;
+})
+.AddJob<ImportCustomersJob>("import-customers")
+.AddJob<ImportInvoicesJob>("import-invoices");
+```
+
+`AddJob<TJob>()` registra un job de una sola ejecucion. Cuando hay varios jobs registrados, el manager puede ejecutarlos en paralelo o secuencial segun `ExecutionMode`.
+
+El host ejecuta los jobs one-shot registrados y convierte el resultado en exit code:
+
+```csharp
+var result = await host.Services.RunTurtlePathJobsAsync();
+Environment.ExitCode = result.Succeeded ? 0 : 1;
+```
+
+Puedes ejecutar solo algunos jobs cuando el host contiene varios pero un deployment debe correr un subconjunto:
+
+```csharp
+var result = await host.Services.RunTurtlePathJobsAsync(
+    new[] { typeof(ImportInvoicesJob), typeof(CloseExpiredInvoicesJob) },
+    cancellationToken);
+```
+
+Usa one-shot jobs para workloads de Kubernetes `CronJob`, donde Kubernetes controla el calendario y TurtlePath controla scoped DI, retries, exception handling y ejecucion paralela.
+
+Ejemplo de manifiesto Kubernetes:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: close-expired-invoices
+spec:
+  schedule: "*/30 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: close-expired-invoices
+              image: registry.example.com/billing-jobs:1.0.0
+              command: ["dotnet", "Billing.Jobs.dll"]
+```
+
+Opciones one-shot:
+
+- `ExecutionMode`: `Parallel` ejecuta jobs registrados al mismo tiempo; `Sequential` los ejecuta uno por uno.
+- `MaxDegreeOfParallelism`: limita cuantos jobs corren al mismo tiempo cuando `ExecutionMode` es `Parallel`.
+- `Retries`: numero de reintentos despues del primer fallo.
+- `RetryDelay`: espera entre reintentos.
+- `FailureBehavior`: `Rethrow` falla la ejecucion, `Continue` registra el fallo y sigue, `StopHost` pide detener el host.
+
+### Cron Jobs Recurrentes
+
+Primero crea la clase del job recurrente igual que cualquier job de TurtlePath:
+
+```csharp
+using TurtlePath.Jobs;
+
+namespace Billing.Service.Business.Catalog.Jobs;
+
+public sealed class RefreshCatalogJob : TurtlePathJob
+{
+    private readonly ICatalogRefreshService catalogRefreshService;
+    private readonly ILogger<RefreshCatalogJob> logger;
+
+    public RefreshCatalogJob(
+        ICatalogRefreshService catalogRefreshService,
+        ILogger<RefreshCatalogJob> logger)
+    {
+        this.catalogRefreshService = catalogRefreshService;
+        this.logger = logger;
+    }
+
+    public override async Task ExecuteAsync(
+        TurtlePathJobContext context,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Refreshing catalog from cron job {JobName}.", context.Name);
+
+        await catalogRefreshService.RefreshAsync(cancellationToken);
+    }
+}
+```
+
+Registra jobs recurrentes cuando el mismo host debe quedarse vivo:
+
+```csharp
+services.AddTurtlePathJobs()
+    .AddCronJob<RefreshCatalogJob>(options =>
+    {
+        options.EveryMinutes(30);
+        options.RunOnStart = true;
+        options.Retries = 3;
+        options.RetryDelay = TimeSpan.FromSeconds(15);
+        options.FailureBehavior = TurtlePathJobFailureBehavior.Continue;
+    }, "refresh-catalog");
+```
+
+Registra varios cron jobs en el mismo host:
+
+```csharp
+services.AddTurtlePathJobs()
+    .AddCronJob<RefreshCatalogJob>(options =>
+    {
+        options.EveryMinutes(30);
+        options.RunOnStart = true;
+        options.Retries = 3;
+        options.RetryDelay = TimeSpan.FromSeconds(15);
+        options.FailureBehavior = TurtlePathJobFailureBehavior.Continue;
+    }, "refresh-catalog")
+    .AddCronJob<CloseExpiredInvoicesJob>(options =>
+    {
+        options.EveryHours(1);
+        options.RunOnStart = false;
+        options.Retries = 1;
+        options.FailureBehavior = TurtlePathJobFailureBehavior.Rethrow;
+    }, "close-expired-invoices");
+```
+
+Opciones recurrentes:
+
+- `Every(TimeSpan interval)`: define el intervalo exacto.
+- `EverySeconds(int seconds)`: shortcut para intervalos por segundos.
+- `EveryMinutes(int minutes)`: shortcut para intervalos por minutos.
+- `EveryHours(int hours)`: shortcut para intervalos por horas.
+- `Interval`: intervalo final usado por el hosted service.
+- `RunOnStart`: ejecuta inmediatamente cuando arranca el host en vez de esperar al primer intervalo.
+- `Retries`, `RetryDelay` y `FailureBehavior`: aplican el mismo comportamiento de retries/fallos que one-shot, pero en cada ciclo de ejecucion.
+
+Se soportan multiples cron jobs. Cada job registrado corre su propio loop dentro de `TurtlePathCronJobHostedService`, asi que cada uno puede tener su propio intervalo, retry policy y failure behavior.
+
+## 18. Testing
+
+El template trae una base de testing para que las pruebas de features no empiecen desde cero. El dev debe escribir el caso de uso y los asserts; el template deja listo el test host de TurtlePath, Pelican, OctoMap, Crabalidator, Spider, DataScorpio, SQLite, jobs y exception handling.
+
+Usa esta division:
+
+- unit tests para handlers manuales, hooks y servicios pequeños
+- integration tests para automations porque los handlers se generan
+- integration tests con Spider cuando las transacciones o execution boundaries son parte del contrato del caso de uso
+- integration tests con SQLite para configuracion EF, conversiones de CId, traduccion de queries y filtros de DataScorpio
+- composition tests para validar que el host del template arranca con los defaults esperados
+- tests de jobs para registros one-shot y cron
+- tests de exceptions cuando un feature tenga mappings propios
+
+El proyecto de pruebas generado incluye `Testing/TemplateTestHost.cs`. Usa ese wrapper en vez de configurar cada paquete en cada test.
+
+### Unit Test De Handler
+
+Usa unit test cuando tu servicio tiene un handler concreto. Los maps y validators por delegado evitan levantar todo el stack de adapters:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .WithMap<CreateInvoiceRequest, Invoice>(request => new Invoice
+    {
+        CustomerId = request.CustomerId,
+        Amount = request.Amount
+    })
+    .WithMap<Invoice, InvoiceResponse>(invoice => new InvoiceResponse
+    {
+        Id = invoice.Id,
+        Amount = invoice.Amount
+    })
+    .WithValidRequest<CreateInvoiceRequest>()
+    .BuildAsync();
+
+var handler = new CreateInvoiceCommandHandler(host.Services);
+var response = await handler.Handle(new CreateInvoiceRequest { Amount = 100m });
+
+Assert.Equal(100m, response.Amount);
+```
+
+Este es el camino mas rapido para handlers custom porque prueba el handler directo con storage en memoria.
+
+### Integration Test De Automations Con SQLite
+
+Usa integration tests para automations porque TurtlePath.Automations genera el handler y Pelican lo resuelve. SQLite mantiene la prueba cerca del comportamiento real de EF sin requerir una base de datos externa:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateIntegrationHost<AppDbContext>()
+    .UsePelican(typeof(Constants).Assembly)
+    .UseOctoMapTesting(typeof(Constants).Assembly)
+    .UseCrabalidatorTesting(typeof(Constants).Assembly)
+    .UseDataScorpioTesting(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    .BuildAsync();
+
+await host.CreateSchemaAsync<AppDbContext>();
+
+var response = await host.SendAsync(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Amount = 100m
+});
+
+Assert.False(response.Id.IsEmpty);
+```
+
+Usa este estilo para create, update, delete, get by id y flujos paginados con automations.
+
+### Integration Test De Handler Manual Con Pelican
+
+Cuando el handler es manual pero quieres probar el mismo camino de dispatch que usan controllers y consumers, llama `host.SendAsync(...)`:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .UsePelican(typeof(CreateInvoiceCommandHandler).Assembly)
+    .WithMap<CreateInvoiceRequest, Invoice>(request => new Invoice
+    {
+        CustomerId = request.CustomerId,
+        Amount = request.Amount
+    })
+    .WithMap<Invoice, InvoiceResponse>(invoice => new InvoiceResponse
+    {
+        Id = invoice.Id,
+        Amount = invoice.Amount
+    })
+    .WithValidRequest<CreateInvoiceRequest>()
+    .BuildAsync();
+
+var response = await host.SendAsync(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Amount = 100m
+});
+```
+
+Esto prueba que el request esta registrado en Pelican y puede resolverse por DI.
+
+### Integration Test Con Spider
+
+Usa pruebas con Spider para casos de uso que deben correr por execution boundaries. Esto importa para transacciones, orden de boundaries y flujos llamados desde controllers o consumers por medio de `Spider`.
+
+```csharp
+using Spider.Testing;
+using Spider.Testing.Assertions;
+using TurtlePath.Template.Api.Boundaries;
+
+await using var host = await TemplateTestHost
+    .CreateIntegrationHost<AppDbContext>()
+    .UsePelican(typeof(Constants).Assembly)
+    .UseSpiderTesting(typeof(TransactionExecutionBoundary).Assembly)
+    .WithMap<CreateInvoiceRequest, Invoice>(request => new Invoice
+    {
+        CustomerId = request.CustomerId,
+        Amount = request.Amount
+    })
+    .WithMap<Invoice, InvoiceResponse>(invoice => new InvoiceResponse
+    {
+        Id = invoice.Id,
+        Amount = invoice.Amount
+    })
+    .WithValidRequest<CreateInvoiceRequest>()
+    .BuildAsync();
+
+await host.CreateSchemaAsync<AppDbContext>();
+
+var spider = host.Resolve<ISpiderTesting>();
+
+var response = await spider.ExecuteAsync<InvoiceResponse>(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Amount = 100m
+});
+
+Assert.False(response.Id.IsEmpty);
+spider.Trace.ShouldContain(nameof(TransactionExecutionBoundary));
+spider.Trace.Transaction.ShouldBegin();
+spider.Trace.Transaction.ShouldCommit();
+```
+
+Usa una prueba directa del filtro cuando lo importante sea validar si un request debe abrir transaccion:
+
+```csharp
+using Microsoft.Extensions.Options;
+using TurtlePath.Template.Api.Boundaries;
+
+var options = Options.Create(new TransactionBoundaryOptions
+{
+    IncludeQueries = false,
+    ExcludedRequestTypes = new HashSet<string>
+    {
+        nameof(RebuildSearchIndexRequest)
+    }
+});
+
+var filter = new TransactionBoundaryRequestFilter(options);
+filter.Discover(typeof(Constants).Assembly);
+
+Assert.True(filter.ShouldOpenTransaction(typeof(CreateInvoiceRequest)));
+Assert.False(filter.ShouldOpenTransaction(typeof(GetPagedInvoicesQuery)));
+Assert.False(filter.ShouldOpenTransaction(typeof(RebuildSearchIndexRequest)));
+```
+
+Usa pruebas con Pelican cuando solo necesitas validar dispatch de handlers. Usa pruebas con Spider cuando el boundary sea parte del contrato del caso de uso.
+
+### Probar Filtros De DataScorpio
+
+Usa SQLite cuando el query debe probar filtros, sorts, search o paginado traducidos correctamente:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateIntegrationHost<AppDbContext>(profiles =>
+    {
+        profiles.FromAssembly(typeof(Constants).Assembly);
+    })
+    .UsePelican(typeof(Constants).Assembly)
+    .BuildAsync();
+
+await host.CreateSchemaAsync<AppDbContext>();
+
+var page = await host.SendAsync(new GetPagedInvoicesQuery(new PagedSettings
+{
+    PageNumber = 1,
+    PageSize = 20,
+    Filters = "Status==Issued",
+    Sorts = "-CreatedAt"
+}));
+
+Assert.All(page.Results, invoice => Assert.Equal("Issued", invoice.Status));
+```
+
+### Probar Hooks
+
+Usa hook tracing cuando necesites probar que una etapa de hooks se ejecuto:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .TraceHooks()
+    .BuildAsync();
+
+var trace = host.Resolve<HookTrace>();
+Assert.Contains(trace.Entries, entry => entry.Stage == "AfterSave");
+```
+
+Usa tracing para hooks de auditoria, event sourcing, publicacion y validaciones que deben correr alrededor de una etapa del handler.
+
+### Probar Exception Mappings
+
+Los mappings de exceptions propios de un feature se prueban una vez para asegurar que HTTP, consumers y jobs reciban el descriptor esperado:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .UseExceptionHandling(builder =>
+    {
+        builder.For<InvoiceAlreadyCanceledException>(
+            ExceptionKind.Conflict,
+            exception => $"Invoice '{exception.InvoiceId}' is already canceled.");
+    })
+    .BuildAsync();
+
+var handler = host.Resolve<IExceptionHandler>();
+var descriptor = handler.Handle(new InvoiceAlreadyCanceledException(invoiceId));
+
+Assert.Equal(ExceptionKind.Conflict, descriptor.Kind);
+```
+
+### Probar Jobs
+
+Registra jobs en el test host y ejecutalos sin levantar toda la app:
+
+```csharp
+await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .UseJobs(options =>
+    {
+        options.ExecutionMode = TurtlePathJobExecutionMode.Sequential;
+        options.Retries = 1;
+    })
+    .WithJob<CloseExpiredInvoicesJob>()
+    .BuildAsync();
+
+var result = await host.RunJobsAsync(new[] { typeof(CloseExpiredInvoicesJob) });
+
+Assert.True(result.Succeeded);
+```
+
+### Composition Tests
+
+Deja al menos un composition test por variante de host:
+
+```csharp
+[Fact]
+public async Task ApiHost_Composes()
+{
+    await using var host = await TemplateTestHost
+        .CreateIntegrationHost<AppDbContext>()
+        .BuildAsync();
+
+    Assert.NotNull(host.Services);
+}
+```
+
+Los composition tests deben mantenerse aburridos. Su valor es detectar registros rotos, adapters faltantes, configuracion invalida o cambios accidentales en defaults de arranque.
+
+## 19. Documentacion Externa
+
+Referencias utiles:
+
+- [TurtlePath NuGet](https://www.nuget.org/packages/TurtlePath)
+- [TurtlePath.Template NuGet](https://www.nuget.org/packages/TurtlePath.Template)
+- [TurtlePath.Automations NuGet](https://www.nuget.org/packages/TurtlePath.Automations)
+- [TurtlePath.EntityFrameworkCore NuGet](https://www.nuget.org/packages/TurtlePath.EntityFrameworkCore)
+- [TurtlePath.Jobs NuGet](https://www.nuget.org/packages/TurtlePath.Jobs)
+- [TurtlePath.ExceptionHandling NuGet](https://www.nuget.org/packages/TurtlePath.ExceptionHandling)
+- [TurtlePath.Testing NuGet](https://www.nuget.org/packages/TurtlePath.Testing)
+- [Pelican.Mediator NuGet](https://www.nuget.org/packages/Pelican.Mediator)
+- [OctoMap NuGet](https://www.nuget.org/packages/OctoMap)
+- [Crabalidator NuGet](https://www.nuget.org/packages/Crabalidator)
+- [DataScorpio NuGet](https://www.nuget.org/packages/DataScorpio)
+- [Spider.Pipelines NuGet](https://www.nuget.org/packages/Spider.Pipelines)
+- [Pigeon.Messaging NuGet](https://www.nuget.org/packages/Pigeon.Messaging)
+- [Pigeon Azure Service Bus Adapter NuGet](https://www.nuget.org/packages/Pigeon.Messaging.Azure.ServiceBus)
+- [Pigeon Outbox EF Core NuGet](https://www.nuget.org/packages/Pigeon.Messaging.Outbox.EntityFrameworkCore)
+- [NuGet package management docs](https://learn.microsoft.com/en-us/nuget/)
+
+Usa las paginas de NuGet para confirmar comandos de instalacion, frameworks soportados, versiones, dependencias y ejemplos del README. Usa la documentacion del repositorio de cada paquete cuando necesites comportamiento especifico de algun adapter.
