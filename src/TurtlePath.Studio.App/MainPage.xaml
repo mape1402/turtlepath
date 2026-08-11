@@ -3,11 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:TurtlePath.Studio.App"
              xmlns:components="clr-namespace:TurtlePath.Studio.App.Components"
+             xmlns:studio="clr-namespace:TurtlePath.Studio.Web.Components;assembly=TurtlePath.Studio.Web"
              x:Class="TurtlePath.Studio.App.MainPage">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>
-            <RootComponent Selector="#app" ComponentType="{x:Type components:Routes}" />
+            <RootComponent Selector="#app" ComponentType="{x:Type studio:StudioShell}" />
         </BlazorWebView.RootComponents>
     </BlazorWebView>
 
