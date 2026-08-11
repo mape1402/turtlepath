@@ -31,6 +31,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddHealthCheckDefaults(configuration)
                 .AddPersistenceDefaults(configuration)
                 .AddApplicationDefaults()
+                // Event sourcing is ready but intentionally opt-in because the service must define streams and event tables.
+                // Uncomment this together with .UseEventSourcingProfiles(...) in AddApplicationDefaults.
+                // .AddEventSourcingDefaults()
                 // Pigeon is ready but intentionally opt-in because Azure Service Bus requires a real connection string.
                 // Uncomment this line when the service needs consumers, producers, or the EF Core outbox.
                 // .AddMessagingDefaults(configuration)

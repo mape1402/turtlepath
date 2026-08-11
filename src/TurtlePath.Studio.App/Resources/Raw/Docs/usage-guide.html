@@ -123,12 +123,20 @@ a { color:var(--primary); }
 <a class="depth-2" href="#13-controllers-and-rest-routes">13. Controllers And REST Routes</a>
 <a class="depth-2" href="#14-spider-pipelines-and-transactions">14. Spider Pipelines And Transactions</a>
 <a class="depth-2" href="#15-pigeon-consumers-and-outbox">15. Pigeon Consumers And Outbox</a>
-<a class="depth-2" href="#16-exception-handling">16. Exception Handling</a>
-<a class="depth-2" href="#17-jobs">17. Jobs</a>
+<a class="depth-2" href="#16-event-sourcing">16. Event Sourcing</a>
+<a class="depth-3" href="#event-sourcing-folder-shape">Event Sourcing Folder Shape</a>
+<a class="depth-3" href="#event-payloads">Event Payloads</a>
+<a class="depth-3" href="#map-events-with-octomap">Map Events With OctoMap</a>
+<a class="depth-3" href="#create-the-event-sourcing-profile">Create The Event Sourcing Profile</a>
+<a class="depth-3" href="#how-event-sourcing-runs">How Event Sourcing Runs</a>
+<a class="depth-3" href="#event-sourcing-migration">EF Migration</a>
+<a class="depth-3" href="#test-event-sourcing">Test Event Sourcing</a>
+<a class="depth-2" href="#17-exception-handling">17. Exception Handling</a>
+<a class="depth-2" href="#18-jobs">18. Jobs</a>
 <a class="depth-3" href="#create-a-job">Create A Job</a>
 <a class="depth-3" href="#one-shot-jobs-for-kubernetes-cronjob">One-Shot Jobs For Kubernetes CronJob</a>
 <a class="depth-3" href="#recurring-cron-style-jobs">Recurring Cron-Style Jobs</a>
-<a class="depth-2" href="#18-testing">18. Testing</a>
+<a class="depth-2" href="#19-testing">19. Testing</a>
 <a class="depth-3" href="#unit-test-a-handler">Unit Test A Handler</a>
 <a class="depth-3" href="#integration-test-automations-with-sqlite">Integration Test Automations With SQLite</a>
 <a class="depth-3" href="#integration-test-a-manual-handler-through-pelican">Integration Test A Manual Handler Through Pelican</a>
@@ -138,7 +146,7 @@ a { color:var(--primary); }
 <a class="depth-3" href="#test-exception-mappings">Test Exception Mappings</a>
 <a class="depth-3" href="#test-jobs">Test Jobs</a>
 <a class="depth-3" href="#composition-tests">Composition Tests</a>
-<a class="depth-2" href="#19-external-documentation">19. External Documentation</a></nav>
+<a class="depth-2" href="#20-external-documentation">20. External Documentation</a></nav>
   </aside>
   <main class="content"><article class="article"><h1 id="turtlepath-template-use-guide">TurtlePath Template Use Guide</h1>
 <p>This guide explains how to create and grow a service generated with <code>TurtlePath.Template</code>. It is written for the developer who just created a project and needs to know where code goes, which defaults are already wired, and when to use automations, handlers, hooks, jobs, consumers, and exception handling.</p>
@@ -159,10 +167,11 @@ a { color:var(--primary); }
 <li><a href="#13-controllers-and-rest-routes">13. Controllers And REST Routes</a></li>
 <li><a href="#14-spider-pipelines-and-transactions">14. Spider Pipelines And Transactions</a></li>
 <li><a href="#15-pigeon-consumers-and-outbox">15. Pigeon Consumers And Outbox</a></li>
-<li><a href="#16-exception-handling">16. Exception Handling</a></li>
-<li><a href="#17-jobs">17. Jobs</a></li>
-<li><a href="#18-testing">18. Testing</a></li>
-<li><a href="#19-external-documentation">19. External Documentation</a></li>
+<li><a href="#16-event-sourcing">16. Event Sourcing</a></li>
+<li><a href="#17-exception-handling">17. Exception Handling</a></li>
+<li><a href="#18-jobs">18. Jobs</a></li>
+<li><a href="#19-testing">19. Testing</a></li>
+<li><a href="#20-external-documentation">20. External Documentation</a></li>
 </ul>
 <h2 id="1-what-the-template-gives-you">1. What The Template Gives You</h2>
 <p>The generated service is not an empty ASP.NET Core project. It already has the standard TurtlePath stack wired:</p>
@@ -179,6 +188,7 @@ a { color:var(--primary); }
 <li><code>TurtlePath.ExceptionHandling.Consumers</code> for Pigeon consumers.</li>
 <li><code>TurtlePath.ExceptionHandling.Workers</code> for jobs and background work.</li>
 <li><code>TurtlePath.Jobs</code> for one-shot jobs and recurring cron-style jobs.</li>
+<li><code>TurtlePath.EventSourcing</code> with Krackend EF Core event store prepared as an opt-in event sourcing stack.</li>
 <li><code>Pelican.Mediator</code> for request dispatch.</li>
 <li><code>Spider.Pipelines</code> for execution boundaries, including the default transaction boundary.</li>
 <li><code>TurtlePath.Spider</code> for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.</li>
@@ -718,6 +728,8 @@ public sealed class GetPagedInvoicesQueryHandler
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
+        // Enable this only when the service needs event sourcing.
+        // .AddEventSourcingDefaults()
         // Enable this only when the service needs Pigeon and has broker settings.
         // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
@@ -733,6 +745,8 @@ public sealed class GetPagedInvoicesQueryHandler
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
+        // Enable this only when the service needs event sourcing.
+        // .AddEventSourcingDefaults()
         // Enable this only when the service needs Pigeon and has broker settings.
         // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
@@ -772,6 +786,8 @@ services.AddTurtlePath(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    // Enable this only after adding IEventSourcingProfile implementations.
+    // .UseEventSourcingProfiles(typeof(Constants).Assembly)
     .UseCId&lt;Ulid, string&gt;(config =&gt;
     {
         config.DefaultFactory = () =&gt; CId.From(Ulid.NewUlid());
@@ -802,6 +818,8 @@ services.AddTurtlePath(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    // Enable this only after adding IEventSourcingProfile implementations.
+    // .UseEventSourcingProfiles(typeof(Constants).Assembly)
     .UseCId&lt;Ulid, string&gt;(config =&gt;
     {
         config.DefaultFactory = () =&gt; CId.From(Ulid.NewUlid());
@@ -2542,7 +2560,263 @@ public sealed record InvoiceIssuedMessage(CId CustomerId, decimal Amount);</code
 <li><code>ConsumerExceptionBoundary</code></li>
 </ul>
 <p>Use consumers for integration messages. Keep business behavior in requests, handlers, automations, and hooks.</p>
-<h2 id="16-exception-handling">16. Exception Handling</h2>
+<h2 id="16-event-sourcing">16. Event Sourcing</h2>
+<p>The template includes <code>TurtlePath.EventSourcing</code> and <code>Krackend.EventSourcing.EntityFrameworkCore</code> as an opt-in event sourcing stack. It is not registered by default because event sourcing needs deliberate stream names, event schemas, expected-version rules, and database tables.</p>
+<p>To enable it, create <code>IEventSourcingProfile</code> implementations in <code>Business/&lt;Feature&gt;/EventSourcing</code>, then uncomment <code>.UseEventSourcingProfiles(typeof(Constants).Assembly)</code> in <code>AddApplicationDefaults</code> and <code>.AddEventSourcingDefaults()</code> in <code>AddDefaults</code>. After that, add an EF Core migration so the Krackend event store tables are created.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseEventSourcingProfiles(typeof(Constants).Assembly)
+    .UseEntityFrameworkCore&lt;AppDbContext&gt;();">Copy</button></div><pre><code class="language-csharp">services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseEventSourcingProfiles(typeof(Constants).Assembly)
+    .UseEntityFrameworkCore&lt;AppDbContext&gt;();</code></pre></div>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="internal static IServiceCollection AddEventSourcingDefaults(this IServiceCollection services)
+{
+    services.AddKrackendEntityFrameworkEventStore&lt;AppDbContext&gt;();
+
+    return services;
+}">Copy</button></div><pre><code class="language-csharp">internal static IServiceCollection AddEventSourcingDefaults(this IServiceCollection services)
+{
+    services.AddKrackendEntityFrameworkEventStore&lt;AppDbContext&gt;();
+
+    return services;
+}</code></pre></div>
+<p>Use event sourcing for auditable domain transitions and append-only history. Do not enable it just to publish integration messages; use Pigeon/outbox for that.</p>
+<h3 id="event-sourcing-folder-shape">Event Sourcing Folder Shape</h3>
+<p>Keep event sourcing files inside the feature that owns the events. The profile describes when events are appended, event payloads describe what is stored, and mapping profiles describe how TurtlePath creates the final event payload.</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Business/
+  Invoices/
+    Commands/
+      CreateInvoiceRequest.cs
+      UpdateInvoiceRequest.cs
+    EventSourcing/
+      InvoiceEventSourcingProfile.cs
+      InvoiceEventSource.cs
+      InvoiceCreated.cs
+      InvoiceUpdated.cs
+      InvoiceCanceled.cs
+    Mappings/
+      InvoiceMappingProfile.cs
+    Models/
+      Requests/
+      Responses/">Copy</button></div><pre><code class="language-text">Business/
+  Invoices/
+    Commands/
+      CreateInvoiceRequest.cs
+      UpdateInvoiceRequest.cs
+    EventSourcing/
+      InvoiceEventSourcingProfile.cs
+      InvoiceEventSource.cs
+      InvoiceCreated.cs
+      InvoiceUpdated.cs
+      InvoiceCanceled.cs
+    Mappings/
+      InvoiceMappingProfile.cs
+    Models/
+      Requests/
+      Responses/</code></pre></div>
+<h3 id="event-payloads">Event Payloads</h3>
+<p>Keep events small, explicit, and version-friendly. Avoid storing full entity graphs.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed record InvoiceCreated(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceUpdated(
+    string InvoiceId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceCanceled(
+    string InvoiceId,
+    string Reason,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceEventSource(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    string Reason,
+    DateTimeOffset OccurredAt);">Copy</button></div><pre><code class="language-csharp">public sealed record InvoiceCreated(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceUpdated(
+    string InvoiceId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceCanceled(
+    string InvoiceId,
+    string Reason,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceEventSource(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    string Reason,
+    DateTimeOffset OccurredAt);</code></pre></div>
+<h3 id="map-events-with-octomap">Map Events With OctoMap</h3>
+<p><code>TurtlePath.EventSourcing</code> uses the configured <code>IMapperAdapter</code>. In this template that means OctoMap.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class InvoiceEventMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceCreated&gt;();
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceUpdated&gt;();
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceCanceled&gt;();
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class InvoiceEventMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceCreated&gt;();
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceUpdated&gt;();
+        builder.CreateMap&lt;InvoiceEventSource, InvoiceCanceled&gt;();
+    }
+}</code></pre></div>
+<h3 id="create-the-event-sourcing-profile">Create The Event Sourcing Profile</h3>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class InvoiceEventSourcingProfile : IEventSourcingProfile
+{
+    public void Configure(IEventSourcingProfileBuilder builder)
+    {
+        builder.For&lt;CreateInvoiceRequest, Invoice&gt;()
+            .UseStream(&quot;invoices&quot;, context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceCreated&gt;(
+                ToSource,
+                options =&gt; options.UseExpectedVersion(ExpectedVersion.NoStream));
+
+        builder.For&lt;UpdateInvoiceRequest, Invoice&gt;()
+            .UseStream(&quot;invoices&quot;, context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceUpdated&gt;(ToSource);
+
+        builder.For&lt;CancelInvoiceRequest, Invoice&gt;()
+            .UseStream(&quot;invoices&quot;, context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceCanceled&gt;(
+                ToSource,
+                options =&gt; options.When(context =&gt; context.Entity.Canceled));
+    }
+
+    private static InvoiceEventSource ToSource&lt;TRequest&gt;(CommandHookContext&lt;TRequest, Invoice&gt; context)
+        where TRequest : class
+    {
+        return new InvoiceEventSource(
+            context.Entity.Id.ToString(),
+            context.Entity.CustomerId.ToString(),
+            context.Entity.Total,
+            context.Entity.Currency,
+            context.Request is CancelInvoiceRequest cancel ? cancel.Reason : string.Empty,
+            DateTimeOffset.UtcNow);
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class InvoiceEventSourcingProfile : IEventSourcingProfile
+{
+    public void Configure(IEventSourcingProfileBuilder builder)
+    {
+        builder.For&lt;CreateInvoiceRequest, Invoice&gt;()
+            .UseStream("invoices", context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceCreated&gt;(
+                ToSource,
+                options =&gt; options.UseExpectedVersion(ExpectedVersion.NoStream));
+
+        builder.For&lt;UpdateInvoiceRequest, Invoice&gt;()
+            .UseStream("invoices", context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceUpdated&gt;(ToSource);
+
+        builder.For&lt;CancelInvoiceRequest, Invoice&gt;()
+            .UseStream("invoices", context =&gt; context.Entity.Id.ToString())
+            .ToEvent&lt;InvoiceEventSource, InvoiceCanceled&gt;(
+                ToSource,
+                options =&gt; options.When(context =&gt; context.Entity.Canceled));
+    }
+
+    private static InvoiceEventSource ToSource&lt;TRequest&gt;(CommandHookContext&lt;TRequest, Invoice&gt; context)
+        where TRequest : class
+    {
+        return new InvoiceEventSource(
+            context.Entity.Id.ToString(),
+            context.Entity.CustomerId.ToString(),
+            context.Entity.Total,
+            context.Entity.Currency,
+            context.Request is CancelInvoiceRequest cancel ? cancel.Reason : string.Empty,
+            DateTimeOffset.UtcNow);
+    }
+}</code></pre></div>
+<p><code>UseStream("invoices", ...)</code> chooses the logical stream and stream id. <code>ToEvent&lt;TSource, TEvent&gt;(...)</code> maps the command/entity hook context to a source object, then uses OctoMap to create the final event payload. Use <code>ExpectedVersion.NoStream</code> for the first event in a stream, <code>ExpectedVersion.Any</code> when optimistic concurrency is not required, and <code>When(...)</code> for conditional events.</p>
+<h3 id="how-event-sourcing-runs">How Event Sourcing Runs</h3>
+<ol>
+<li>Pelican sends the command.</li>
+<li>TurtlePath creates or updates the entity.</li>
+<li>The handler saves the entity through EF Core.</li>
+<li><code>EventSourcingAfterSaveHook</code> runs after save.</li>
+<li>The hook resolves the stream and maps the command/entity context to event payloads.</li>
+<li>Krackend appends the events through <code>IEventStore</code>.</li>
+</ol>
+<p>Automations and base command handlers can emit events without custom handler code. If the happy path is enough, add the Event Sourcing profile and keep the handler generated. If the business flow is special, create a custom handler and the same hooks still apply after save.</p>
+<h3 id="event-sourcing-migration">EF Migration</h3>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-code" data-code="dotnet ef migrations add AddEventSourcingStore `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api
+
+dotnet ef database update `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api">Copy</button></div><pre><code class="language-powershell">dotnet ef migrations add AddEventSourcingStore `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api
+
+dotnet ef database update `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api</code></pre></div>
+<h3 id="test-event-sourcing">Test Event Sourcing</h3>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="await using var host = await TemplateTestHost.CreateAsync(services =&gt;
+{
+    services.AddEventSourcingDefaults();
+});
+
+var mediator = host.Services.GetRequiredService&lt;IMediator&gt;();
+
+var response = await mediator.Send(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Total = 1250m,
+    Currency = &quot;USD&quot;
+});
+
+var eventStore = host.Services.GetRequiredService&lt;IEventStore&gt;();
+var stream = await eventStore.ReadStreamAsync(&quot;invoices&quot;, response.Id.ToString());
+
+stream.Events.Should().ContainSingle(e =&gt; e.Payload is InvoiceCreated);">Copy</button></div><pre><code class="language-csharp">await using var host = await TemplateTestHost.CreateAsync(services =&gt;
+{
+    services.AddEventSourcingDefaults();
+});
+
+var mediator = host.Services.GetRequiredService&lt;IMediator&gt;();
+
+var response = await mediator.Send(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Total = 1250m,
+    Currency = "USD"
+});
+
+var eventStore = host.Services.GetRequiredService&lt;IEventStore&gt;();
+var stream = await eventStore.ReadStreamAsync("invoices", response.Id.ToString());
+
+stream.Events.Should().ContainSingle(e =&gt; e.Payload is InvoiceCreated);</code></pre></div>
+<h2 id="17-exception-handling">17. Exception Handling</h2>
 <p>TurtlePath exception handling is transport-neutral. The core creates an <code>ExceptionDescriptor</code>:</p>
 <ul>
 <li><code>Kind</code></li>
@@ -2641,7 +2915,7 @@ services.AddTurtlePathWorkerExceptionHandling();</code></pre></div>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="if (context.Entity.Status == InvoiceStatus.Canceled)
     throw new InvoiceAlreadyCanceledException(context.Entity.Id);">Copy</button></div><pre><code class="language-csharp">if (context.Entity.Status == InvoiceStatus.Canceled)
     throw new InvoiceAlreadyCanceledException(context.Entity.Id);</code></pre></div>
-<h2 id="17-jobs">17. Jobs</h2>
+<h2 id="18-jobs">18. Jobs</h2>
 <p>Use TurtlePath jobs when a workload is not naturally an HTTP endpoint or a message consumer.</p>
 <p>There are two standard shapes:</p>
 <ul>
@@ -2889,7 +3163,7 @@ public sealed class RefreshCatalogJob : TurtlePathJob
 <li><code>Retries</code>, <code>RetryDelay</code>, and <code>FailureBehavior</code>: same retry and failure behavior used by one-shot jobs, but applied to each execution cycle.</li>
 </ul>
 <p>Multiple cron jobs are supported. Each registered cron job runs its own loop inside <code>TurtlePathCronJobHostedService</code>, so each job can have its own interval, retry policy, and failure behavior.</p>
-<h2 id="18-testing">18. Testing</h2>
+<h2 id="19-testing">19. Testing</h2>
 <p>The template includes testing setup so feature tests do not start from zero. The developer should write the use case and assertions, while the template keeps the TurtlePath test host, Pelican, OctoMap, Crabalidator, Spider, DataScorpio, SQLite, jobs, and exception handling ready.</p>
 <p>Use this split:</p>
 <ul>
@@ -3261,7 +3535,7 @@ public async Task ApiHost_Composes()
     Assert.NotNull(host.Services);
 }</code></pre></div>
 <p>Composition tests should stay boring. Their value is catching broken package registration, missing adapters, invalid configuration, or accidental changes to startup defaults.</p>
-<h2 id="19-external-documentation">19. External Documentation</h2>
+<h2 id="20-external-documentation">20. External Documentation</h2>
 <p>Use these references for deeper package behavior:</p>
 <ul>
 <li><a href="https://www.nuget.org/packages/TurtlePath">TurtlePath NuGet</a></li>
@@ -3279,6 +3553,8 @@ public async Task ApiHost_Composes()
 <li><a href="https://www.nuget.org/packages/Pigeon.Messaging">Pigeon.Messaging NuGet</a></li>
 <li><a href="https://www.nuget.org/packages/Pigeon.Messaging.Azure.ServiceBus">Pigeon Azure Service Bus Adapter NuGet</a></li>
 <li><a href="https://www.nuget.org/packages/Pigeon.Messaging.Outbox.EntityFrameworkCore">Pigeon Outbox EF Core NuGet</a></li>
+<li><a href="https://www.nuget.org/packages/TurtlePath.EventSourcing">TurtlePath.EventSourcing NuGet</a></li>
+<li><a href="https://www.nuget.org/packages/Krackend.EventSourcing.EntityFrameworkCore">Krackend.EventSourcing.EntityFrameworkCore NuGet</a></li>
 <li><a href="https://learn.microsoft.com/en-us/nuget/">NuGet package management docs</a></li>
 </ul>
 <p>Use NuGet pages to confirm installation commands, supported target frameworks, package versions, dependencies, and README examples. Use package repository docs when you need deeper adapter-specific behavior.</p></article></main>

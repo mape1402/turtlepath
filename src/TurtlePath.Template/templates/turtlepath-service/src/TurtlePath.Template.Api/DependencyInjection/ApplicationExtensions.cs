@@ -34,6 +34,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 .UseOctoMap()
                 .UseCrabalidator()
                 .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+                // Event sourcing is ready but intentionally opt-in because it creates an append-only event store.
+                // Add IEventSourcingProfile implementations in Business and uncomment this line when the service needs event streams.
+                // .UseEventSourcingProfiles(typeof(Constants).Assembly)
                 .UseCId<Ulid, string>(config =>
                 {
                     config.DefaultFactory = () => CId.From(Ulid.NewUlid());
