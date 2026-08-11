@@ -12,6 +12,13 @@ public partial class App : Microsoft.Maui.Controls.Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(mainPage) { Title = "TurtlePath Studio" };
+		return new Window(mainPage)
+		{
+			Title = "TurtlePath Studio",
+			Width = 1440,
+			Height = 900,
+			MinimumWidth = 1180,
+			MinimumHeight = 760
+		};
 	}
 }

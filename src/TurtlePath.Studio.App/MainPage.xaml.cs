@@ -664,8 +664,8 @@ public partial class MainPage : ContentPage
     {
         var overlay = new Grid
         {
-            BackgroundColor = Color.FromRgba(4, 16, 13, 0.58),
-            Padding = new Thickness(42)
+            BackgroundColor = Color.FromRgba(2, 12, 10, 0.72),
+            Padding = new Thickness(36)
         };
 
         var modal = new Grid
@@ -679,11 +679,7 @@ public partial class MainPage : ContentPage
             },
             RowSpacing = 18,
             Padding = new Thickness(28),
-            BackgroundColor = Colors.White,
-            WidthRequest = 820,
-            HeightRequest = 640,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
+            BackgroundColor = Color.FromArgb("#FBFDFC")
         };
 
         modal.Add(BuildWizardHeader(), 0, 0);
@@ -691,7 +687,27 @@ public partial class MainPage : ContentPage
         modal.Add(new ScrollView { Content = BuildWizardBody() }, 0, 2);
         modal.Add(BuildWizardFooter(), 0, 3);
 
-        overlay.Add(CreateBorder(modal, stroke: Color.FromArgb("#CFE0D6")));
+        var modalFrame = new Border
+        {
+            WidthRequest = 840,
+            HeightRequest = 580,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Color.FromArgb("#FBFDFC"),
+            Stroke = Color.FromArgb("#89AA99"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(18) },
+            Shadow = new Shadow
+            {
+                Brush = Brush.Black,
+                Offset = new Point(0, 18),
+                Radius = 42,
+                Opacity = 0.34f
+            },
+            Content = modal
+        };
+
+        overlay.Add(modalFrame);
         modalHost.Content = overlay;
         modalHost.IsVisible = true;
     }
