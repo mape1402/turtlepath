@@ -431,163 +431,103 @@ public partial class MainPage : ContentPage
 
     private View BuildGuides()
     {
-        var grid = new Grid
+        var container = new Grid
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(300) },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 18
+            BackgroundColor = Colors.White
         };
 
-        grid.Add(BuildGuideIndex(), 0, 0);
-        grid.Add(BuildGuideDetails(), 1, 0);
-        return grid;
-    }
-
-    private View BuildGuideIndex()
-    {
-        var index = new VerticalStackLayout { Spacing = 10 };
-        index.Add(new Label
+        var webView = new WebView
         {
-            Text = "Template assistant",
-            FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Ink
-        });
-        index.Add(new Label
-        {
-            Text = "Pick a topic and follow the steps. This is the generated project playbook.",
-            TextColor = Muted,
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        foreach (var topic in viewModel.GuideTopics)
-            index.Add(CreateGuideIndexItem(topic));
-
-        return CreateBorder(new ScrollView { Content = index });
-    }
-
-    private View CreateGuideIndexItem(GuideTopic topic)
-    {
-        var selected = viewModel.SelectedGuideTopicKey == topic.Key;
-        var layout = new VerticalStackLayout { Spacing = 4 };
-        layout.Add(new Label
-        {
-            Text = topic.Title,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = selected ? Colors.White : Ink
-        });
-        layout.Add(new Label
-        {
-            Text = topic.Summary,
-            TextColor = selected ? Color.FromArgb("#E2F1E8") : Muted,
-            FontSize = 12,
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        var border = new Border
-        {
-            Padding = new Thickness(14, 12),
-            StrokeThickness = selected ? 0 : 1,
-            Stroke = Line,
-            BackgroundColor = selected ? Primary : Color.FromArgb("#F9FBFA"),
-            Content = layout
+            BackgroundColor = Colors.White,
+            Opacity = 0,
+            InputTransparent = true
         };
 
-        var tap = new TapGestureRecognizer();
-        tap.Tapped += (_, _) =>
+        var loader = BuildGuideLoader();
+        webView.Navigated += (_, _) =>
         {
-            viewModel.SelectGuideTopic(topic.Key);
-            Render();
-        };
-        border.GestureRecognizers.Add(tap);
-        return border;
-    }
-
-    private View BuildGuideDetails()
-    {
-        var topic = viewModel.SelectedGuideTopic;
-        var layout = new VerticalStackLayout { Spacing = 16 };
-
-        layout.Add(new Label
-        {
-            Text = topic.Title,
-            FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Ink
-        });
-        layout.Add(new Label
-        {
-            Text = topic.Summary,
-            FontSize = 15,
-            TextColor = Muted,
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        for (var i = 0; i < topic.Steps.Count; i++)
-            layout.Add(CreateGuideStep(i + 1, topic.Steps[i]));
-
-        return CreateBorder(new ScrollView { Content = layout });
-    }
-
-    private View CreateGuideStep(int number, GuideStep step)
-    {
-        var grid = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 14
+            loader.IsVisible = false;
+            webView.InputTransparent = false;
+            _ = webView.FadeToAsync(1, 120);
         };
 
-        grid.Add(new Border
-        {
-            WidthRequest = 34,
-            HeightRequest = 34,
-            StrokeThickness = 0,
-            BackgroundColor = Color.FromArgb("#E2F1E8"),
-            Content = new Label
-            {
-                Text = number.ToString(),
-                TextColor = Primary,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = TextAlignment.Center
-            }
-        }, 0, 0);
+        container.Add(webView);
+        container.Add(loader);
 
-        var content = new VerticalStackLayout { Spacing = 8 };
-        content.Add(new Label
-        {
-            Text = step.Title,
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Ink
-        });
-        content.Add(new Label
-        {
-            Text = step.Body,
-            TextColor = Muted,
-            LineBreakMode = LineBreakMode.WordWrap
-        });
-
-        foreach (var detail in step.Details)
-            content.Add(new Label { Text = $"- {detail}", TextColor = Ink, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap });
-
-        grid.Add(content, 1, 0);
+        _ = LoadGuideAsync(webView, loader);
 
         return new Border
         {
-            Padding = new Thickness(14),
             Stroke = Line,
             StrokeThickness = 1,
-            BackgroundColor = Color.FromArgb("#F9FBFA"),
-            Content = grid
+            BackgroundColor = Colors.White,
+            Content = container
         };
+    }
+
+    private View BuildGuideLoader()
+    {
+        var content = new VerticalStackLayout
+        {
+            Spacing = 12,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        content.Add(new ActivityIndicator
+        {
+            IsRunning = true,
+            Color = Primary,
+            WidthRequest = 36,
+            HeightRequest = 36,
+            HorizontalOptions = LayoutOptions.Center
+        });
+        content.Add(new Label
+        {
+            Text = "Loading guide...",
+            TextColor = Muted,
+            FontAttributes = FontAttributes.Bold,
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+
+        var loader = new Grid
+        {
+            BackgroundColor = Colors.White
+        };
+        loader.Add(content);
+        return loader;
+    }
+
+    private static async Task LoadGuideAsync(WebView webView, View loader)
+    {
+        try
+        {
+            await using var stream = await Microsoft.Maui.Storage.FileSystem.OpenAppPackageFileAsync("Docs/usage-guide.html");
+            using var reader = new StreamReader(stream);
+            webView.Source = new HtmlWebViewSource
+            {
+                Html = await reader.ReadToEndAsync()
+            };
+        }
+        catch (Exception exception)
+        {
+            loader.IsVisible = false;
+            webView.Opacity = 1;
+            webView.InputTransparent = false;
+            webView.Source = new HtmlWebViewSource
+            {
+                Html = $"""
+                    <!doctype html>
+                    <html>
+                    <body style="font-family:Segoe UI,Arial,sans-serif;padding:32px;color:#081f1a;background:#f4f8f5">
+                        <h1>Guide unavailable</h1>
+                        <p>The embedded TurtlePath template guide could not be loaded.</p>
+                        <pre style="white-space:pre-wrap;background:#fff;border:1px solid #d9e5de;padding:16px">{System.Net.WebUtility.HtmlEncode(exception.Message)}</pre>
+                    </body>
+                    </html>
+                    """
+            };
+        }
     }
 
     private View BuildEnvironment()
