@@ -31,7 +31,7 @@ public static class TemplateTestHost
             .UseDataScorpioTesting(configureDataScorpio ?? DefaultDataScorpioProfiles)
             .UseSqliteDbContext<TDbContext>(options => options with
             {
-                ConfigurationAssemblies = [businessAssembly]
+                ConfigurationAssemblies = [typeof(TDbContext).Assembly]
             });
     }
 }

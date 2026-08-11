@@ -188,6 +188,7 @@ public partial class MainPage : ContentPage
             StudioSection.Home => BuildHome(),
             StudioSection.Templates => BuildTemplates(),
             StudioSection.Guides => BuildGuides(),
+            StudioSection.Demos => BuildDemos(),
             StudioSection.Environment => BuildEnvironment(),
             _ => BuildHome()
         };
@@ -204,6 +205,7 @@ public partial class MainPage : ContentPage
         navigation.Add(CreateSideItem("Home", "\uE80F", "Start", StudioSection.Home));
         navigation.Add(CreateSideItem("Templates", "\uE8A5", "Create projects", StudioSection.Templates));
         navigation.Add(CreateSideItem("Guides", "\uE82D", "Use the template", StudioSection.Guides));
+        navigation.Add(CreateSideItem("Demos", "\uE7C3", "Reference projects", StudioSection.Demos));
         navigation.Add(CreateSideItem("Environment", "\uE713", "Setup tools", StudioSection.Environment));
     }
 
@@ -320,7 +322,7 @@ public partial class MainPage : ContentPage
 
         grid.Add(CreateActionCard("Create from template", "API / Consumer or one-shot Job with a focused wizard.", "Open templates", () => Navigate(StudioSection.Templates)), 0, 0);
         grid.Add(CreateActionCard("Read the guide", "Use the project step-by-step guide instead of guessing structure.", "Open guides", () => Navigate(StudioSection.Guides)), 1, 0);
-        grid.Add(CreateActionCard("Repair environment", "Install or update the TurtlePath template when setup is incomplete.", "Open setup", () => Navigate(StudioSection.Environment)), 2, 0);
+        grid.Add(CreateActionCard("Explore demos", "Generate a complete reference project with real features and tests.", "Open demos", () => Navigate(StudioSection.Demos)), 2, 0);
 
         layout.Add(grid);
         return new ScrollView { Content = layout };
@@ -388,6 +390,69 @@ public partial class MainPage : ContentPage
         layout.Add(grid);
         layout.Add(CreateGuidePreview());
         return new ScrollView { Content = layout };
+    }
+
+    private View BuildDemos()
+    {
+        var layout = new VerticalStackLayout { Spacing = 18 };
+        layout.Add(CreateDocSection(
+            "Reference project templates",
+            "Demos are installed as dotnet new templates and generated into your selected folder, just like regular TurtlePath projects."));
+
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 18
+        };
+
+        grid.Add(CreateDemoCard(
+            "Heroes Showcase",
+            "A complete TurtlePath service with Heroes, Villains, Teams, Skills, incidents, jobs and tests.",
+            "Shows automations, custom handlers, hooks, Spider, DataScorpio, OctoMap, Crabalidator, SQLite, optional Pigeon and EventSourcing wiring.",
+            () =>
+            {
+                viewModel.OpenHeroesShowcaseWizard();
+                Render();
+            }), 0, 0);
+
+        layout.Add(grid);
+        layout.Add(CreateDocSection(
+            "NuGet publishing note",
+            "If the demo package is not available yet, Studio will show the install command output in the wizard result. Once the package is published, the same card will create the demo without app changes."));
+
+        return new ScrollView { Content = layout };
+    }
+
+    private View CreateDemoCard(string name, string summary, string details, Action create)
+    {
+        var layout = new VerticalStackLayout { Spacing = 14 };
+        layout.Add(new Label
+        {
+            Text = "DEMO",
+            FontSize = 13,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Primary
+        });
+        layout.Add(new Label
+        {
+            Text = name,
+            FontSize = 26,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        layout.Add(new Label { Text = summary, FontSize = 16, TextColor = Ink, LineBreakMode = LineBreakMode.WordWrap });
+        layout.Add(new Label { Text = details, TextColor = Muted, LineBreakMode = LineBreakMode.WordWrap });
+
+        var actions = new HorizontalStackLayout { Spacing = 10 };
+        actions.Add(CreateButton("Create demo", create));
+        actions.Add(CreateButton("Guide", () => Navigate(StudioSection.Guides), secondary: true));
+        layout.Add(actions);
+
+        return CreateBorder(layout, minHeight: 280);
     }
 
     private View CreateTemplateCard(ProjectHostMode hostMode, string name, string summary, string details)
@@ -828,7 +893,7 @@ public partial class MainPage : ContentPage
         var copy = new VerticalStackLayout { Spacing = 4 };
         copy.Add(new Label
         {
-            Text = viewModel.SelectedHost == ProjectHostMode.Job ? "Create one-shot job" : "Create API / Consumer service",
+            Text = $"Create {viewModel.SelectedTemplateName}",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Ink

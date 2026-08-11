@@ -50,7 +50,7 @@ public static class TemplateTestHost
             })
             .UseSqliteDbContext<TDbContext>(options => options with
             {
-                ConfigurationAssemblies = [businessAssembly]
+                ConfigurationAssemblies = [typeof(TDbContext).Assembly]
             });
     }
 }

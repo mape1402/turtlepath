@@ -4,6 +4,7 @@ using TurtlePath.Studio.Abstractions.Projects;
 using TurtlePath.Studio.Abstractions.Validation;
 using TurtlePath.Studio.Abstractions.Workspace;
 using TurtlePath.Studio.App.Settings;
+using TurtlePath.Studio.Application.Defaults;
 using TurtlePath.Studio.Application.Environment;
 using TurtlePath.Studio.Application.UseCases;
 
@@ -21,6 +22,9 @@ public sealed class StudioViewModel
     public bool SidebarCollapsed { get; private set; }
     public StudioEnvironmentReport? Environment { get; private set; }
     public ProjectHostMode SelectedHost { get; private set; } = ProjectHostMode.ApiConsumer;
+    public string SelectedTemplatePackageId { get; private set; } = TurtlePathStudioDefaults.TemplatePackageId;
+    public string SelectedTemplateShortName { get; private set; } = TurtlePathStudioDefaults.TemplateShortName;
+    public bool SelectedTemplateIncludesHostOption { get; private set; } = true;
     public WizardStep WizardStep { get; private set; } = WizardStep.Basics;
     public string ProjectName { get; set; }
     public string OutputRoot { get; set; }
@@ -46,6 +50,7 @@ public sealed class StudioViewModel
         StudioSection.Home => "Build TurtlePath projects faster",
         StudioSection.Templates => "Templates",
         StudioSection.Guides => "Usage guides",
+        StudioSection.Demos => "Demos",
         StudioSection.Environment => "Environment",
         _ => "TurtlePath Studio"
     };
@@ -55,6 +60,7 @@ public sealed class StudioViewModel
         StudioSection.Home => "Start from the template, read the guide, or check your local environment.",
         StudioSection.Templates => "Pick the host type and let the wizard create the project.",
         StudioSection.Guides => "Step-by-step notes for generated projects and TurtlePath conventions.",
+        StudioSection.Demos => "Generate complete reference projects that show TurtlePath features working together.",
         StudioSection.Environment => "Validate and repair the local .NET template setup.",
         _ => "Project launcher"
     };
@@ -67,9 +73,7 @@ public sealed class StudioViewModel
                 ? SidebarCollapsed ? "!" : "Environment: update required"
                 : SidebarCollapsed ? "!" : "Environment: needs attention";
 
-    public string SelectedTemplateName => SelectedHost == ProjectHostMode.Job
-        ? "One-shot Job"
-        : "API / Consumer";
+    public string SelectedTemplateName { get; private set; } = "API / Consumer";
 
     public string ProjectDirectoryPreview => string.IsNullOrWhiteSpace(ProjectName) || string.IsNullOrWhiteSpace(OutputRoot)
         ? "Complete the project name and destination folder"
@@ -117,9 +121,34 @@ public sealed class StudioViewModel
     public void OpenWizard(ProjectHostMode hostMode)
     {
         SelectedHost = hostMode;
+        SelectedTemplateName = hostMode == ProjectHostMode.Job ? "One-shot Job" : "API / Consumer";
+        SelectedTemplatePackageId = TurtlePathStudioDefaults.TemplatePackageId;
+        SelectedTemplateShortName = TurtlePathStudioDefaults.TemplateShortName;
+        SelectedTemplateIncludesHostOption = true;
         ProjectName = string.IsNullOrWhiteSpace(ProjectNamePlaceholder)
             ? "TurtlePath.Service"
             : ProjectNamePlaceholder;
+        OutputRoot = DefaultOutputRoot;
+        RestoreAfterCreation = DefaultRestoreAfterCreation;
+        BuildAfterCreation = DefaultBuildAfterCreation;
+        TestAfterCreation = DefaultTestAfterCreation;
+        HideGuideAfterCreation = DefaultHideGuideAfterCreation;
+        WizardStep = WizardStep.Basics;
+        IsCreated = false;
+        CreatedDirectory = null;
+        Commands = [];
+        IsWizardOpen = true;
+        ClearMessage();
+    }
+
+    public void OpenHeroesShowcaseWizard()
+    {
+        SelectedHost = ProjectHostMode.ApiConsumer;
+        SelectedTemplateName = "Heroes Showcase";
+        SelectedTemplatePackageId = TurtlePathStudioDefaults.HeroesShowcaseTemplatePackageId;
+        SelectedTemplateShortName = TurtlePathStudioDefaults.HeroesShowcaseTemplateShortName;
+        SelectedTemplateIncludesHostOption = false;
+        ProjectName = "Heroes.Service";
         OutputRoot = DefaultOutputRoot;
         RestoreAfterCreation = DefaultRestoreAfterCreation;
         BuildAfterCreation = DefaultBuildAfterCreation;
@@ -258,25 +287,37 @@ public sealed class StudioViewModel
 
         await RunAsync(async () =>
         {
-            Environment = await inspectEnvironment.ExecuteAsync();
-            if (!Environment.CanCreateProjects)
+            var selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+            if (!selectedTemplate.CanCreateProjects)
             {
-                Message = Environment.TemplateRequiresUpdate
-                    ? BuildTemplateUpdateRequiredMessage(Environment)
-                    : "TurtlePath.Template must be installed before creating projects.";
-                MessageIsError = true;
-                return;
+                var install = await installTemplate.ExecuteAsync(SelectedTemplatePackageId, forceUpdate: true);
+                Commands = [install];
+
+                selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+                if (!install.Succeeded || !selectedTemplate.CanCreateProjects)
+                {
+                    Message = selectedTemplate.TemplateRequiresUpdate
+                        ? BuildTemplateUpdateRequiredMessage(selectedTemplate)
+                        : $"{SelectedTemplatePackageId} must be installed before creating projects.";
+                    MessageIsError = true;
+                    return;
+                }
             }
+
+            if (SelectedTemplatePackageId == TurtlePathStudioDefaults.TemplatePackageId)
+                Environment = selectedTemplate;
 
             var result = await createProject.ExecuteAsync(new CreateProjectRequest(
                 ProjectName.Trim(),
                 ProjectDirectoryPreview,
                 SelectedHost,
+                SelectedTemplateShortName,
+                SelectedTemplateIncludesHostOption,
                 RestoreAfterCreation,
                 BuildAfterCreation,
                 TestAfterCreation));
 
-            Commands = CollectCommands(result).ToArray();
+            Commands = [.. Commands, .. CollectCommands(result)];
             IsCreated = result.Succeeded;
             CreatedDirectory = result.Creation.ProjectDirectory;
             Message = result.Succeeded

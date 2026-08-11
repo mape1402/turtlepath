@@ -5,5 +5,6 @@ public enum StudioSection
     Home,
     Templates,
     Guides,
+    Demos,
     Environment
 }

@@ -10,11 +10,12 @@ public sealed class InspectStudioEnvironmentUseCase(
     ITemplatePackageManager templatePackageManager)
 {
     public async Task<StudioEnvironmentReport> ExecuteAsync(
+        string templatePackageId = null,
         CancellationToken cancellationToken = default)
     {
         var dotNet = await dotNetEnvironmentReader.ReadAsync(cancellationToken);
         var template = await templatePackageManager.GetInstalledAsync(
-            TurtlePathStudioDefaults.TemplatePackageId,
+            string.IsNullOrWhiteSpace(templatePackageId) ? TurtlePathStudioDefaults.TemplatePackageId : templatePackageId,
             cancellationToken);
 
         return new StudioEnvironmentReport(dotNet, template);
