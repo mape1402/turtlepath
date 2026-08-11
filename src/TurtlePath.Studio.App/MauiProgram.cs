@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using TurtlePath.Studio.Abstractions.Workspace;
+using TurtlePath.Studio.App.Workspace;
 using TurtlePath.Studio.Application.UseCases;
 using TurtlePath.Studio.Infrastructure.DependencyInjection;
 
@@ -22,6 +24,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<InspectStudioEnvironmentUseCase>();
         builder.Services.AddSingleton<InstallTemplateUseCase>();
         builder.Services.AddSingleton<CreateTurtlePathProjectUseCase>();
+        builder.Services.AddSingleton<IStudioWorkspaceService, WindowsStudioWorkspaceService>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
