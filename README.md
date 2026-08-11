@@ -1,12 +1,12 @@
 # TurtlePath
 
-TurtlePath is a reusable .NET library for the Pelican handler foundation that previously lived inside the Elysium application template.
+TurtlePath is a reusable .NET library for building Pelican-based application handlers, automations, jobs, exception boundaries, templates, and testing helpers.
 
 It packages the template's base command/query handlers, handler hook pipeline, validation and mapping adapters, storage abstractions, response/request primitives, custom identifier support, and Entity Framework helper configuration into a standalone library.
 
 ## Packages
 
-The recommended Elysium stack is:
+The recommended package set is:
 
 - `TurtlePath`: Pelican command/query handlers, hooks, request/response models, and application exceptions.
 - `TurtlePath.Automations`: profile and attribute driven handler automation for standard TurtlePath flows.
@@ -22,10 +22,10 @@ The recommended Elysium stack is:
 - `TurtlePath.Testing`: test host, delegate adapters, and in-memory storage for TurtlePath handler and automation tests.
 - `TurtlePath.Testing.EntityFrameworkCore`: SQLite-backed integration testing helpers for EF Core TurtlePath applications.
 - `TurtlePath.Testing.EventSourcing`: event stream assertion helpers for TurtlePath event sourcing tests.
-- `TurtlePath.Testing.Integration`: thin test-host wrappers for Elysium testing adapters such as Pelican, OctoMap, Crabalidator, Pigeon, Spider, DynaBee, Krackend event sourcing, and DataScorpio.
+- `TurtlePath.Testing.Integration`: thin test-host wrappers for integration testing adapters such as Pelican, OctoMap, Crabalidator, Pigeon, Spider, DynaBee, Krackend event sourcing, and DataScorpio.
 - `TurtlePath.Template`: official `dotnet new` template for creating TurtlePath services.
-- `TurtlePath.OctoMap`: mapper adapter for the Elysium mapping stack.
-- `TurtlePath.Crabalidator`: validator adapter for the Elysium validation stack.
+- `TurtlePath.OctoMap`: mapper adapter for the OctoMap mapping stack.
+- `TurtlePath.Crabalidator`: validator adapter for the Crabalidator validation stack.
 - `TurtlePath.DataScorpio`: recommended DataScorpio filtering and sorting adapter for query criteria.
 - `TurtlePath.Sieve`: optional Sieve filtering and sorting adapter kept for projects that still use Sieve.
 - `TurtlePath.Analyzers`: optional compile-time checks for unsafe `CId` usage across entities with different configured identifier value types.
@@ -56,6 +56,14 @@ Create a one-shot job host for console or Kubernetes CronJob execution:
 dotnet new turtlepath -n MyJob --host job
 ```
 
+## Template Defaults
+
+Generated API/consumer services start with Scalar OpenAPI UI, Spider pipeline boundaries, TurtlePath exception handling, DataScorpio filtering, OctoMap mapping, Crabalidator validation, EF Core storage adapters, jobs, and testing foundations.
+
+Pigeon messaging and EventSourcing are included as opt-in template surfaces. They stay disabled by default so a new service can start without broker or event-store settings; enable them from the API dependency registration when the service actually needs messaging or append-only event history.
+
+The generated project keeps layer ownership explicit: Business references Domain and TurtlePath abstractions, API owns host composition, and Persistence owns the concrete EF Core `DbContext`. Business code that needs persistence should depend on `IDbContext`, not the concrete `AppDbContext`.
+
 ## Basic Usage
 
 Install the focused packages your application actually uses. For example, a typical handler stack may use:
@@ -81,7 +89,7 @@ dotnet add package TurtlePath.Crabalidator
 dotnet add package TurtlePath.Analyzers
 ```
 
-Use one mapper adapter package and one validation adapter package. In Elysium projects, prefer `TurtlePath.OctoMap` and `TurtlePath.Crabalidator`.
+Use one mapper adapter package and one validation adapter package. The recommended pair is `TurtlePath.OctoMap` and `TurtlePath.Crabalidator`.
 
 Analyzer packages should stay private to the project that consumes them:
 
@@ -394,7 +402,7 @@ Assert.Contains(host.Storage.Operations, operation => operation.Action == "SaveC
 Assert.Contains(host.Resolve<HookTrace>().Entries, entry => entry.Stage == "AfterSave");
 ```
 
-`TurtlePath.Sieve` remains available for services that still depend on Sieve attributes or Sieve query configuration. New Elysium services should prefer `TurtlePath.DataScorpio`.
+`TurtlePath.Sieve` remains available for services that still depend on Sieve attributes or Sieve query configuration. New services should prefer `TurtlePath.DataScorpio`.
 
 Pelican integration test for a manual handler:
 
@@ -451,7 +459,7 @@ Assert.Contains(events, item => item.EventType == "customer-created");
 
 The test host also supports `UseExceptionHandling()`, `HandleException(...)`, `UseJobs()`, `WithJob<TJob>()`, and `RunJobsAsync()` for TurtlePath exception and job scenarios.
 
-Use `TurtlePath.Testing.Integration` when a test should compose TurtlePath with the real testing adapters owned by the Elysium libraries:
+Use `TurtlePath.Testing.Integration` when a test should compose TurtlePath with the real testing adapters owned by the surrounding libraries:
 
 ```csharp
 await using var host = await TurtlePathTestHost

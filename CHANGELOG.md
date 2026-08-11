@@ -10,6 +10,13 @@ All notable changes to TurtlePath will be documented in this file.
 - Added automation profile support for `ReloadBeforeResponse()` and `Include(...)` on mutation declarations.
 - Added `TurtlePathTestHost.CreateFromServices(...)` and `UseApplicationServices(...)` for integration tests that start from the application's real dependency registration.
 - Added `TurtlePath.Spider` with Spider extension methods for sending Pelican requests through Spider boundaries while preserving the concrete request type.
+- Added Scalar OpenAPI defaults to the generated service template with the Scalar AI assistant disabled by default.
+- Added opt-in EventSourcing wiring and documentation to the generated service template.
+
+### Fixed
+
+- Fixed generated template layering so Business depends on Domain and TurtlePath abstractions while API owns the Persistence reference.
+- Fixed generated template package versions so every TurtlePath package reference targets `1.4.1`.
 
 ## [v1.4.0] - 2026-08-10
 
