@@ -15,12 +15,14 @@
     <PackageReference Include="Pigeon.Messaging" />
     <PackageReference Include="Pigeon.Messaging.Azure.ServiceBus" />
     <PackageReference Include="Pigeon.Messaging.Outbox.EntityFrameworkCore" />
+    <PackageReference Include="Krackend.EventSourcing.EntityFrameworkCore" />
     <PackageReference Include="Spider.Pipelines" />
     <PackageReference Include="TurtlePath" />
     <PackageReference Include="TurtlePath.Crabalidator" />
     <PackageReference Include="TurtlePath.DataScorpio" />
     <PackageReference Include="TurtlePath.Domain" />
     <PackageReference Include="TurtlePath.EntityFrameworkCore" />
+    <PackageReference Include="TurtlePath.EventSourcing" />
     <PackageReference Include="TurtlePath.ExceptionHandling.Consumers" />
     <PackageReference Include="TurtlePath.ExceptionHandling" />
     <PackageReference Include="TurtlePath.ExceptionHandling.AspNetCore" />

@@ -19,10 +19,11 @@ This guide explains how to create and grow a service generated with `TurtlePath.
 - [13. Controllers And REST Routes](#13-controllers-and-rest-routes)
 - [14. Spider Pipelines And Transactions](#14-spider-pipelines-and-transactions)
 - [15. Pigeon Consumers And Outbox](#15-pigeon-consumers-and-outbox)
-- [16. Exception Handling](#16-exception-handling)
-- [17. Jobs](#17-jobs)
-- [18. Testing](#18-testing)
-- [19. External Documentation](#19-external-documentation)
+- [16. Event Sourcing](#16-event-sourcing)
+- [17. Exception Handling](#17-exception-handling)
+- [18. Jobs](#18-jobs)
+- [19. Testing](#19-testing)
+- [20. External Documentation](#20-external-documentation)
 
 ## 1. What The Template Gives You
 
@@ -40,6 +41,7 @@ The generated service is not an empty ASP.NET Core project. It already has the s
 - `TurtlePath.ExceptionHandling.Consumers` for Pigeon consumers.
 - `TurtlePath.ExceptionHandling.Workers` for jobs and background work.
 - `TurtlePath.Jobs` for one-shot jobs and recurring cron-style jobs.
+- `TurtlePath.EventSourcing` with Krackend EF Core event store prepared as an opt-in event sourcing stack.
 - `Pelican.Mediator` for request dispatch.
 - `Spider.Pipelines` for execution boundaries, including the default transaction boundary.
 - `TurtlePath.Spider` for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.
@@ -105,6 +107,7 @@ src/
     DependencyInjection/
       ApplicationExtensions.cs
       CustomContainerExtensions.cs
+      EventSourcingExtensions.cs
       ExceptionHandlingExtensions.cs
       HealthCheckExtensions.cs
       MessagingExtensions.cs
@@ -145,6 +148,11 @@ src/
         PublishFeatureAfterSaveHook.cs
       Automations/
         FeatureAutomationProfile.cs
+      EventSourcing/
+        FeatureEventSourcingProfile.cs
+        FeatureCreated.cs
+        FeatureUpdated.cs
+        FeatureEventSource.cs
       Querying/
         FeatureQueryProfile.cs
       Models/
@@ -479,6 +487,8 @@ public static IServiceCollection AddDefaults(
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
+        // Enable this only when the service needs event sourcing.
+        // .AddEventSourcingDefaults()
         // Enable this only when the service needs Pigeon and has broker settings.
         // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
@@ -522,6 +532,8 @@ services.AddTurtlePath(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    // Enable this only after adding IEventSourcingProfile implementations.
+    // .UseEventSourcingProfiles(typeof(Constants).Assembly)
     .UseCId<Ulid, string>(config =>
     {
         config.DefaultFactory = () => CId.From(Ulid.NewUlid());
@@ -1850,7 +1862,270 @@ Use `BaseHubConsumer` because it exposes:
 
 Use consumers for integration messages. Keep business behavior in requests, handlers, automations, and hooks.
 
-## 16. Exception Handling
+## 16. Event Sourcing
+
+The template includes `TurtlePath.EventSourcing` and `Krackend.EventSourcing.EntityFrameworkCore` as an opt-in event sourcing stack. It is not registered by default because event sourcing needs deliberate stream names, event schemas, expected-version rules, and database tables.
+
+Use Event Sourcing when the service must keep an append-only history of domain transitions. Examples:
+
+- an invoice was created, authorized, paid, canceled, or reissued
+- an order changed status
+- a customer risk profile changed
+- a business transition must be replayable or auditable
+
+Do not enable Event Sourcing just to notify another service. For integration messages, use Pigeon with the EF outbox.
+
+### Folder Shape
+
+Put the event sourcing files inside the feature that owns the events:
+
+```text
+Business/
+  Invoices/
+    Commands/
+      CreateInvoiceRequest.cs
+      UpdateInvoiceRequest.cs
+    EventSourcing/
+      InvoiceEventSourcingProfile.cs
+      InvoiceEventSource.cs
+      InvoiceCreated.cs
+      InvoiceUpdated.cs
+      InvoiceCanceled.cs
+    Mappings/
+      InvoiceMappingProfile.cs
+    Models/
+      Requests/
+      Responses/
+```
+
+The profile describes when events are appended. Event payload records describe what is stored. Mapping profiles describe how TurtlePath turns a source object into an event payload.
+
+To enable it:
+
+1. Create one or more `IEventSourcingProfile` implementations in the feature that owns the events.
+2. Add event payload contracts beside the profile, usually in `Business/<Feature>/EventSourcing`.
+3. Add OctoMap maps for any source-to-event projections.
+4. Uncomment `.UseEventSourcingProfiles(typeof(Constants).Assembly)` in `AddApplicationDefaults`.
+5. Uncomment `.AddEventSourcingDefaults()` in `AddDefaults`.
+6. Add an EF Core migration so the event store tables are created.
+
+### Event Payloads
+
+Keep event payloads small, explicit, and version-friendly. Avoid storing full entity graphs.
+
+```csharp
+namespace Billing.Service.Business.Invoices.EventSourcing;
+
+public sealed record InvoiceCreated(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceUpdated(
+    string InvoiceId,
+    decimal Total,
+    string Currency,
+    DateTimeOffset OccurredAt);
+
+public sealed record InvoiceCanceled(
+    string InvoiceId,
+    string Reason,
+    DateTimeOffset OccurredAt);
+```
+
+When the event needs data from both the command and the saved entity, create a small source model:
+
+```csharp
+namespace Billing.Service.Business.Invoices.EventSourcing;
+
+public sealed record InvoiceEventSource(
+    string InvoiceId,
+    string CustomerId,
+    decimal Total,
+    string Currency,
+    string Reason,
+    DateTimeOffset OccurredAt);
+```
+
+### Mapping Events With OctoMap
+
+`TurtlePath.EventSourcing` uses the configured `IMapperAdapter`. In this template that means OctoMap.
+
+```csharp
+using Billing.Service.Business.Invoices.EventSourcing;
+using OctoMap;
+
+namespace Billing.Service.Business.Invoices.Mappings;
+
+public sealed class InvoiceEventMappingProfile : OctoMapProfile
+{
+    public override void Configure(IOctoMapConfigurationBuilder builder)
+    {
+        builder.CreateMap<InvoiceEventSource, InvoiceCreated>();
+        builder.CreateMap<InvoiceEventSource, InvoiceUpdated>();
+        builder.CreateMap<InvoiceEventSource, InvoiceCanceled>();
+    }
+}
+```
+
+Prepared TurtlePath registration:
+
+```csharp
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseEventSourcingProfiles(typeof(Constants).Assembly)
+    .UseCId<Ulid, string>(config =>
+    {
+        config.DefaultFactory = () => CId.From(Ulid.NewUlid());
+    })
+    .UseEntityFrameworkCore<AppDbContext>();
+```
+
+### Register The EF Event Store
+
+The template includes `EventSourcingExtensions.cs` ready to use:
+
+```csharp
+internal static IServiceCollection AddEventSourcingDefaults(this IServiceCollection services)
+{
+    services.AddKrackendEntityFrameworkEventStore<AppDbContext>();
+
+    return services;
+}
+```
+
+Enable it in `AddDefaults` only when the service has event streams:
+
+```csharp
+return services
+    .AddMvcDefaults()
+    .AddOpenApiDefaults()
+    .AddHealthCheckDefaults(configuration)
+    .AddPersistenceDefaults(configuration)
+    .AddApplicationDefaults()
+    .AddEventSourcingDefaults()
+    .AddPipelineDefaults(configuration)
+    .AddCustomContainer();
+```
+
+### Create The Profile
+
+```csharp
+using Krackend.EventSourcing.Stores;
+using TurtlePath.EventSourcing;
+
+namespace Billing.Service.Business.Invoices.EventSourcing;
+
+public sealed class InvoiceEventSourcingProfile : IEventSourcingProfile
+{
+    public void Configure(IEventSourcingProfileBuilder builder)
+    {
+        builder.For<CreateInvoiceRequest, Invoice>()
+            .UseStream("invoices", context => context.Entity.Id.ToString())
+            .ToEvent<InvoiceEventSource, InvoiceCreated>(
+                ToSource,
+                options => options.UseExpectedVersion(ExpectedVersion.NoStream));
+
+        builder.For<UpdateInvoiceRequest, Invoice>()
+            .UseStream("invoices", context => context.Entity.Id.ToString())
+            .ToEvent<InvoiceEventSource, InvoiceUpdated>(
+                ToSource);
+
+        builder.For<CancelInvoiceRequest, Invoice>()
+            .UseStream("invoices", context => context.Entity.Id.ToString())
+            .ToEvent<InvoiceEventSource, InvoiceCanceled>(
+                ToSource,
+                options => options.When(context => context.Entity.Canceled));
+    }
+
+    private static InvoiceEventSource ToSource<TRequest>(CommandHookContext<TRequest, Invoice> context)
+        where TRequest : class
+    {
+        return new InvoiceEventSource(
+            context.Entity.Id.ToString(),
+            context.Entity.CustomerId.ToString(),
+            context.Entity.Total,
+            context.Entity.Currency,
+            context.Request is CancelInvoiceRequest cancel ? cancel.Reason : string.Empty,
+            DateTimeOffset.UtcNow);
+    }
+}
+```
+
+`UseStream("invoices", ...)` chooses the logical stream and stream id. `ToEvent<TSource, TEvent>(...)` maps the command/entity hook context to a source object, then uses OctoMap to create the final event payload.
+
+Use expected versions intentionally:
+
+```csharp
+options.UseExpectedVersion(ExpectedVersion.NoStream); // first event in a stream
+options.UseExpectedVersion(ExpectedVersion.Any);      // append without optimistic concurrency
+```
+
+Use `When(...)` when an event is conditional:
+
+```csharp
+.ToEvent<InvoiceEventSource, InvoiceCanceled>(
+    ToSource,
+    options => options.When(context => context.Entity.Canceled));
+```
+
+### How It Runs
+
+Event Sourcing runs through TurtlePath command handler hooks:
+
+1. Pelican sends the command.
+2. TurtlePath creates or updates the entity.
+3. The handler saves the entity through EF Core.
+4. `EventSourcingAfterSaveHook` runs after save.
+5. The hook resolves the stream and maps the command/entity context to event payloads.
+6. Krackend appends the events through `IEventStore`.
+
+This means automations and base command handlers can emit events without custom handler code. If the happy path is enough, add the Event Sourcing profile and keep the handler generated. If the business flow is special, create a custom handler and the same hooks still apply after save.
+
+### EF Migration
+
+After enabling `.AddEventSourcingDefaults()`, add a migration so EF creates the Krackend event store tables:
+
+```powershell
+dotnet ef migrations add AddEventSourcingStore `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api
+
+dotnet ef database update `
+  --project src/Billing.Service.Persistence `
+  --startup-project src/Billing.Service.Api
+```
+
+### Testing Event Sourcing
+
+For integration tests, enable the same registrations in the test host and assert that the command appends events.
+
+```csharp
+await using var host = await TemplateTestHost.CreateAsync(services =>
+{
+    services.AddEventSourcingDefaults();
+});
+
+var mediator = host.Services.GetRequiredService<IMediator>();
+
+var response = await mediator.Send(new CreateInvoiceRequest
+{
+    CustomerId = customerId,
+    Total = 1250m,
+    Currency = "USD"
+});
+
+var eventStore = host.Services.GetRequiredService<IEventStore>();
+var stream = await eventStore.ReadStreamAsync("invoices", response.Id.ToString());
+
+stream.Events.Should().ContainSingle(e => e.Payload is InvoiceCreated);
+```
+
+## 17. Exception Handling
 
 TurtlePath exception handling is transport-neutral. The core creates an `ExceptionDescriptor`:
 
@@ -1928,7 +2203,7 @@ if (context.Entity.Status == InvoiceStatus.Canceled)
     throw new InvoiceAlreadyCanceledException(context.Entity.Id);
 ```
 
-## 17. Jobs
+## 18. Jobs
 
 Use TurtlePath jobs when a workload is not naturally an HTTP endpoint or a message consumer.
 
@@ -2122,7 +2397,7 @@ Recurring cron options:
 
 Multiple cron jobs are supported. Each registered cron job runs its own loop inside `TurtlePathCronJobHostedService`, so each job can have its own interval, retry policy, and failure behavior.
 
-## 18. Testing
+## 19. Testing
 
 The template includes testing setup so feature tests do not start from zero. The developer should write the use case and assertions, while the template keeps the TurtlePath test host, Pelican, OctoMap, Crabalidator, Spider, DataScorpio, SQLite, jobs, and exception handling ready.
 
@@ -2390,7 +2665,7 @@ public async Task ApiHost_Composes()
 
 Composition tests should stay boring. Their value is catching broken package registration, missing adapters, invalid configuration, or accidental changes to startup defaults.
 
-## 19. External Documentation
+## 20. External Documentation
 
 Use these references for deeper package behavior:
 
@@ -2409,6 +2684,8 @@ Use these references for deeper package behavior:
 - [Pigeon.Messaging NuGet](https://www.nuget.org/packages/Pigeon.Messaging)
 - [Pigeon Azure Service Bus Adapter NuGet](https://www.nuget.org/packages/Pigeon.Messaging.Azure.ServiceBus)
 - [Pigeon Outbox EF Core NuGet](https://www.nuget.org/packages/Pigeon.Messaging.Outbox.EntityFrameworkCore)
+- [TurtlePath.EventSourcing NuGet](https://www.nuget.org/packages/TurtlePath.EventSourcing)
+- [Krackend.EventSourcing.EntityFrameworkCore NuGet](https://www.nuget.org/packages/Krackend.EventSourcing.EntityFrameworkCore)
 - [NuGet package management docs](https://learn.microsoft.com/en-us/nuget/)
 
 Use NuGet pages to confirm installation commands, supported target frameworks, package versions, dependencies, and README examples. Use package repository docs when you need deeper adapter-specific behavior.

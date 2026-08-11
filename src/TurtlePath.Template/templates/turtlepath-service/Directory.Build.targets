@@ -6,6 +6,7 @@
     <PackageReference Update="Pigeon.Messaging" Version="2.3.0" />
     <PackageReference Update="Pigeon.Messaging.Azure.ServiceBus" Version="2.3.0" />
     <PackageReference Update="Pigeon.Messaging.Outbox.EntityFrameworkCore" Version="2.3.0" />
+    <PackageReference Update="Krackend.EventSourcing.EntityFrameworkCore" Version="1.2.1" />
     <PackageReference Update="Spider.Pipelines" Version="2.1.0" />
     <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
@@ -26,6 +27,7 @@
     <PackageReference Update="TurtlePath.DataScorpio" Version="1.4.0" />
     <PackageReference Update="TurtlePath.Domain" Version="1.4.0" />
     <PackageReference Update="TurtlePath.EntityFrameworkCore" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.EventSourcing" Version="1.4.0" />
     <PackageReference Update="TurtlePath.ExceptionHandling.Consumers" Version="1.4.0" />
     <PackageReference Update="TurtlePath.ExceptionHandling" Version="1.4.0" />
     <PackageReference Update="TurtlePath.ExceptionHandling.AspNetCore" Version="1.4.0" />
