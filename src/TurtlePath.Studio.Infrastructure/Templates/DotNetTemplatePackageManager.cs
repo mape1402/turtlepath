@@ -8,6 +8,8 @@ public sealed class DotNetTemplatePackageManager(
     ICommandExecutor commandExecutor,
     HttpClient httpClient) : ITemplatePackageManager
 {
+    private const string NuGetSource = "https://api.nuget.org/v3/index.json";
+
     public async Task<TemplatePackageInfo> GetInstalledAsync(
         string packageId,
         CancellationToken cancellationToken = default)
@@ -75,9 +77,16 @@ public sealed class DotNetTemplatePackageManager(
 
         var package = string.IsNullOrWhiteSpace(request.Version)
             ? request.PackageId
-            : $"{request.PackageId}::{request.Version}";
+            : $"{request.PackageId}@{request.Version}";
 
-        var arguments = new List<string> { "new", "install", package };
+        var arguments = new List<string>
+        {
+            "new",
+            "install",
+            package,
+            "--nuget-source",
+            NuGetSource
+        };
 
         if (request.ForceUpdate)
             arguments.Add("--force");

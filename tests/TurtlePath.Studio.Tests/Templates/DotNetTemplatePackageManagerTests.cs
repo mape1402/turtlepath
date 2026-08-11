@@ -18,7 +18,9 @@ public class DotNetTemplatePackageManagerTests
         var command = Assert.Single(executor.Commands);
 
         Assert.Equal("dotnet", command.FileName);
-        Assert.Equal(["new", "install", "TurtlePath.Template::1.4.0", "--force"], command.Arguments);
+        Assert.Equal(
+            ["new", "install", "TurtlePath.Template@1.4.0", "--nuget-source", "https://api.nuget.org/v3/index.json", "--force"],
+            command.Arguments);
     }
 
     [Fact]

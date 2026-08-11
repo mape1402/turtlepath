@@ -2,6 +2,17 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.4.3] - 2026-08-11
+
+### Added
+
+- Added a Studio Demos section with a Heroes Showcase card that creates projects from `TurtlePath.Template.HeroesShowcase`.
+
+### Fixed
+
+- Fixed Studio template installation to use the current `package@version` syntax and the NuGet.org source explicitly.
+- Fixed generated template test hosts so EF Core loads entity configurations from the persistence assembly.
+
 ## [v1.4.2] - 2026-08-11
 
 ### Added

@@ -7,12 +7,13 @@ namespace TurtlePath.Studio.Application.UseCases;
 public sealed class InstallTemplateUseCase(ITemplatePackageManager templatePackageManager)
 {
     public Task<CommandExecutionResult> ExecuteAsync(
+        string packageId = null,
         string version = null,
         bool forceUpdate = false,
         CancellationToken cancellationToken = default)
     {
         var request = new TemplateInstallRequest(
-            TurtlePathStudioDefaults.TemplatePackageId,
+            string.IsNullOrWhiteSpace(packageId) ? TurtlePathStudioDefaults.TemplatePackageId : packageId,
             version,
             forceUpdate);
 

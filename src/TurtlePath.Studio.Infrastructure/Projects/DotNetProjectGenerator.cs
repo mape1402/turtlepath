@@ -12,23 +12,30 @@ public sealed class DotNetProjectGenerator(ICommandExecutor commandExecutor) : I
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.ProjectName);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.OutputDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.TemplateShortName);
 
         var outputDirectory = Path.GetFullPath(request.OutputDirectory);
         Directory.CreateDirectory(outputDirectory);
+        var arguments = new List<string>
+        {
+            "new",
+            request.TemplateShortName,
+            "-n",
+            request.ProjectName,
+            "-o",
+            outputDirectory
+        };
+
+        if (request.IncludeHostOption)
+        {
+            arguments.Add("--host");
+            arguments.Add(ToTemplateHost(request.HostMode));
+        }
 
         var result = await commandExecutor.ExecuteAsync(
             new CommandSpec(
                 "dotnet",
-                [
-                    "new",
-                    "turtlepath",
-                    "-n",
-                    request.ProjectName,
-                    "-o",
-                    outputDirectory,
-                    "--host",
-                    ToTemplateHost(request.HostMode)
-                ],
+                arguments,
                 outputDirectory),
             cancellationToken);
 
