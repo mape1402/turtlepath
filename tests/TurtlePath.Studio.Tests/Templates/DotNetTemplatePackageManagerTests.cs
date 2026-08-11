@@ -10,7 +10,8 @@ public class DotNetTemplatePackageManagerTests
     public async Task InstallAsync_uses_package_version_when_it_is_provided()
     {
         var executor = new RecordingCommandExecutor();
-        var manager = new DotNetTemplatePackageManager(executor);
+        using var httpClient = new HttpClient();
+        var manager = new DotNetTemplatePackageManager(executor, httpClient);
 
         await manager.InstallAsync(new TemplateInstallRequest("TurtlePath.Template", "1.4.0", ForceUpdate: true));
 
@@ -25,7 +26,8 @@ public class DotNetTemplatePackageManagerTests
     {
         var executor = new RecordingCommandExecutor();
         executor.EnqueueSuccess("TurtlePath.Template 1.4.0");
-        var manager = new DotNetTemplatePackageManager(executor);
+        using var httpClient = new HttpClient();
+        var manager = new DotNetTemplatePackageManager(executor, httpClient);
 
         var result = await manager.GetInstalledAsync("TurtlePath.Template");
 

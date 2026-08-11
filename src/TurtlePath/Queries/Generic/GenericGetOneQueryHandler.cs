@@ -89,6 +89,7 @@ namespace TurtlePath.Queries
             var response = await StorageReaderAdapter
                 .For<TEntity>()
                 .AsNoTracking()
+                .Include(GetIncludeExpressions(request))
                 .Where(GetFilterExpression(request))
                 .FirstOrDefaultAsync<TResponse>(cancellationToken)
                 ?? throw new NotFoundException(typeof(TEntity).Name, request.Value?.ToString() ?? "Unknown");
@@ -121,5 +122,12 @@ namespace TurtlePath.Queries
 
             return Expression.Lambda<Func<TEntity, bool>>(equals, entity);
         }
+
+        /// <summary>
+        /// Gets navigation expressions to include before mapping the entity.
+        /// </summary>
+        /// <param name="request">The query request.</param>
+        /// <returns>The navigation expressions to include.</returns>
+        protected virtual Expression<Func<TEntity, object>>[] GetIncludeExpressions(TQuery request) => [];
     }
 }

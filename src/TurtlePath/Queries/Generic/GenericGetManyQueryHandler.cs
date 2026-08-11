@@ -87,6 +87,7 @@ namespace TurtlePath.Queries
             var batch = await StorageReaderAdapter
                 .For<TEntity>()
                 .AsNoTracking()
+                .Include(GetIncludeExpressions(request))
                 .Where(GetFilterExpression(request))
                 .FilterBy(request.Filters)
                 .SortBy(GetSortingExpression(request))
@@ -114,5 +115,12 @@ namespace TurtlePath.Queries
         /// <param name="query">The query request.</param>
         /// <returns>An expression for sorting entities, or null if not specified.</returns>
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery query) => null;
+
+        /// <summary>
+        /// Gets navigation expressions to include before mapping the entities.
+        /// </summary>
+        /// <param name="query">The query request.</param>
+        /// <returns>The navigation expressions to include.</returns>
+        protected virtual Expression<Func<TEntity, object>>[] GetIncludeExpressions(TQuery query) => [];
     }
 }

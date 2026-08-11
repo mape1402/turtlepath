@@ -216,6 +216,8 @@ internal sealed class NoOpStorageReadSet<TEntity> : IStorageReadSet<TEntity>
 
     public IStorageReadSet<TEntity> FilterBy(string filters) => this;
 
+    public IStorageReadSet<TEntity> Include(params System.Linq.Expressions.Expression<Func<TEntity, object>>[] includes) => this;
+
     public IStorageReadSet<TEntity> SortBy(System.Linq.Expressions.Expression<Func<TEntity, object>> sort) => this;
 
     public IStorageReadSet<TEntity> SortByDescending(System.Linq.Expressions.Expression<Func<TEntity, object>> sort) => this;
