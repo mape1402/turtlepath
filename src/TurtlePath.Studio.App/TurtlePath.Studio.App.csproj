@@ -15,6 +15,7 @@
     <SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
     <MauiXamlInflator>SourceGen</MauiXamlInflator>
     <ApplicationTitle>TurtlePath Studio</ApplicationTitle>
+    <ApplicationIcon>Resources\AppIcon\turtlepath.ico</ApplicationIcon>
     <ApplicationId>com.turtlepath.studio</ApplicationId>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
@@ -24,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#2E7143" />
+    <MauiIcon Include="Resources\AppIcon\turtlepath_appicon.png" Color="#083229" />
     <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#08211C" BaseSize="128,128" />
     <MauiImage Include="Resources\Images\*" />
     <MauiFont Include="Resources\Fonts\*" />

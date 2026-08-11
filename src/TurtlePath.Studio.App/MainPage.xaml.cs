@@ -28,7 +28,7 @@ public partial class MainPage : ContentPage
     private readonly ContentView modalHost = new() { IsVisible = false };
     private readonly Label title = new();
     private readonly Label subtitle = new();
-    private readonly Label sidebarLogo = new();
+    private readonly Image sidebarLogo = new();
     private readonly Label sidebarTitle = new();
     private readonly Label sidebarSubtitle = new();
     private readonly Button sidebarToggle = new();
@@ -81,11 +81,11 @@ public partial class MainPage : ContentPage
             ColumnSpacing = 8
         };
 
-        sidebarLogo.Text = "TP";
-        sidebarLogo.FontSize = 32;
-        sidebarLogo.FontAttributes = FontAttributes.Bold;
-        sidebarLogo.TextColor = SidebarAccent;
-        sidebarLogo.VerticalTextAlignment = TextAlignment.Center;
+        sidebarLogo.Source = "turtlepath_sidebar_mark.png";
+        sidebarLogo.WidthRequest = 56;
+        sidebarLogo.HeightRequest = 56;
+        sidebarLogo.Aspect = Aspect.AspectFit;
+        sidebarLogo.VerticalOptions = LayoutOptions.Center;
         brand.Add(sidebarLogo, 0, 0);
 
         var brandText = new VerticalStackLayout { Spacing = 2 };
