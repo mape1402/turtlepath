@@ -12,6 +12,8 @@ public partial class MainPage : ContentPage
     private static readonly Color Panel = Colors.White;
     private static readonly Color Primary = Color.FromArgb("#2E7143");
     private static readonly Color PrimaryDark = Color.FromArgb("#083229");
+    private static readonly Color SidebarItem = Color.FromArgb("#114D3E");
+    private static readonly Color SidebarItemHover = Color.FromArgb("#EAF5EE");
     private static readonly Color Line = Color.FromArgb("#D9E5DE");
 
     private readonly StudioViewModel viewModel;
@@ -178,34 +180,80 @@ public partial class MainPage : ContentPage
     private void RenderNavigation()
     {
         navigation.Clear();
-        navigation.Add(CreateSideButton("Home", "H", StudioSection.Home));
-        navigation.Add(CreateSideButton("Templates", "T", StudioSection.Templates));
-        navigation.Add(CreateSideButton("Usage guides", "G", StudioSection.Guides));
-        navigation.Add(CreateSideButton("Environment", "E", StudioSection.Environment));
+        navigation.Add(CreateSideItem("Home", "H", "Start", StudioSection.Home));
+        navigation.Add(CreateSideItem("Templates", "T", "Create projects", StudioSection.Templates));
+        navigation.Add(CreateSideItem("Usage guides", "G", "Learn structure", StudioSection.Guides));
+        navigation.Add(CreateSideItem("Environment", "E", "Setup tools", StudioSection.Environment));
     }
 
-    private Button CreateSideButton(string text, string compactText, StudioSection target)
+    private View CreateSideItem(string text, string compactText, string caption, StudioSection target)
     {
         var selected = viewModel.Section == target;
-        var button = new Button
+        var item = new Grid
         {
-            Text = viewModel.SidebarCollapsed ? compactText : text,
-            HorizontalOptions = LayoutOptions.Fill,
-            Padding = new Thickness(16, 12),
-            CornerRadius = 8,
-            FontAttributes = selected ? FontAttributes.Bold : FontAttributes.None,
-            TextColor = selected ? Ink : Color.FromArgb("#D7E9DF"),
-            BackgroundColor = selected ? Color.FromArgb("#F1FAF4") : Color.FromArgb("#15483B"),
-            BorderWidth = 0
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 12
         };
 
-        button.Clicked += (_, _) =>
+        var mark = new Border
+        {
+            WidthRequest = 38,
+            HeightRequest = 38,
+            StrokeThickness = 0,
+            BackgroundColor = selected ? Primary : Color.FromArgb("#1C5B49"),
+            Content = new Label
+            {
+                Text = compactText,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Colors.White
+            }
+        };
+
+        item.Add(mark, 0, 0);
+
+        if (!viewModel.SidebarCollapsed)
+        {
+            var copy = new VerticalStackLayout { Spacing = 1, VerticalOptions = LayoutOptions.Center };
+            copy.Add(new Label
+            {
+                Text = text,
+                FontAttributes = selected ? FontAttributes.Bold : FontAttributes.None,
+                TextColor = selected ? Ink : Colors.White,
+                FontSize = 14
+            });
+            copy.Add(new Label
+            {
+                Text = caption,
+                TextColor = selected ? Color.FromArgb("#537066") : Color.FromArgb("#A9C7BA"),
+                FontSize = 12
+            });
+            item.Add(copy, 1, 0);
+        }
+
+        var border = new Border
+        {
+            Padding = new Thickness(viewModel.SidebarCollapsed ? 9 : 12, 10),
+            StrokeThickness = selected ? 1 : 0,
+            Stroke = selected ? Color.FromArgb("#D7E9DF") : Colors.Transparent,
+            BackgroundColor = selected ? SidebarItemHover : SidebarItem,
+            Content = item
+        };
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) =>
         {
             viewModel.Navigate(target);
             Render();
         };
+        border.GestureRecognizers.Add(tap);
 
-        return button;
+        return border;
     }
 
     private View BuildHome()
@@ -359,69 +407,163 @@ public partial class MainPage : ContentPage
 
     private View BuildGuides()
     {
-        var layout = new VerticalStackLayout { Spacing = 18 };
-        layout.Add(CreateGuideTopic("1. Create the project", "Open Templates, choose API / Consumer or One-shot Job, then use the wizard to set name, destination and validation steps.",
-        [
-            "API / Consumer creates the host for HTTP endpoints and message consumers.",
-            "One-shot Job creates an executable intended for Kubernetes CronJobs.",
-            "Keep Restore and Build enabled unless you only want to scaffold fast."
-        ]));
-        layout.Add(CreateGuideTopic("2. Replace Feature with real features", "The generated structure uses Feature as a placeholder. Replace it with Customers, Invoices, Orders or the real domain slice.",
-        [
-            "Customers/Commands contains CreateCustomerRequest, UpdateCustomerRequest and command handlers when needed.",
-            "Customers/Automations contains CustomerAutomationProfile for happy-path CRUD.",
-            "Customers/Services contains integrations scoped only to that feature, for example Services/SAT/ISatService."
-        ]));
-        layout.Add(CreateGuideTopic("3. Prefer automations first", "For standard CRUD, create DTOs, entities and an automation profile. Add custom handlers only when the path stops being standard.",
-        [
-            "Use automations for Create, Update, Delete, QueryById and paged queries.",
-            "Use hooks for validation, enrichment, event sourcing, auditing or post-save behavior.",
-            "Use a command/query handler when the use case needs custom orchestration."
-        ]));
-        layout.Add(CreateGuideTopic("4. Filtering and mapping", "Use DataScorpio for dynamic filtering and OctoMap for mapping. Crabalidator handles validation through the TurtlePath adapter.",
-        [
-            "Paged endpoints should receive filters through query parameters.",
-            "Mapping profiles stay inside the feature Mappings folder.",
-            "Validators use the Request suffix, for example CreateCustomerRequestValidator."
-        ]));
-        layout.Add(CreateGuideTopic("5. Testing", "The generated test projects already include the base TurtlePath testing setup.",
-        [
-            "Unit-test custom handlers directly with the handler test helpers.",
-            "Integration-test automations because generated handlers are not handwritten code.",
-            "Keep feature test data close to the feature scenario being validated."
-        ]));
-        layout.Add(CreateGuideTopic("6. Jobs", "Use One-shot Job when Kubernetes owns the schedule. Use API / Consumer when the same host owns HTTP, consumers or background workloads.",
-        [
-            "A one-shot job runs configured jobs and exits.",
-            "Background services stay in the API / Consumer host when the service owns the lifecycle.",
-            "Job code should still use Business features and shared services instead of becoming a separate architecture."
-        ]));
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(300) },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 18
+        };
 
-        return new ScrollView { Content = layout };
+        grid.Add(BuildGuideIndex(), 0, 0);
+        grid.Add(BuildGuideDetails(), 1, 0);
+        return grid;
     }
 
-    private View CreateGuideTopic(string heading, string summary, IReadOnlyList<string> bullets)
+    private View BuildGuideIndex()
     {
-        var layout = new VerticalStackLayout { Spacing = 10 };
+        var index = new VerticalStackLayout { Spacing = 10 };
+        index.Add(new Label
+        {
+            Text = "Template assistant",
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        index.Add(new Label
+        {
+            Text = "Pick a topic and follow the steps. This is the generated project playbook.",
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        foreach (var topic in viewModel.GuideTopics)
+            index.Add(CreateGuideIndexItem(topic));
+
+        return CreateBorder(new ScrollView { Content = index });
+    }
+
+    private View CreateGuideIndexItem(GuideTopic topic)
+    {
+        var selected = viewModel.SelectedGuideTopicKey == topic.Key;
+        var layout = new VerticalStackLayout { Spacing = 4 };
         layout.Add(new Label
         {
-            Text = heading,
-            FontSize = 22,
+            Text = topic.Title,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = selected ? Colors.White : Ink
+        });
+        layout.Add(new Label
+        {
+            Text = topic.Summary,
+            TextColor = selected ? Color.FromArgb("#E2F1E8") : Muted,
+            FontSize = 12,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var border = new Border
+        {
+            Padding = new Thickness(14, 12),
+            StrokeThickness = selected ? 0 : 1,
+            Stroke = Line,
+            BackgroundColor = selected ? Primary : Color.FromArgb("#F9FBFA"),
+            Content = layout
+        };
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) =>
+        {
+            viewModel.SelectGuideTopic(topic.Key);
+            Render();
+        };
+        border.GestureRecognizers.Add(tap);
+        return border;
+    }
+
+    private View BuildGuideDetails()
+    {
+        var topic = viewModel.SelectedGuideTopic;
+        var layout = new VerticalStackLayout { Spacing = 16 };
+
+        layout.Add(new Label
+        {
+            Text = topic.Title,
+            FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Ink
         });
         layout.Add(new Label
         {
-            Text = summary,
+            Text = topic.Summary,
             FontSize = 15,
             TextColor = Muted,
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        foreach (var bullet in bullets)
-            layout.Add(new Label { Text = $"- {bullet}", FontSize = 14, TextColor = Ink, LineBreakMode = LineBreakMode.WordWrap });
+        for (var i = 0; i < topic.Steps.Count; i++)
+            layout.Add(CreateGuideStep(i + 1, topic.Steps[i]));
 
-        return CreateBorder(layout);
+        return CreateBorder(new ScrollView { Content = layout });
+    }
+
+    private View CreateGuideStep(int number, GuideStep step)
+    {
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 14
+        };
+
+        grid.Add(new Border
+        {
+            WidthRequest = 34,
+            HeightRequest = 34,
+            StrokeThickness = 0,
+            BackgroundColor = Color.FromArgb("#E2F1E8"),
+            Content = new Label
+            {
+                Text = number.ToString(),
+                TextColor = Primary,
+                FontAttributes = FontAttributes.Bold,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+        }, 0, 0);
+
+        var content = new VerticalStackLayout { Spacing = 8 };
+        content.Add(new Label
+        {
+            Text = step.Title,
+            FontSize = 18,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        content.Add(new Label
+        {
+            Text = step.Body,
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        foreach (var detail in step.Details)
+            content.Add(new Label { Text = $"- {detail}", TextColor = Ink, FontSize = 13, LineBreakMode = LineBreakMode.WordWrap });
+
+        grid.Add(content, 1, 0);
+
+        return new Border
+        {
+            Padding = new Thickness(14),
+            Stroke = Line,
+            StrokeThickness = 1,
+            BackgroundColor = Color.FromArgb("#F9FBFA"),
+            Content = grid
+        };
     }
 
     private View BuildEnvironment()
