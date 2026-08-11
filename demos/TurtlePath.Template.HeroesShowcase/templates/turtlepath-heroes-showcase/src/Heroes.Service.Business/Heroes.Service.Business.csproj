@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Heroes.Service.Domain\Heroes.Service.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OctoMap" />
+    <PackageReference Include="OctoMap.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Crabalidator" />
+    <PackageReference Include="Pelican.Mediator" />
+    <PackageReference Include="TurtlePath" />
+    <PackageReference Include="TurtlePath.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="TurtlePath.Automations" />
+    <PackageReference Include="TurtlePath.DataScorpio" />
+    <PackageReference Include="TurtlePath.EntityFrameworkCore" />
+    <PackageReference Include="TurtlePath.Jobs" />
+    <PackageReference Include="Ulid" />
+  </ItemGroup>
+
+</Project>

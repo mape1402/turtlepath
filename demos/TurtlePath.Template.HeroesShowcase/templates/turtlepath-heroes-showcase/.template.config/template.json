@@ -1,0 +1,27 @@
+{
+  "author": "TurtlePath",
+  "classifications": [ "TurtlePath", "Demo", "Showcase", "CQRS" ],
+  "name": "TurtlePath Heroes Showcase",
+  "identity": "TurtlePath.HeroesShowcase",
+  "shortName": "turtlepath-heroes-showcase",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Heroes.Service",
+  "preferNameDirectory": true,
+  "sources": [
+    {
+      "exclude": [
+        ".git/**",
+        ".template.config/**",
+        ".vs/**",
+        "**/bin/**",
+        "**/obj/**",
+        "**/*.db",
+        "**/*.db-shm",
+        "**/*.db-wal"
+      ]
+    }
+  ]
+}
