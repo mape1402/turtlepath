@@ -11,30 +11,30 @@
     <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <PackageReference Update="Crabalidator" Version="1.0.3" />
-    <PackageReference Update="OctoMap" Version="1.1.0" />
-    <PackageReference Update="OctoMap.Analyzers" Version="1.1.0" />
+    <PackageReference Update="Crabalidator" Version="1.0.4" />
+    <PackageReference Update="OctoMap" Version="1.1.1" />
+    <PackageReference Update="OctoMap.Analyzers" Version="1.1.1" />
     <PackageReference Update="Ulid" Version="1.4.1" />
     <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10"/>
 	<PackageReference Update="Asp.Versioning.Mvc" Version="10.2.1" />
 	<PackageReference Update="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
-    <PackageReference Update="TurtlePath" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Abstractions" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Analyzers" Version="1.3.1" />
-    <PackageReference Update="TurtlePath.Crabalidator" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.DataScorpio" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Domain" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.EntityFrameworkCore" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.Consumers" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.ExceptionHandling" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.AspNetCore" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.Workers" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Jobs" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.OctoMap" Version="1.3.0" />
+    <PackageReference Update="TurtlePath" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Abstractions" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Analyzers" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Crabalidator" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.DataScorpio" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Domain" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.EntityFrameworkCore" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.Consumers" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.ExceptionHandling" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.AspNetCore" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.Workers" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Jobs" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.OctoMap" Version="1.4.0" />
     <PackageReference Update="TurtlePath.Spider" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Testing" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="1.3.0" />
-    <PackageReference Update="TurtlePath.Testing.Integration" Version="1.3.0" />
+    <PackageReference Update="TurtlePath.Testing" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="1.4.0" />
+    <PackageReference Update="TurtlePath.Testing.Integration" Version="1.4.0" />
   </ItemGroup>
 
 </Project>
