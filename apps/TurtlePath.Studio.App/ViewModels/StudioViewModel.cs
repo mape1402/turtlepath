@@ -21,6 +21,7 @@ public sealed class StudioViewModel
     public StudioSection Section { get; private set; } = StudioSection.Home;
     public bool SidebarCollapsed { get; private set; }
     public StudioEnvironmentReport? Environment { get; private set; }
+    public IReadOnlyList<StudioEnvironmentReport> TemplateEnvironments { get; private set; } = [];
     public ProjectHostMode SelectedHost { get; private set; } = ProjectHostMode.ApiConsumer;
     public string SelectedTemplatePackageId { get; private set; } = TurtlePathStudioDefaults.TemplatePackageId;
     public string SelectedTemplateShortName { get; private set; } = TurtlePathStudioDefaults.TemplateShortName;
@@ -65,11 +66,11 @@ public sealed class StudioViewModel
         _ => "Project launcher"
     };
 
-    public string EnvironmentText => Environment is null
+    public string EnvironmentText => TemplateEnvironments.Count == 0
         ? SidebarCollapsed ? "?" : "Environment: not checked"
-        : Environment.CanCreateProjects
+        : TemplatesAreReady
             ? SidebarCollapsed ? "OK" : "Environment: ready"
-            : Environment.TemplateRequiresUpdate
+            : TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
                 ? SidebarCollapsed ? "!" : "Environment: update required"
                 : SidebarCollapsed ? "!" : "Environment: needs attention";
 
@@ -81,11 +82,14 @@ public sealed class StudioViewModel
 
     public string StudioVersion => $"v{AppInfo.Current.VersionString}";
 
-    public string TemplateActionText => Environment?.TemplateRequiresUpdate == true
-        ? "Update template"
-        : "Install template";
+    public string TemplateActionText => TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
+        ? "Update templates"
+        : "Install templates";
 
-    public bool TemplateIsCurrent => Environment?.CanCreateProjects == true;
+    public bool TemplateIsCurrent => TemplatesAreReady;
+
+    public bool TemplatesAreReady => TemplateEnvironments.Count > 0
+        && TemplateEnvironments.All(environment => environment.CanCreateProjects);
 
     public StudioViewModel(
         InspectStudioEnvironmentUseCase inspectEnvironment,
@@ -212,11 +216,14 @@ public sealed class StudioViewModel
     {
         return RunAsync(async () =>
         {
-            Environment = await inspectEnvironment.ExecuteAsync();
-            Message = Environment.CanCreateProjects
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+
+            Message = TemplatesAreReady
                 ? "Environment ready."
-                : "Template or .NET environment needs attention. Use the actions below to repair it.";
-            MessageIsError = !Environment.CanCreateProjects;
+                : "One or more templates need attention. Use the actions below to repair them.";
+            MessageIsError = !TemplatesAreReady;
         });
     }
 
@@ -224,15 +231,21 @@ public sealed class StudioViewModel
     {
         return RunAsync(async () =>
         {
-            var result = await installTemplate.ExecuteAsync(forceUpdate: true);
-            Commands = [result];
-            Message = result.Succeeded
-                ? "Template installed. Environment was checked again."
-                : "Template installation failed. Check the command output.";
-            MessageIsError = !result.Succeeded;
+            var commands = new List<CommandExecutionResult>();
+            foreach (var packageId in TurtlePathStudioDefaults.TemplatePackageIds)
+                commands.Add(await installTemplate.ExecuteAsync(packageId, forceUpdate: true));
 
-            Environment = await inspectEnvironment.ExecuteAsync();
-            if (Environment.CanCreateProjects)
+            Commands = commands;
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+
+            Message = commands.All(command => command.Succeeded)
+                ? "Templates installed. Environment was checked again."
+                : "Template installation failed. Check the command output.";
+            MessageIsError = !commands.All(command => command.Succeeded);
+
+            if (TemplatesAreReady)
                 MessageIsError = false;
         });
     }
@@ -348,6 +361,15 @@ public sealed class StudioViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<IReadOnlyList<StudioEnvironmentReport>> InspectTemplateEnvironmentsAsync()
+    {
+        var environments = new List<StudioEnvironmentReport>();
+        foreach (var packageId in TurtlePathStudioDefaults.TemplatePackageIds)
+            environments.Add(await inspectEnvironment.ExecuteAsync(packageId));
+
+        return environments;
     }
 
     private bool ValidateInput()

@@ -25,14 +25,17 @@ public sealed class DotNetTemplatePackageManager(
         if (!result.Succeeded)
             return new TemplatePackageInfo(packageId, string.Empty, false, latestVersion);
 
-        var packageLine = result.Output
+        var lines = result.Output
             .Where(line => line.Kind == CommandOutputKind.StandardOutput)
             .Select(line => line.Text)
-            .FirstOrDefault(text => text.Contains(packageId, StringComparison.OrdinalIgnoreCase));
+            .ToArray();
+
+        var packageLineIndex = FindPackageLineIndex(lines, packageId);
+        var packageLine = packageLineIndex >= 0 ? lines[packageLineIndex] : null;
 
         return new TemplatePackageInfo(
             packageId,
-            ParseVersion(packageLine),
+            ParseVersion(lines, packageLineIndex),
             packageLine is not null,
             latestVersion);
     }
@@ -96,12 +99,41 @@ public sealed class DotNetTemplatePackageManager(
             cancellationToken);
     }
 
-    private static string ParseVersion(string packageLine)
+    private static int FindPackageLineIndex(
+        IReadOnlyList<string> lines,
+        string packageId)
     {
-        if (string.IsNullOrWhiteSpace(packageLine))
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var text = lines[index].Trim();
+            if (string.Equals(text, packageId, StringComparison.OrdinalIgnoreCase))
+                return index;
+
+            if (text.StartsWith($"{packageId} ", StringComparison.OrdinalIgnoreCase))
+                return index;
+        }
+
+        return -1;
+    }
+
+    private static string ParseVersion(
+        IReadOnlyList<string> lines,
+        int packageLineIndex)
+    {
+        if (packageLineIndex < 0 || packageLineIndex >= lines.Count)
             return string.Empty;
 
-        var parts = packageLine
+        for (var index = packageLineIndex + 1; index < lines.Count; index++)
+        {
+            var text = lines[index].Trim();
+            if (text.StartsWith("Version:", StringComparison.OrdinalIgnoreCase))
+                return text["Version:".Length..].Trim();
+
+            if (text.Equals("Uninstall Command:", StringComparison.OrdinalIgnoreCase))
+                break;
+        }
+
+        var parts = lines[packageLineIndex]
             .Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
         return parts.LastOrDefault(part => char.IsDigit(part[0])) ?? string.Empty;
