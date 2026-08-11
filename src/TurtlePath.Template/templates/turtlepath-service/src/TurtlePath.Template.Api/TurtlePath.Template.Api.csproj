@@ -25,6 +25,7 @@
     <PackageReference Include="TurtlePath.ExceptionHandling.Workers" />
     <PackageReference Include="TurtlePath.Jobs" />
     <PackageReference Include="TurtlePath.OctoMap" />
+    <PackageReference Include="TurtlePath.Spider" />
   </ItemGroup>
 
   <ItemGroup>

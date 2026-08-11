@@ -42,6 +42,7 @@ El proyecto generado no es un ASP.NET Core vacio. Ya trae configurado el stack e
 - `TurtlePath.Jobs` para jobs one-shot y jobs recurrentes.
 - `Pelican.Mediator` para dispatch de requests.
 - `Spider.Pipelines` para execution boundaries, incluyendo el transaction boundary.
+- `TurtlePath.Spider` para el bridge propio de TurtlePath que envia requests de Pelican por Spider sin acoplar esas librerias entre si.
 - `Pigeon.Messaging` con Azure Service Bus y EF Core outbox por default.
 - `TurtlePath.Analyzers` para evitar comparaciones y asignaciones inseguras de `CId`.
 
@@ -1578,11 +1579,13 @@ public sealed class CustomersController : BaseController
     public Task<CustomerResponse> Deactivate(
         [FromRoute] CId id,
         CancellationToken cancellationToken)
-        => Spider.Send(new DeactivateCustomerRequest { Id = id }, cancellationToken);
+        => Spider.DefaultSend<DeactivateCustomerRequest, CustomerResponse>(
+            new DeactivateCustomerRequest { Id = id },
+            cancellationToken);
 }
 ```
 
-Usa `Mediator.Send` para dispatch normal. Usa `Spider.Send` cuando el request debe pasar explicitamente por boundaries de Spider.
+Usa `Mediator.Send` para dispatch normal. Usa `Spider.DefaultSend<TRequest, TResponse>` desde `TurtlePath.Spider` cuando el request debe pasar explicitamente por boundaries de Spider. TurtlePath es quien posee este bridge para que Spider y Pelican no se referencien entre si.
 
 ## 14. Spider Pipelines Y Transacciones
 
@@ -1656,7 +1659,9 @@ Consumer:
 
 ```csharp
 using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
 using Pigeon.Messaging.Consuming;
+using TurtlePath.Spider;
 using TurtlePath.Template.Api.HubConsumers;
 
 namespace Billing.Service.Api.HubConsumers;
@@ -1666,11 +1671,13 @@ public sealed class InvoicesHubConsumer : BaseHubConsumer
     public Task Consume(InvoiceIssuedMessage message, CancellationToken cancellationToken)
     {
         return ConsumerExceptionBoundary.RunAsync(
-            token => Spider.Send(new CreateInvoiceRequest
-            {
-                CustomerId = message.CustomerId,
-                Amount = message.Amount
-            }, token),
+            token => Spider.DefaultSend<CreateInvoiceRequest, InvoiceResponse>(
+                new CreateInvoiceRequest
+                {
+                    CustomerId = message.CustomerId,
+                    Amount = message.Amount
+                },
+                token),
             Context,
             cancellationToken);
     }
