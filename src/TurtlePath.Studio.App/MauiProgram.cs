@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TurtlePath.Studio.Abstractions.Workspace;
+using TurtlePath.Studio.App.Settings;
 using TurtlePath.Studio.App.Workspace;
 using TurtlePath.Studio.App.ViewModels;
 using TurtlePath.Studio.Application.UseCases;
@@ -24,6 +25,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<InspectStudioEnvironmentUseCase>();
         builder.Services.AddSingleton<InstallTemplateUseCase>();
         builder.Services.AddSingleton<CreateTurtlePathProjectUseCase>();
+        builder.Services.AddSingleton<IStudioSettingsStore, PreferencesStudioSettingsStore>();
         builder.Services.AddSingleton<IStudioWorkspaceService, WindowsStudioWorkspaceService>();
         builder.Services.AddSingleton<StudioViewModel>();
         builder.Services.AddSingleton<MainPage>();

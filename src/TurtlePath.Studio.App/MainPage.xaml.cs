@@ -32,6 +32,7 @@ public partial class MainPage : ContentPage
     private readonly Label sidebarTitle = new();
     private readonly Label sidebarSubtitle = new();
     private readonly Button sidebarToggle = new();
+    private readonly Label sidebarVersion = new();
 
     public MainPage(StudioViewModel viewModel)
     {
@@ -63,7 +64,8 @@ public partial class MainPage : ContentPage
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = GridLength.Star }
+                new RowDefinition { Height = GridLength.Star },
+                new RowDefinition { Height = GridLength.Auto }
             },
             Padding = new Thickness(16, 24),
             RowSpacing = 22,
@@ -120,7 +122,24 @@ public partial class MainPage : ContentPage
 
         sidebar.Add(brand, 0, 0);
         sidebar.Add(navigation, 0, 1);
+        sidebar.Add(BuildSidebarFooter(), 0, 2);
         return sidebar;
+    }
+
+    private View BuildSidebarFooter()
+    {
+        sidebarVersion.TextColor = SidebarMuted;
+        sidebarVersion.FontAttributes = FontAttributes.Bold;
+        sidebarVersion.FontSize = 12;
+        sidebarVersion.HorizontalTextAlignment = TextAlignment.Center;
+
+        return new Border
+        {
+            Padding = new Thickness(12, 10),
+            StrokeThickness = 0,
+            BackgroundColor = Color.FromArgb("#0D3C31"),
+            Content = sidebarVersion
+        };
     }
 
     private View BuildWorkspace()
@@ -156,6 +175,9 @@ public partial class MainPage : ContentPage
         sidebarLogo.IsVisible = !viewModel.SidebarCollapsed;
         sidebarTitle.IsVisible = !viewModel.SidebarCollapsed;
         sidebarSubtitle.IsVisible = !viewModel.SidebarCollapsed;
+        sidebarVersion.Text = viewModel.SidebarCollapsed
+            ? viewModel.StudioVersion
+            : $"TurtlePath Studio {viewModel.StudioVersion}";
 
         title.Text = viewModel.PageTitle;
         subtitle.Text = viewModel.PageSubtitle;
@@ -535,13 +557,7 @@ public partial class MainPage : ContentPage
         var layout = new VerticalStackLayout { Spacing = 18 };
         layout.Add(CreateMessage());
 
-        var statusText = viewModel.Environment is null
-            ? "Environment has not been checked yet."
-            : viewModel.Environment.CanCreateProjects
-                ? $"TurtlePath.Template is installed{FormatVersion(viewModel.Environment.Template.Version)}. You can create projects."
-                : "TurtlePath.Template is missing or .NET template discovery failed. Install the template, then check again.";
-
-        layout.Add(CreateDocSection("Local status", statusText));
+        layout.Add(CreateDocSection("Local status", BuildEnvironmentStatusText()));
 
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Check environment", async () =>
@@ -549,13 +565,14 @@ public partial class MainPage : ContentPage
             await viewModel.RefreshEnvironmentAsync();
             Render();
         }, secondary: true));
-        actions.Add(CreateButton("Install template", async () =>
+        actions.Add(CreateButton(viewModel.TemplateActionText, async () =>
         {
             await viewModel.InstallTemplateAsync();
             Render();
         }));
         actions.Add(CreateButton("Open templates", () => Navigate(StudioSection.Templates), secondary: true));
         layout.Add(actions);
+        layout.Add(BuildDefaultSettings());
 
         if (viewModel.Commands.Count > 0)
             layout.Add(CreateExecutionLog());
@@ -564,6 +581,89 @@ public partial class MainPage : ContentPage
     }
 
     private static string FormatVersion(string version) => string.IsNullOrWhiteSpace(version) ? string.Empty : $" ({version})";
+
+    private string BuildEnvironmentStatusText()
+    {
+        if (viewModel.Environment is null)
+            return "Environment has not been checked yet. Studio will also validate the template before creating a project.";
+
+        var template = viewModel.Environment.Template;
+        if (viewModel.Environment.CanCreateProjects)
+            return $"TurtlePath.Template is ready. Installed: {template.Version}. Latest: {template.LatestVersion}.";
+
+        if (viewModel.Environment.TemplateRequiresUpdate)
+        {
+            return template.HasLatestVersion
+                ? $"TurtlePath.Template must be updated before creating projects. Installed: {template.Version}. Latest: {template.LatestVersion}."
+                : $"TurtlePath.Template is installed ({template.Version}), but Studio could not verify the latest NuGet version. Check the environment again or update the template.";
+        }
+
+        return "TurtlePath.Template is missing or .NET template discovery failed. Install the template, then check again.";
+    }
+
+    private View BuildDefaultSettings()
+    {
+        var layout = new VerticalStackLayout { Spacing = 16 };
+        layout.Add(new Label
+        {
+            Text = "Default values",
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        layout.Add(new Label
+        {
+            Text = "Configure the values Studio applies when the create-project wizard opens.",
+            FontSize = 15,
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var projectName = CreateEntry(viewModel.ProjectNamePlaceholder, "TurtlePath.Service");
+        projectName.TextChanged += (_, args) => viewModel.ProjectNamePlaceholder = args.NewTextValue;
+
+        var defaultPath = CreateEntry(viewModel.DefaultOutputRoot, "C:\\work");
+        defaultPath.HorizontalOptions = LayoutOptions.Fill;
+        defaultPath.TextChanged += (_, args) => viewModel.DefaultOutputRoot = args.NewTextValue;
+
+        var pathRow = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 10
+        };
+        pathRow.Add(defaultPath, 0, 0);
+        pathRow.Add(CreateButton("Browse", async () =>
+        {
+            await viewModel.PickDefaultOutputDirectoryAsync();
+            Render();
+        }, secondary: true), 1, 0);
+
+        layout.Add(CreateField("Default destination folder", pathRow));
+        layout.Add(CreateField("Project name placeholder", projectName));
+        layout.Add(CreateSwitchRow("Restore packages by default", "Runs package restore after template generation.", viewModel.DefaultRestoreAfterCreation, value => viewModel.DefaultRestoreAfterCreation = value));
+        layout.Add(CreateSwitchRow("Build projects by default", "Compiles the generated solution after restore.", viewModel.DefaultBuildAfterCreation, value => viewModel.DefaultBuildAfterCreation = value));
+        layout.Add(CreateSwitchRow("Run tests by default", "Executes generated tests after build.", viewModel.DefaultTestAfterCreation, value => viewModel.DefaultTestAfterCreation = value));
+        layout.Add(CreateSwitchRow("Skip guide after success by default", "Returns to Templates after creating the project instead of opening the guide.", viewModel.DefaultHideGuideAfterCreation, value => viewModel.DefaultHideGuideAfterCreation = value));
+
+        var actions = new HorizontalStackLayout { Spacing = 10 };
+        actions.Add(CreateButton("Save defaults", () =>
+        {
+            viewModel.SaveDefaults();
+            Render();
+        }));
+        actions.Add(CreateButton("Restore defaults", () =>
+        {
+            viewModel.ResetDefaults();
+            Render();
+        }, secondary: true));
+        layout.Add(actions);
+
+        return CreateBorder(layout);
+    }
 
     private View CreateDocSection(string heading, string text)
     {
@@ -799,7 +899,7 @@ public partial class MainPage : ContentPage
     {
         var layout = new VerticalStackLayout { Spacing = 16 };
 
-        var nameEntry = CreateEntry(viewModel.ProjectName, "BillingService");
+        var nameEntry = CreateEntry(viewModel.ProjectName, viewModel.ProjectNamePlaceholder);
         nameEntry.TextChanged += (_, args) => viewModel.ProjectName = args.NewTextValue;
 
         var pathEntry = CreateEntry(viewModel.OutputRoot, "C:\\work");

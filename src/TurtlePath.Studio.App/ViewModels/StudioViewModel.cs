@@ -1,29 +1,39 @@
+using Microsoft.Maui.ApplicationModel;
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
 using TurtlePath.Studio.Abstractions.Validation;
 using TurtlePath.Studio.Abstractions.Workspace;
+using TurtlePath.Studio.App.Settings;
 using TurtlePath.Studio.Application.Environment;
 using TurtlePath.Studio.Application.UseCases;
 
 namespace TurtlePath.Studio.App.ViewModels;
 
-public sealed class StudioViewModel(
-    InspectStudioEnvironmentUseCase inspectEnvironment,
-    InstallTemplateUseCase installTemplate,
-    CreateTurtlePathProjectUseCase createProject,
-    IStudioWorkspaceService workspace)
+public sealed class StudioViewModel
 {
+    private readonly InspectStudioEnvironmentUseCase inspectEnvironment;
+    private readonly InstallTemplateUseCase installTemplate;
+    private readonly CreateTurtlePathProjectUseCase createProject;
+    private readonly IStudioWorkspaceService workspace;
+    private readonly IStudioSettingsStore settingsStore;
+
     public StudioSection Section { get; private set; } = StudioSection.Home;
     public bool SidebarCollapsed { get; private set; }
     public StudioEnvironmentReport? Environment { get; private set; }
     public ProjectHostMode SelectedHost { get; private set; } = ProjectHostMode.ApiConsumer;
     public WizardStep WizardStep { get; private set; } = WizardStep.Basics;
-    public string ProjectName { get; set; } = "BillingService";
-    public string OutputRoot { get; set; } = global::System.Environment.GetFolderPath(global::System.Environment.SpecialFolder.MyDocuments);
-    public bool RestoreAfterCreation { get; set; } = true;
-    public bool BuildAfterCreation { get; set; } = true;
-    public bool TestAfterCreation { get; set; } = true;
+    public string ProjectName { get; set; }
+    public string OutputRoot { get; set; }
+    public bool RestoreAfterCreation { get; set; }
+    public bool BuildAfterCreation { get; set; }
+    public bool TestAfterCreation { get; set; }
     public bool HideGuideAfterCreation { get; set; }
+    public string DefaultOutputRoot { get; set; } = string.Empty;
+    public string ProjectNamePlaceholder { get; set; } = string.Empty;
+    public bool DefaultRestoreAfterCreation { get; set; }
+    public bool DefaultBuildAfterCreation { get; set; }
+    public bool DefaultTestAfterCreation { get; set; }
+    public bool DefaultHideGuideAfterCreation { get; set; }
     public bool IsBusy { get; private set; }
     public bool IsWizardOpen { get; private set; }
     public bool IsCreated { get; private set; }
@@ -53,7 +63,9 @@ public sealed class StudioViewModel(
         ? SidebarCollapsed ? "?" : "Environment: not checked"
         : Environment.CanCreateProjects
             ? SidebarCollapsed ? "OK" : "Environment: ready"
-            : SidebarCollapsed ? "!" : "Environment: needs attention";
+            : Environment.TemplateRequiresUpdate
+                ? SidebarCollapsed ? "!" : "Environment: update required"
+                : SidebarCollapsed ? "!" : "Environment: needs attention";
 
     public string SelectedTemplateName => SelectedHost == ProjectHostMode.Job
         ? "One-shot Job"
@@ -62,6 +74,37 @@ public sealed class StudioViewModel(
     public string ProjectDirectoryPreview => string.IsNullOrWhiteSpace(ProjectName) || string.IsNullOrWhiteSpace(OutputRoot)
         ? "Complete the project name and destination folder"
         : Path.Combine(OutputRoot, ProjectName);
+
+    public string StudioVersion => $"v{AppInfo.Current.VersionString}";
+
+    public string TemplateActionText => Environment?.TemplateRequiresUpdate == true
+        ? "Update template"
+        : "Install template";
+
+    public bool TemplateIsCurrent => Environment?.CanCreateProjects == true;
+
+    public StudioViewModel(
+        InspectStudioEnvironmentUseCase inspectEnvironment,
+        InstallTemplateUseCase installTemplate,
+        CreateTurtlePathProjectUseCase createProject,
+        IStudioWorkspaceService workspace,
+        IStudioSettingsStore settingsStore)
+    {
+        this.inspectEnvironment = inspectEnvironment;
+        this.installTemplate = installTemplate;
+        this.createProject = createProject;
+        this.workspace = workspace;
+        this.settingsStore = settingsStore;
+
+        var settings = settingsStore.Load();
+        ApplySettings(settings);
+        ProjectName = settings.ProjectNamePlaceholder;
+        OutputRoot = settings.DefaultOutputRoot;
+        RestoreAfterCreation = settings.RestoreAfterCreation;
+        BuildAfterCreation = settings.BuildAfterCreation;
+        TestAfterCreation = settings.TestAfterCreation;
+        HideGuideAfterCreation = settings.HideGuideAfterCreation;
+    }
 
     public void ToggleSidebar() => SidebarCollapsed = !SidebarCollapsed;
 
@@ -74,7 +117,14 @@ public sealed class StudioViewModel(
     public void OpenWizard(ProjectHostMode hostMode)
     {
         SelectedHost = hostMode;
-        ProjectName = hostMode == ProjectHostMode.Job ? "BillingJob" : "BillingService";
+        ProjectName = string.IsNullOrWhiteSpace(ProjectNamePlaceholder)
+            ? "TurtlePath.Service"
+            : ProjectNamePlaceholder;
+        OutputRoot = DefaultOutputRoot;
+        RestoreAfterCreation = DefaultRestoreAfterCreation;
+        BuildAfterCreation = DefaultBuildAfterCreation;
+        TestAfterCreation = DefaultTestAfterCreation;
+        HideGuideAfterCreation = DefaultHideGuideAfterCreation;
         WizardStep = WizardStep.Basics;
         IsCreated = false;
         CreatedDirectory = null;
@@ -124,6 +174,11 @@ public sealed class StudioViewModel(
         OutputRoot = await workspace.PickOutputDirectoryAsync(OutputRoot);
     }
 
+    public async Task PickDefaultOutputDirectoryAsync()
+    {
+        DefaultOutputRoot = await workspace.PickOutputDirectoryAsync(DefaultOutputRoot);
+    }
+
     public Task RefreshEnvironmentAsync()
     {
         return RunAsync(async () =>
@@ -153,6 +208,42 @@ public sealed class StudioViewModel(
         });
     }
 
+    public void SaveDefaults()
+    {
+        if (string.IsNullOrWhiteSpace(DefaultOutputRoot))
+        {
+            SetError("Default output path is required.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ProjectNamePlaceholder))
+        {
+            SetError("Project name placeholder is required.");
+            return;
+        }
+
+        var settings = new StudioSettings(
+            DefaultOutputRoot.Trim(),
+            ProjectNamePlaceholder.Trim(),
+            DefaultRestoreAfterCreation,
+            DefaultBuildAfterCreation,
+            DefaultTestAfterCreation,
+            DefaultHideGuideAfterCreation);
+
+        settingsStore.Save(settings);
+        ApplySettings(settings);
+        Message = "Default values saved.";
+        MessageIsError = false;
+    }
+
+    public void ResetDefaults()
+    {
+        settingsStore.Reset();
+        ApplySettings(settingsStore.Load());
+        Message = "Default values restored.";
+        MessageIsError = false;
+    }
+
     public async Task CreateProjectAsync()
     {
         if (!ValidateInput())
@@ -167,6 +258,16 @@ public sealed class StudioViewModel(
 
         await RunAsync(async () =>
         {
+            Environment = await inspectEnvironment.ExecuteAsync();
+            if (!Environment.CanCreateProjects)
+            {
+                Message = Environment.TemplateRequiresUpdate
+                    ? BuildTemplateUpdateRequiredMessage(Environment)
+                    : "TurtlePath.Template must be installed before creating projects.";
+                MessageIsError = true;
+                return;
+            }
+
             var result = await createProject.ExecuteAsync(new CreateProjectRequest(
                 ProjectName.Trim(),
                 ProjectDirectoryPreview,
@@ -253,5 +354,22 @@ public sealed class StudioViewModel(
     {
         Message = "Ready.";
         MessageIsError = false;
+    }
+
+    private void ApplySettings(StudioSettings settings)
+    {
+        DefaultOutputRoot = settings.DefaultOutputRoot;
+        ProjectNamePlaceholder = settings.ProjectNamePlaceholder;
+        DefaultRestoreAfterCreation = settings.RestoreAfterCreation;
+        DefaultBuildAfterCreation = settings.BuildAfterCreation;
+        DefaultTestAfterCreation = settings.TestAfterCreation;
+        DefaultHideGuideAfterCreation = settings.HideGuideAfterCreation;
+    }
+
+    private static string BuildTemplateUpdateRequiredMessage(StudioEnvironmentReport environment)
+    {
+        return environment.Template.HasLatestVersion
+            ? $"TurtlePath.Template must be updated before creating projects. Installed: {environment.Template.Version}; latest: {environment.Template.LatestVersion}."
+            : "TurtlePath.Template must be verified against NuGet before creating projects. Check the environment or update the template.";
     }
 }

@@ -8,6 +8,10 @@ public interface ITemplatePackageManager
         string packageId,
         CancellationToken cancellationToken = default);
 
+    Task<string> GetLatestVersionAsync(
+        string packageId,
+        CancellationToken cancellationToken = default);
+
     Task<CommandExecutionResult> InstallAsync(
         TemplateInstallRequest request,
         CancellationToken cancellationToken = default);
