@@ -35,6 +35,14 @@ namespace TurtlePath.Testing
         public static TurtlePathTestHostBuilder Create() => new();
 
         /// <summary>
+        /// Creates a new test host builder from an application's real service registrations.
+        /// </summary>
+        /// <param name="configure">The application service registration delegate.</param>
+        /// <returns>A test host builder using the supplied application services as its base.</returns>
+        public static TurtlePathTestHostBuilder CreateFromServices(Action<IServiceCollection> configure)
+            => Create().UseApplicationServices(configure);
+
+        /// <summary>
         /// Resolves a service from the test scope.
         /// </summary>
         public TService Resolve<TService>()

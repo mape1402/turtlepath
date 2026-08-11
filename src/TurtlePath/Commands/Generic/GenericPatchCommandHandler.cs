@@ -2,6 +2,7 @@ namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using System.Linq.Expressions;
     using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Exceptions;
@@ -70,9 +71,24 @@ namespace TurtlePath.Commands
         protected IEntityPatchStep<TRequest, TEntity> EntityPatchStep { get; }
 
         /// <summary>
+        /// Gets the response mapping step.
+        /// </summary>
+        protected IResponseMappingStep<TRequest, TEntity, TResponse, TKey> ResponseMappingStep { get; }
+
+        /// <summary>
+        /// Gets optional response mapping options for this request/entity pair.
+        /// </summary>
+        protected ICommandResponseOptions<TRequest, TEntity> ResponseOptions { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => false;
+
+        /// <summary>
+        /// Gets a value indicating whether to use a projection from storage for the response mapping.
+        /// </summary>
+        protected virtual bool UseProjectionFromStorage => ResponseOptions?.UseProjectionFromStorage ?? false;
 
         private readonly ICommandHookStageRunner<TRequest, TEntity, TResponse> hookStageRunner;
 
@@ -96,6 +112,8 @@ namespace TurtlePath.Commands
             ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
             EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
             EntityPatchStep = Services.GetRequiredService<IEntityPatchStep<TRequest, TEntity>>();
+            ResponseMappingStep = Services.GetRequiredService<IResponseMappingStep<TRequest, TEntity, TResponse, TKey>>();
+            ResponseOptions = Services.GetService<ICommandResponseOptions<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -194,7 +212,21 @@ namespace TurtlePath.Commands
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation, with the mapped response as the result.</returns>
         protected virtual ValueTask<TResponse> BuildResponseAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => MapperAdapter.MapAsync<TEntity, TResponse>(entity, cancellationToken);
+            => ResponseMappingStep.MapAsync(
+                request,
+                entity,
+                UseProjectionFromStorage,
+                EntityKeyExpression.Equals<TEntity, TKey>(request.Id),
+                GetResponseIncludeExpressions(request),
+                cancellationToken);
+
+        /// <summary>
+        /// Gets navigation expressions to include when the response is projected from storage.
+        /// </summary>
+        /// <param name="request">The request being handled.</param>
+        /// <returns>The navigation expressions to include.</returns>
+        protected virtual Expression<Func<TEntity, object>>[] GetResponseIncludeExpressions(TRequest request)
+            => ResponseOptions?.GetIncludeExpressions(request) ?? [];
     }
 
     /// <summary>

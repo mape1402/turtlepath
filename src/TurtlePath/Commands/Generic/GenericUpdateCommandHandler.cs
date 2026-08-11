@@ -3,6 +3,7 @@ namespace TurtlePath.Commands
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
     using System;
+    using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
     using TurtlePath.Commands.Steps;
@@ -78,6 +79,11 @@ namespace TurtlePath.Commands
         protected IResponseMappingStep<TRequest, TEntity, TResponse, TKey> ResponseMappingStep { get; }
 
         /// <summary>
+        /// Gets optional response mapping options for this request/entity pair.
+        /// </summary>
+        protected ICommandResponseOptions<TRequest, TEntity> ResponseOptions { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the request should be validated before processing.
         /// </summary>
         protected virtual bool ValidateRequest => true;
@@ -87,7 +93,7 @@ namespace TurtlePath.Commands
         /// <summary>
         /// Gets a value indicating whether to use a projection from storage for the response mapping.
         /// </summary>
-        protected virtual bool UseProjectionFromStorage => false;
+        protected virtual bool UseProjectionFromStorage => ResponseOptions?.UseProjectionFromStorage ?? false;
 
         /// <summary>
         /// Gets the hook context for the current handler execution.
@@ -110,6 +116,7 @@ namespace TurtlePath.Commands
             EntityMappingStep = Services.GetRequiredService<IEntityMappingStep<TRequest, TEntity>>();
             EntitySaveStep = Services.GetRequiredService<IEntitySaveStep<TRequest, TEntity>>();
             ResponseMappingStep = Services.GetRequiredService<IResponseMappingStep<TRequest, TEntity, TResponse, TKey>>();
+            ResponseOptions = Services.GetService<ICommandResponseOptions<TRequest, TEntity>>();
             hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
@@ -219,7 +226,16 @@ namespace TurtlePath.Commands
                 entity,
                 UseProjectionFromStorage,
                 EntityKeyExpression.Equals<TEntity, TKey>(request.Id),
+                GetResponseIncludeExpressions(request),
                 cancellationToken);
+
+        /// <summary>
+        /// Gets navigation expressions to include when the response is projected from storage.
+        /// </summary>
+        /// <param name="request">The request being handled.</param>
+        /// <returns>The navigation expressions to include.</returns>
+        protected virtual Expression<Func<TEntity, object>>[] GetResponseIncludeExpressions(TRequest request)
+            => ResponseOptions?.GetIncludeExpressions(request) ?? [];
     }
 
     /// <summary>

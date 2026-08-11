@@ -65,7 +65,7 @@ namespace TurtlePath.Automations.Generation.DynaBeeIntegration
                     .WithParameter<IServiceProvider>("serviceProvider")
                     .CallsBase(GetServiceProviderConstructor(baseType), "serviceProvider"));
 
-            if (descriptor.OperationKind is AutomationOperationKind.Delete or AutomationOperationKind.Patch && descriptor.HasResponse)
+            if (descriptor.OperationKind == AutomationOperationKind.Delete && descriptor.HasResponse)
                 OverrideBuildResponse(generatedClass, descriptor, baseType);
 
             if (descriptor.OperationKind == AutomationOperationKind.GetOne)

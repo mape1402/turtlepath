@@ -2,6 +2,14 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.4.1] - 2026-08-11
+
+### Added
+
+- Added command response options so create, update, and patch handlers can rebuild mutation responses from storage with configured includes.
+- Added automation profile support for `ReloadBeforeResponse()` and `Include(...)` on mutation declarations.
+- Added `TurtlePathTestHost.CreateFromServices(...)` and `UseApplicationServices(...)` for integration tests that start from the application's real dependency registration.
+
 ## [v1.4.0] - 2026-08-10
 
 ### Added

@@ -72,6 +72,18 @@ namespace TurtlePath.Automations.Tests.Profiles
             Assert.Contains(descriptors, x => x.RequestType == typeof(ImportCustomerCommand));
         }
 
+        [Fact]
+        public void Build_preserves_mutation_response_projection_options()
+        {
+            var descriptors = AutomationProfileDescriptorBuilder.Build(new ResponseProjectionAutomationProfile());
+
+            var descriptor = Assert.Single(descriptors);
+
+            Assert.True(descriptor.ReloadBeforeResponse);
+            var include = Assert.Single(descriptor.ResponseIncludeExpressions);
+            Assert.Equal("customer.Parent", include.Body.ToString());
+        }
+
         private sealed class CustomerAutomationProfile : TurtlePathAutomationProfile
         {
             public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -106,8 +118,19 @@ namespace TurtlePath.Automations.Tests.Profiles
             }
         }
 
+        private sealed class ResponseProjectionAutomationProfile : TurtlePathAutomationProfile
+        {
+            public override void Configure(ITurtlePathAutomationBuilder builder)
+            {
+                builder.For<Customer>()
+                    .ToCreate<CreateCustomerCommand, CustomerResponse>(mutation => mutation
+                        .Include(customer => customer.Parent));
+            }
+        }
+
         private sealed class Customer : BaseEntity
         {
+            public Customer Parent { get; set; }
         }
 
         private sealed class LegacyCustomer : IEntity<int>

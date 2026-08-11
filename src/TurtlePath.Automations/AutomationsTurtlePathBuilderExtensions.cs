@@ -24,7 +24,8 @@ namespace TurtlePath.Automations
             new AutomationHandlerRegistration(
                 handlerTypeGenerator,
                 new AutomationHandlerServiceTypeResolver(),
-                new Options.AutomationQueryOptionsRegistration()).Register(builder.Services, descriptors);
+                new Options.AutomationQueryOptionsRegistration(),
+                new Options.AutomationCommandResponseOptionsRegistration()).Register(builder.Services, descriptors);
 
             return builder;
         }

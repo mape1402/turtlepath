@@ -1,5 +1,6 @@
 namespace TurtlePath.Testing.Tests
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
     using TurtlePath.Automations.Profiles;
     using TurtlePath.Commands;
@@ -88,6 +89,36 @@ namespace TurtlePath.Testing.Tests
 
             Assert.Equal(3, response.Id);
             Assert.True(host.Store<Customer>().Contains(customer => customer.Name == "Linus"));
+        }
+
+        [Fact]
+        public async Task Host_can_start_from_application_services_and_layer_testing_helpers()
+        {
+            await using var host = await TurtlePathTestHost
+                .CreateFromServices(services =>
+                {
+                    services.AddTurtlePath();
+                    services.AddPelican(typeof(TurtlePathTestHostTests).Assembly);
+                    services.AddSingleton<InMemoryTurtlePathStorage>();
+                    services.AddSingleton<IStorageReaderAdapter>(provider => provider.GetRequiredService<InMemoryTurtlePathStorage>());
+                    services.AddSingleton<IStorageWriterAdapter>(provider => provider.GetRequiredService<InMemoryTurtlePathStorage>());
+                })
+                .WithMap<CreateCustomerRequest, Customer>(request => new Customer
+                {
+                    Id = 4,
+                    Name = request.Name
+                })
+                .WithMap<Customer, CustomerResponse>(customer => new CustomerResponse
+                {
+                    Id = customer.Id,
+                    Name = customer.Name
+                })
+                .BuildAsync();
+
+            var response = await host.SendAsync(new CreateCustomerRequest("Katherine"));
+
+            Assert.Equal(4, response.Id);
+            Assert.True(host.Store<Customer>().Contains(customer => customer.Name == "Katherine"));
         }
 
         [Fact]

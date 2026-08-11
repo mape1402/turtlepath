@@ -148,6 +148,8 @@ var response = await host.SendAsync(new CreateCustomerRequest(1, "Ada"));
 
 `TurtlePathTestHost.Create()` returns a `TurtlePathTestHostBuilder`.
 
+`TurtlePathTestHost.CreateFromServices(...)` starts from the same dependency registration method used by the application. Use it when the test should prove the real composition root and only layer test adapters or SQLite on top.
+
 ### UseTurtlePath
 
 Registers the TurtlePath handler foundation.
@@ -169,6 +171,21 @@ TurtlePathTestHost.Create()
 ```
 
 Use this when the test calls `host.SendAsync(...)` for manually written handlers.
+
+### CreateFromServices
+
+Uses application service registration as the base of the test host.
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .CreateFromServices(services => services.AddDefaults(configuration, environment))
+    .UseOctoMapTesting(typeof(CustomerMappingProfile).Assembly)
+    .UseCrabalidatorTesting(typeof(CreateCustomerRequestValidator).Assembly)
+    .UseDataScorpioTesting(profiles => profiles.FromAssemblyOf<CustomerQueryProfile>())
+    .BuildAsync();
+```
+
+`CreateFromServices` disables the default TurtlePath and in-memory storage registrations because the application registration owns those choices. Add testing adapters after it when a specific library should provide assertions or test doubles.
 
 ### UseAutomations
 

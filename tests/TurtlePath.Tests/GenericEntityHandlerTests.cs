@@ -125,6 +125,31 @@ public class GenericEntityHandlerTests
     }
 
     [Fact]
+    public async Task Create_handler_uses_response_options_to_project_response_from_storage()
+    {
+        var storage = new RecordingStorageWriterAdapter();
+        var reader = new InMemoryStorageReaderAdapter(new CustomEntity
+        {
+            Id = 10,
+            Name = "from-storage"
+        });
+        using var provider = CreateProvider(
+            storage,
+            reader,
+            new TestMapperAdapter(),
+            new NoopValidatorAdapter(),
+            services => services.AddSingleton<ICommandResponseOptions<CreateCustomEntityRequest, CustomEntity>>(
+                new ProjectedCreateResponseOptions()));
+
+        var handler = new CreateCustomEntityHandler(provider);
+
+        var response = await handler.Handle(new CreateCustomEntityRequest("Ada"));
+
+        Assert.Equal(10, response.Id);
+        Assert.Equal("from-storage", response.Name);
+    }
+
+    [Fact]
     public async Task Create_handler_virtual_override_takes_precedence_over_creation_step()
     {
         var storage = new RecordingStorageWriterAdapter();
@@ -281,6 +306,14 @@ public class GenericEntityHandlerTests
                 Name = "from-step"
             });
         }
+    }
+
+    private sealed class ProjectedCreateResponseOptions : ICommandResponseOptions<CreateCustomEntityRequest, CustomEntity>
+    {
+        public bool UseProjectionFromStorage => true;
+
+        public Expression<Func<CustomEntity, object>>[] GetIncludeExpressions(CreateCustomEntityRequest request)
+            => [];
     }
 
     private sealed class GetCustomEntityByIdHandler

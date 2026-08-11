@@ -18,5 +18,16 @@ namespace TurtlePath.Automations.Profiles
         /// Configures the not-found message for entity lookup operations.
         /// </summary>
         IMutationAutomationBuilder<TRequest, TEntity, TKey> NotFoundMessage(string message);
+
+        /// <summary>
+        /// Configures the handler to build the response by reading the entity again from storage.
+        /// </summary>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse();
+
+        /// <summary>
+        /// Includes a navigation when the response is read again from storage.
+        /// </summary>
+        /// <param name="includeExpression">The navigation expression to include.</param>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> Include(Expression<Func<TEntity, object>> includeExpression);
     }
 }
