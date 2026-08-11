@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Template.Business\TurtlePath.Template.Business.csproj" />
+    <ProjectReference Include="..\TurtlePath.Template.Persistence\TurtlePath.Template.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TurtlePath.Template.Persistence\TurtlePath.Template.Persistence.csproj" />
+    <ProjectReference Include="..\TurtlePath.Template.Domain\TurtlePath.Template.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,6 +14,7 @@
     <PackageReference Include="Pelican.Mediator" />
     <PackageReference Include="TurtlePath" />
     <PackageReference Include="TurtlePath.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="TurtlePath.EntityFrameworkCore" />
   </ItemGroup>
 
 </Project>
