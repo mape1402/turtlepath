@@ -181,6 +181,7 @@ a { color:var(--primary); }
 <li><code>TurtlePath.Jobs</code> for one-shot jobs and recurring cron-style jobs.</li>
 <li><code>Pelican.Mediator</code> for request dispatch.</li>
 <li><code>Spider.Pipelines</code> for execution boundaries, including the default transaction boundary.</li>
+<li><code>TurtlePath.Spider</code> for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.</li>
 <li><code>Pigeon.Messaging</code> with Azure Service Bus and EF Core outbox defaults.</li>
 <li><code>TurtlePath.Analyzers</code> to prevent unsafe <code>CId</code> comparisons and assignments.</li>
 </ul>
@@ -2343,7 +2344,9 @@ public sealed class CustomersController : BaseController
     public Task&lt;CustomerResponse&gt; Deactivate(
         [FromRoute] CId id,
         CancellationToken cancellationToken)
-        =&gt; Spider.Send(new DeactivateCustomerRequest { Id = id }, cancellationToken);
+        =&gt; Spider.DefaultSend&lt;DeactivateCustomerRequest, CustomerResponse&gt;(
+            new DeactivateCustomerRequest { Id = id },
+            cancellationToken);
 }">Copy</button></div><pre><code class="language-csharp">[ApiVersion("1.0")]
 [Route("customers")]
 public sealed class CustomersController : BaseController
@@ -2380,9 +2383,11 @@ public sealed class CustomersController : BaseController
     public Task&lt;CustomerResponse&gt; Deactivate(
         [FromRoute] CId id,
         CancellationToken cancellationToken)
-        =&gt; Spider.Send(new DeactivateCustomerRequest { Id = id }, cancellationToken);
+        =&gt; Spider.DefaultSend&lt;DeactivateCustomerRequest, CustomerResponse&gt;(
+            new DeactivateCustomerRequest { Id = id },
+            cancellationToken);
 }</code></pre></div>
-<p>Use <code>Mediator.Send</code> for normal in-process request dispatch. Use <code>Spider.Send</code> when the request should run through Spider boundaries explicitly.</p>
+<p>Use <code>Mediator.Send</code> for normal in-process request dispatch. Use <code>Spider.DefaultSend&lt;TRequest, TResponse&gt;</code> from <code>TurtlePath.Spider</code> when the request should run through Spider boundaries explicitly. TurtlePath owns this bridge so Spider and Pelican do not need to reference each other.</p>
 <h2 id="14-spider-pipelines-and-transactions">14. Spider Pipelines And Transactions</h2>
 <p>The template uses Spider execution boundaries for cross-cutting execution behavior. The default boundary is transaction handling.</p>
 <p>Registration:</p>
@@ -2479,7 +2484,9 @@ public sealed class RebuildSearchIndexRequest : IRequest
 <p>The outbox is enabled by default so messages created inside the service can be persisted with the database transaction and dispatched after commit.</p>
 <p>Consumer example:</p>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
 using Pigeon.Messaging.Consuming;
+using TurtlePath.Spider;
 using TurtlePath.Template.Api.HubConsumers;
 
 namespace Billing.Service.Api.HubConsumers;
@@ -2489,18 +2496,22 @@ public sealed class InvoicesHubConsumer : BaseHubConsumer
     public Task Consume(InvoiceIssuedMessage message, CancellationToken cancellationToken)
     {
         return ConsumerExceptionBoundary.RunAsync(
-            token =&gt; Spider.Send(new CreateInvoiceRequest
-            {
-                CustomerId = message.CustomerId,
-                Amount = message.Amount
-            }, token),
+            token =&gt; Spider.DefaultSend&lt;CreateInvoiceRequest, InvoiceResponse&gt;(
+                new CreateInvoiceRequest
+                {
+                    CustomerId = message.CustomerId,
+                    Amount = message.Amount
+                },
+                token),
             Context,
             cancellationToken);
     }
 }
 
 public sealed record InvoiceIssuedMessage(CId CustomerId, decimal Amount);">Copy</button></div><pre><code class="language-csharp">using Billing.Service.Business.Invoices.Models.Requests;
+using Billing.Service.Business.Invoices.Models.Responses;
 using Pigeon.Messaging.Consuming;
+using TurtlePath.Spider;
 using TurtlePath.Template.Api.HubConsumers;
 
 namespace Billing.Service.Api.HubConsumers;
@@ -2510,11 +2521,13 @@ public sealed class InvoicesHubConsumer : BaseHubConsumer
     public Task Consume(InvoiceIssuedMessage message, CancellationToken cancellationToken)
     {
         return ConsumerExceptionBoundary.RunAsync(
-            token =&gt; Spider.Send(new CreateInvoiceRequest
-            {
-                CustomerId = message.CustomerId,
-                Amount = message.Amount
-            }, token),
+            token =&gt; Spider.DefaultSend&lt;CreateInvoiceRequest, InvoiceResponse&gt;(
+                new CreateInvoiceRequest
+                {
+                    CustomerId = message.CustomerId,
+                    Amount = message.Amount
+                },
+                token),
             Context,
             cancellationToken);
     }

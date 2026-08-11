@@ -9,6 +9,7 @@ All notable changes to TurtlePath will be documented in this file.
 - Added command response options so create, update, and patch handlers can rebuild mutation responses from storage with configured includes.
 - Added automation profile support for `ReloadBeforeResponse()` and `Include(...)` on mutation declarations.
 - Added `TurtlePathTestHost.CreateFromServices(...)` and `UseApplicationServices(...)` for integration tests that start from the application's real dependency registration.
+- Added `TurtlePath.Spider` with Spider extension methods for sending Pelican requests through Spider boundaries while preserving the concrete request type.
 
 ## [v1.4.0] - 2026-08-10
 
