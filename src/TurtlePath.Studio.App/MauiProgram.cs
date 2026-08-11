@@ -19,15 +19,14 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
             });
 
-        builder.Services.AddMauiBlazorWebView();
         builder.Services.AddTurtlePathStudioInfrastructure();
         builder.Services.AddSingleton<InspectStudioEnvironmentUseCase>();
         builder.Services.AddSingleton<InstallTemplateUseCase>();
         builder.Services.AddSingleton<CreateTurtlePathProjectUseCase>();
         builder.Services.AddSingleton<IStudioWorkspaceService, WindowsStudioWorkspaceService>();
+        builder.Services.AddSingleton<MainPage>();
 
 #if DEBUG
-        builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
 
