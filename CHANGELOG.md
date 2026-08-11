@@ -2,6 +2,12 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.4.2] - 2026-08-11
+
+### Added
+
+- Added `TurtlePath.Template.HeroesShowcase`, a NuGet-distributed `dotnet new` demo template for generating a complete Heroes service with automations, custom handlers, jobs, tests, Spider, DataScorpio, OctoMap, Crabalidator, Pigeon, and EventSourcing examples.
+
 ## [v1.4.1] - 2026-08-11
 
 ### Added

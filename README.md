@@ -29,6 +29,7 @@ The recommended package set is:
 - `TurtlePath.DataScorpio`: recommended DataScorpio filtering and sorting adapter for query criteria.
 - `TurtlePath.Sieve`: optional Sieve filtering and sorting adapter kept for projects that still use Sieve.
 - `TurtlePath.Analyzers`: optional compile-time checks for unsafe `CId` usage across entities with different configured identifier value types.
+- `TurtlePath.Template.HeroesShowcase`: official `dotnet new` demo template that generates a complete Heroes service showcasing TurtlePath features end to end.
 
 Alternative adapters are available when a project needs them: `TurtlePath.AutoMapper` and `TurtlePath.FluentValidation`.
 
@@ -54,6 +55,13 @@ Create a one-shot job host for console or Kubernetes CronJob execution:
 
 ```powershell
 dotnet new turtlepath -n MyJob --host job
+```
+
+Install the Heroes Showcase demo template when you want a full reference project:
+
+```powershell
+dotnet new install TurtlePath.Template.HeroesShowcase
+dotnet new turtlepath-heroes-showcase -n Heroes.Service
 ```
 
 ## Template Defaults
@@ -106,7 +114,7 @@ Testing packages should normally stay in test projects:
 <PackageReference Include="TurtlePath.Testing.Integration" Version="..." PrivateAssets="all" />
 ```
 
-`TurtlePath.Template` is installed through `dotnet new install` instead of referenced from an application project.
+`TurtlePath.Template` and `TurtlePath.Template.HeroesShowcase` are installed through `dotnet new install` instead of referenced from an application project.
 
 Register Pelican, the provider libraries, TurtlePath, and each implementation package from your application composition root:
 

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+    <PackageId>TurtlePath.Template.HeroesShowcase</PackageId>
+    <Title>TurtlePath Heroes Showcase Template</Title>
+    <Description>dotnet new demo template that creates a complete TurtlePath Heroes Showcase service with automations, custom handlers, jobs, testing, Spider, DataScorpio, OctoMap, Crabalidator, Pigeon, and EventSourcing examples.</Description>
+    <PackageTags>dotnet-new template turtlepath demo heroes showcase cqrs api jobs testing datascorpio octomap crabalidator spider</PackageTags>
+    <PackageType>Template</PackageType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="..\..\README.md" />
+    <None Remove="..\..\assets\turtlepath.png" />
+    <Content Include="templates\**\*"
+             Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\.vs\**;templates\**\.git\**;templates\**\*.db;templates\**\*.db-shm;templates\**\*.db-wal;templates\**\Properties\launchSettings.json"
+             Pack="true"
+             PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="..\..\assets\turtlepath.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+</Project>
