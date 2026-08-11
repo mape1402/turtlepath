@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurtlePath Template Use Guide</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink:#081f1a;
+  --muted:#5a7168;
+  --panel:#ffffff;
+  --surface:#f4f8f5;
+  --line:#d9e5de;
+  --primary:#2e7143;
+  --primary-dark:#083229;
+  --soft:#eaf5ee;
+  --code:#1e1e1e;
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--surface); color:var(--ink); font:14px/1.62 "Segoe UI", Arial, sans-serif; }
+.shell { display:grid; grid-template-columns:280px minmax(0, 1fr); min-height:100vh; }
+.sidebar { position:sticky; top:0; height:100vh; overflow:auto; padding:28px 20px; background:#07382e; color:#dcebe5; }
+.brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+.brand-badge { width:42px; height:42px; border-radius:12px; background:#f8fbf9; display:grid; place-items:center; font-weight:800; color:var(--primary); }
+.brand h1 { margin:0; font-size:18px; line-height:1.12; color:white; }
+.brand p { margin:2px 0 0; color:#a9c7ba; font-size:12px; }
+.nav-title { margin:18px 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#9ab9ad; font-weight:700; }
+.nav a { display:block; color:#dcebe5; text-decoration:none; padding:7px 10px; border-radius:8px; margin:1px 0; }
+.nav a:hover { background:#114d3e; color:white; }
+.nav a.depth-3 { padding-left:24px; font-size:12px; color:#a9c7ba; }
+.content { min-width:0; padding:36px 48px 72px; }
+.article { max-width:1060px; margin:0 auto; background:var(--panel); border:1px solid var(--line); box-shadow:0 10px 34px rgba(8,50,41,.06); padding:44px 54px; }
+h1 { margin:0 0 10px; font-size:38px; line-height:1.08; letter-spacing:0; }
+h2 { margin:44px 0 14px; padding-top:8px; font-size:26px; line-height:1.2; border-top:1px solid var(--line); }
+h3 { margin:28px 0 10px; font-size:20px; line-height:1.25; }
+h4, h5, h6 { margin:24px 0 8px; }
+p { margin:0 0 14px; color:var(--muted); }
+ul, ol { margin:0 0 16px 22px; padding:0; }
+li { margin:6px 0; }
+code { font-family:Consolas, "Cascadia Mono", monospace; background:#f3f3f3; color:#001080; padding:2px 5px; border-radius:5px; font-size:.92em; }
+.code-card { margin:18px 0 24px; border:1px solid #3c3c3c; background:var(--code); overflow:hidden; box-shadow:0 12px 26px rgba(0,0,0,.12); }
+.code-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 12px; background:#0d2a25; color:#b8d6c8; border-bottom:1px solid #173d35; font-size:12px; font-weight:700; }
+.code-toolbar span { color:#b8d6c8; text-transform:uppercase; letter-spacing:.04em; }
+.copy-code { border:1px solid #315d50; background:#123d34; color:white; border-radius:4px; padding:6px 10px; font:700 12px "Segoe UI", Arial, sans-serif; cursor:pointer; }
+.copy-code:hover { background:#2e7143; border-color:#2e7143; }
+.copy-code.copied { background:#7ccc55; border-color:#7ccc55; color:#062019; }
+pre { margin:0; padding:18px 20px; overflow:auto; }
+pre code { display:block; background:transparent; color:#d4d4d4; padding:0; border-radius:0; line-height:1.52; font-size:13px; tab-size:4; }
+.token-keyword { color:#569cd6; }
+.token-type { color:#4ec9b0; }
+.token-string { color:#ce9178; }
+.token-comment { color:#6a9955; }
+.token-number { color:#b5cea8; }
+.token-attribute { color:#dcdcaa; }
+.token-property { color:#9cdcfe; }
+.token-punctuation { color:#d4d4d4; }
+.token-command { color:#dcdcaa; }
+a { color:var(--primary); }
+.article > h1:first-child + p { font-size:17px; color:#36554b; margin-bottom:28px; }
+@media (max-width: 980px) {
+  .shell { grid-template-columns:1fr; }
+  .sidebar { position:relative; height:auto; }
+  .content { padding:18px; }
+  .article { padding:28px 24px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-badge">TP</div><div><h1>TurtlePath<br>Template</h1><p>Use guide</p></div></div>
+    <div class="nav-title">Guide sections</div>
+    <nav class="nav"><a class="depth-2" href="#index">Index</a>
+<a class="depth-2" href="#stack">Stack</a>
+<a class="depth-2" href="#getting-started">Getting Started</a>
+<a class="depth-3" href="#registering-the-stack">Registering The Stack</a>
+<a class="depth-3" href="#minimal-manual-flow">Minimal Manual Flow</a>
+<a class="depth-2" href="#feature-organization">Feature Organization</a>
+<a class="depth-2" href="#naming-conventions">Naming Conventions</a>
+<a class="depth-3" href="#requests">Requests</a>
+<a class="depth-3" href="#responses">Responses</a>
+<a class="depth-3" href="#command-handlers">Command Handlers</a>
+<a class="depth-3" href="#queries">Queries</a>
+<a class="depth-3" href="#validators">Validators</a>
+<a class="depth-3" href="#mappings">Mappings</a>
+<a class="depth-3" href="#automations">Automations</a>
+<a class="depth-3" href="#hooks">Hooks</a>
+<a class="depth-3" href="#services">Services</a>
+<a class="depth-3" href="#controllers">Controllers</a>
+<a class="depth-3" href="#hub-consumers">Hub Consumers</a>
+<a class="depth-3" href="#entity-configurations">Entity Configurations</a>
+<a class="depth-2" href="#automations-2">Automations</a>
+<a class="depth-3" href="#fluent-profile">Fluent Profile</a>
+<a class="depth-3" href="#attributes">Attributes</a>
+<a class="depth-3" href="#customization-without-handlers">Customization Without Handlers</a>
+<a class="depth-2" href="#custom-handlers">Custom Handlers</a>
+<a class="depth-3" href="#command-handler-virtual-methods">Command Handler Virtual Methods</a>
+<a class="depth-3" href="#query-handler-virtual-methods">Query Handler Virtual Methods</a>
+<a class="depth-2" href="#hooks-2">Hooks</a>
+<a class="depth-2" href="#filtering-with-datascorpio">Filtering With DataScorpio</a>
+<a class="depth-2" href="#mapping-and-validation">Mapping And Validation</a>
+<a class="depth-3" href="#mapping">Mapping</a>
+<a class="depth-3" href="#validation">Validation</a>
+<a class="depth-2" href="#testing">Testing</a>
+<a class="depth-3" href="#handler-unit-test">Handler Unit Test</a>
+<a class="depth-3" href="#sqlite-integration-test">SQLite Integration Test</a>
+<a class="depth-3" href="#elysium-adapter-testing">Elysium Adapter Testing</a>
+<a class="depth-2" href="#transactions">Transactions</a>
+<a class="depth-2" href="#migration-checklist">Migration Checklist</a>
+<a class="depth-2" href="#template-update-notes">Template Update Notes</a></nav>
+  </aside>
+  <main class="content"><article class="article"><h1 id="turtlepath-template-use-guide">TurtlePath.Template Use Guide</h1>
+<p>Usage guide for ASP.NET Core services built with TurtlePath.</p>
+<h2 id="index">Index</h2>
+<ul>
+<li><a href="#stack">Stack</a></li>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#feature-organization">Feature Organization</a></li>
+<li><a href="#naming-conventions">Naming Conventions</a></li>
+<li><a href="#automations">Automations</a></li>
+<li><a href="#custom-handlers">Custom Handlers</a></li>
+<li><a href="#hooks">Hooks</a></li>
+<li><a href="#filtering-with-datascorpio">Filtering With DataScorpio</a></li>
+<li><a href="#mapping-and-validation">Mapping And Validation</a></li>
+<li><a href="#testing">Testing</a></li>
+<li><a href="#transactions">Transactions</a></li>
+<li><a href="#migration-checklist">Migration Checklist</a></li>
+<li><a href="#template-update-notes">Template Update Notes</a></li>
+</ul>
+<h2 id="stack">Stack</h2>
+<ul>
+<li><code>TurtlePath</code> for handlers, hooks, requests, responses, and application exceptions.</li>
+<li><code>TurtlePath.Domain</code> for <code>CId</code>, <code>BaseEntity</code>, and <code>IEntity&lt;TKey&gt;</code>.</li>
+<li><code>TurtlePath.EntityFrameworkCore</code> for <code>BaseDbContext</code>, <code>IDbContext</code>, storage adapters, and EF conventions.</li>
+<li><code>TurtlePath.OctoMap</code> for mapping.</li>
+<li><code>TurtlePath.Crabalidator</code> for validation.</li>
+<li><code>TurtlePath.DataScorpio</code> for filtering, sorting, and paging.</li>
+<li><code>TurtlePath.Analyzers</code> in Domain and Business to catch unsafe <code>CId</code> comparisons and assignments.</li>
+<li><code>Pigeon.Messaging</code> with Azure Service Bus as the default broker and EF Core outbox enabled by default.</li>
+<li><code>Spider.Pipelines</code> for messaging boundaries and the transaction boundary.</li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<p>The template keeps shared infrastructure in TurtlePath packages and keeps service code organized by feature.</p>
+<h3 id="registering-the-stack">Registering The Stack</h3>
+<p>The API composition root registers the business assembly, TurtlePath, adapters, identifier mapping, EF Core, Pigeon, and Spider:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddCrabalidator(typeof(Constants).Assembly);
+
+services.AddOctoMap(registration =&gt;
+{
+    registration.Options.EnableRuntimeImplicitMaps = true;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(Constants).Assembly);
+});
+
+services.AddScoped&lt;IMapperAdapter, OctoMapAdapter&gt;();
+services.AddScoped&lt;IValidatorAdapter, CrabalidatorAdapter&gt;();
+
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseCId&lt;Ulid, string&gt;(config =&gt;
+    {
+        config.DefaultFactory = () =&gt; CId.From(Ulid.NewUlid());
+        config.ConvertToDb = id =&gt; id.ToString();
+        config.ConvertFromDb = value =&gt; CId.From(Ulid.Parse(value));
+        config.JsonConverter = value =&gt; string.IsNullOrEmpty(value) ? CId.From(Ulid.Empty) : CId.From(Ulid.Parse(value));
+        config.NullableJsonConverter = value =&gt; string.IsNullOrEmpty(value) ? null : CId.From(Ulid.Parse(value));
+        config.ParseFunction = value =&gt; CId.From(Ulid.Parse(value));
+    })
+    .UseEntityFrameworkCore&lt;AppDbContext&gt;();">Copy</button></div><pre><code class="language-csharp">services.AddCrabalidator(typeof(Constants).Assembly);
+
+services.AddOctoMap(registration =&gt;
+{
+    registration.Options.EnableRuntimeImplicitMaps = true;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(Constants).Assembly);
+});
+
+services.AddScoped&lt;IMapperAdapter, OctoMapAdapter&gt;();
+services.AddScoped&lt;IValidatorAdapter, CrabalidatorAdapter&gt;();
+
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseCId&lt;Ulid, string&gt;(config =&gt;
+    {
+        config.DefaultFactory = () =&gt; CId.From(Ulid.NewUlid());
+        config.ConvertToDb = id =&gt; id.ToString();
+        config.ConvertFromDb = value =&gt; CId.From(Ulid.Parse(value));
+        config.JsonConverter = value =&gt; string.IsNullOrEmpty(value) ? CId.From(Ulid.Empty) : CId.From(Ulid.Parse(value));
+        config.NullableJsonConverter = value =&gt; string.IsNullOrEmpty(value) ? null : CId.From(Ulid.Parse(value));
+        config.ParseFunction = value =&gt; CId.From(Ulid.Parse(value));
+    })
+    .UseEntityFrameworkCore&lt;AppDbContext&gt;();</code></pre></div>
+<p>Pigeon uses Azure Service Bus by default:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddPigeon(configuration, builder =&gt;
+{
+    // builder.ScanConsumersFromAssemblies(typeof(Program).Assembly);
+    builder.ConfigurePublishing(publishing =&gt;
+    {
+        publishing.AmbientTransactionBehavior = AmbientTransactionPublishBehavior.SuppressTransaction;
+    });
+
+    builder.UseAzureServiceBus();
+    builder.UseEntityFrameworkOutbox&lt;AppDbContext&gt;(outbox =&gt;
+    {
+        outbox.Enabled = true;
+        outbox.SchemaMode = OutboxSchemaMode.AutoCreate;
+    });
+});">Copy</button></div><pre><code class="language-csharp">services.AddPigeon(configuration, builder =&gt;
+{
+    // builder.ScanConsumersFromAssemblies(typeof(Program).Assembly);
+    builder.ConfigurePublishing(publishing =&gt;
+    {
+        publishing.AmbientTransactionBehavior = AmbientTransactionPublishBehavior.SuppressTransaction;
+    });
+
+    builder.UseAzureServiceBus();
+    builder.UseEntityFrameworkOutbox&lt;AppDbContext&gt;(outbox =&gt;
+    {
+        outbox.Enabled = true;
+        outbox.SchemaMode = OutboxSchemaMode.AutoCreate;
+    });
+});</code></pre></div>
+<p>Outbox settings are configurable from <code>Pigeon:Outbox</code>. The template defaults to EF Core storage, auto schema creation, immediate dispatch after commit, retry support, and periodic cleanup. When direct broker publishing runs inside an ambient transaction without outbox, Pigeon explicitly suppresses the transaction scope.</p>
+<h3 id="minimal-manual-flow">Minimal Manual Flow</h3>
+<p>Entity:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.Domain.Contracts;
+
+public sealed class Customer : BaseEntity
+{
+    public string Name { get; set; }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.Domain.Contracts;
+
+public sealed class Customer : BaseEntity
+{
+    public string Name { get; set; }
+}</code></pre></div>
+<p>Request and response:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using Pelican.Mediator;
+using TurtlePath.Models.Responses;
+
+public sealed class CreateCustomerRequest : IRequest&lt;CustomerResponse&gt;
+{
+    public string Name { get; set; }
+}
+
+public sealed class CustomerResponse : BaseResponse
+{
+    public string Name { get; set; }
+}">Copy</button></div><pre><code class="language-csharp">using Pelican.Mediator;
+using TurtlePath.Models.Responses;
+
+public sealed class CreateCustomerRequest : IRequest&lt;CustomerResponse&gt;
+{
+    public string Name { get; set; }
+}
+
+public sealed class CustomerResponse : BaseResponse
+{
+    public string Name { get; set; }
+}</code></pre></div>
+<p>Handler:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.Commands;
+
+public sealed class CreateCustomerCommandHandler
+    : CreateCommandHandler&lt;CreateCustomerRequest, CustomerResponse, Customer&gt;
+{
+    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.Commands;
+
+public sealed class CreateCustomerCommandHandler
+    : CreateCommandHandler&lt;CreateCustomerRequest, CustomerResponse, Customer&gt;
+{
+    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}</code></pre></div>
+<p>Controller:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="[HttpPost]
+public Task&lt;CustomerResponse&gt; Create(CreateCustomerRequest request, CancellationToken cancellationToken)
+{
+    return Mediator.Send(request, cancellationToken);
+}">Copy</button></div><pre><code class="language-csharp">[HttpPost]
+public Task&lt;CustomerResponse&gt; Create(CreateCustomerRequest request, CancellationToken cancellationToken)
+{
+    return Mediator.Send(request, cancellationToken);
+}</code></pre></div>
+<p>Use manual handlers when the flow has custom business behavior that should be explicit in code. Use automations for standard CRUD happy paths.</p>
+<h2 id="feature-organization">Feature Organization</h2>
+<p>Business code should be organized by feature, not by global technical buckets.</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Feature/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/">Copy</button></div><pre><code class="language-text">Feature/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/</code></pre></div>
+<p><code>Feature</code> is a placeholder. Replace it with the real business capability when creating code.</p>
+<p>Examples:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Customers/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/
+
+Invoices/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/
+
+Orders/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/">Copy</button></div><pre><code class="language-text">Customers/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/
+
+Invoices/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/
+
+Orders/
+  Commands/
+  Queries/
+  Validators/
+  Mappings/
+  Hooks/
+  Automations/
+  Querying/
+  Models/
+    Requests/
+    Responses/
+  Services/</code></pre></div>
+<p>Do not create a generic <code>Features</code> container. Each feature lives directly under the Business project.</p>
+<p>Guidelines:</p>
+<ul>
+<li>Put commands that mutate state under <code>Commands</code>.</li>
+<li>Put read requests under <code>Queries</code>.</li>
+<li>Put request/response DTOs under <code>Models/Requests</code> and <code>Models/Responses</code>.</li>
+<li>Put Crabalidator validators under <code>Validators</code>.</li>
+<li>Put OctoMap maps/profiles under <code>Mappings</code>.</li>
+<li>Put TurtlePath hooks under <code>Hooks</code>.</li>
+<li>Put TurtlePath automation profiles or attributes under <code>Automations</code>.</li>
+<li>Put DataScorpio <code>QueryProfile&lt;TEntity&gt;</code> classes under <code>Querying</code>.</li>
+<li>Put feature-owned collaborators under <code>Services</code>.</li>
+<li>When a feature needs an external integration, put it under <code>Services</code> using a service-specific folder such as <code>Services/SAT</code>.</li>
+</ul>
+<p>Shared business services that are reused by several features should live at the Business root and still be grouped by service:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Services/
+  Audit/">Copy</button></div><pre><code class="language-text">Services/
+  Audit/</code></pre></div>
+<p>This keeps a future extraction path clean if the service becomes a shared library.</p>
+<h2 id="naming-conventions">Naming Conventions</h2>
+<h3 id="requests">Requests</h3>
+<p>Mutation messages are commands conceptually, but their class names must keep the <code>Request</code> suffix:</p>
+<ul>
+<li><code>CreateCustomerRequest</code></li>
+<li><code>UpdateInvoiceRequest</code></li>
+<li><code>ChangeOrderStatusRequest</code></li>
+</ul>
+<h3 id="responses">Responses</h3>
+<p>Responses represent the output of any handler:</p>
+<ul>
+<li><code>CustomerResponse</code></li>
+<li><code>InvoiceResponse</code></li>
+<li><code>ChangeOrderStatusResponse</code></li>
+</ul>
+<h3 id="command-handlers">Command Handlers</h3>
+<p>Command handlers express the action and end with <code>CommandHandler</code>:</p>
+<ul>
+<li><code>CreateCustomerCommandHandler</code></li>
+<li><code>UpdateInvoiceCommandHandler</code></li>
+<li><code>ChangeOrderStatusCommandHandler</code></li>
+</ul>
+<p>Example:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class ChangeOrderStatusCommandHandler
+    : CreateCommandHandler&lt;ChangeOrderStatusRequest, ChangeOrderStatusResponse, Order&gt;
+{
+    public ChangeOrderStatusCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class ChangeOrderStatusCommandHandler
+    : CreateCommandHandler&lt;ChangeOrderStatusRequest, ChangeOrderStatusResponse, Order&gt;
+{
+    public ChangeOrderStatusCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}</code></pre></div>
+<h3 id="queries">Queries</h3>
+<p>Query messages and handlers both use <code>Query</code> terminology:</p>
+<ul>
+<li><code>GetCustomerByIdQuery</code></li>
+<li><code>GetCustomerByIdQueryHandler</code></li>
+<li><code>GetPagedInvoicesQuery</code></li>
+<li><code>GetPagedInvoicesQueryHandler</code></li>
+</ul>
+<p>For small query flows, keep the handler nested inside the query:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class GetCustomerByIdQuery : IRequest&lt;CustomerResponse&gt;
+{
+    public CId Id { get; set; }
+
+    public sealed class GetCustomerByIdQueryHandler
+        : QueryByIdHandler&lt;GetCustomerByIdQuery, CustomerResponse, Customer&gt;
+    {
+        public GetCustomerByIdQueryHandler(IServiceProvider services) : base(services)
+        {
+        }
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class GetCustomerByIdQuery : IRequest&lt;CustomerResponse&gt;
+{
+    public CId Id { get; set; }
+
+    public sealed class GetCustomerByIdQueryHandler
+        : QueryByIdHandler&lt;GetCustomerByIdQuery, CustomerResponse, Customer&gt;
+    {
+        public GetCustomerByIdQueryHandler(IServiceProvider services) : base(services)
+        {
+        }
+    }
+}</code></pre></div>
+<p>When a flow is generated through automations, omit manual command handlers and query handlers.</p>
+<h3 id="validators">Validators</h3>
+<p>Validators use the request name plus <code>Validator</code>:</p>
+<ul>
+<li><code>CreateCustomerRequestValidator</code></li>
+<li><code>UpdateInvoiceRequestValidator</code></li>
+<li><code>ChangeOrderStatusRequestValidator</code></li>
+</ul>
+<h3 id="mappings">Mappings</h3>
+<p>Mapping profiles use the feature or aggregate name plus <code>MappingProfile</code>:</p>
+<ul>
+<li><code>CustomerMappingProfile</code></li>
+<li><code>InvoiceMappingProfile</code></li>
+<li><code>OrderMappingProfile</code></li>
+</ul>
+<h3 id="automations">Automations</h3>
+<p>Automation profiles use the feature or aggregate name plus <code>AutomationProfile</code>:</p>
+<ul>
+<li><code>CustomerAutomationProfile</code></li>
+<li><code>InvoiceAutomationProfile</code></li>
+<li><code>OrderAutomationProfile</code></li>
+</ul>
+<h3 id="hooks">Hooks</h3>
+<p>Hooks should describe the action and the hook point where they run:</p>
+<ul>
+<li><code>AssignCustomerNumberBeforeSaveHook</code></li>
+<li><code>PublishInvoiceCanceledAfterSaveHook</code></li>
+<li><code>NormalizeOrderStatusBeforeValidationHook</code></li>
+</ul>
+<h3 id="services">Services</h3>
+<p>Feature-owned services live inside the feature under a service-specific folder.</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Customers/
+  Services/
+    SAT/
+      ISatService.cs
+      SatService.cs">Copy</button></div><pre><code class="language-text">Customers/
+  Services/
+    SAT/
+      ISatService.cs
+      SatService.cs</code></pre></div>
+<p>Example service method:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public interface ISatService
+{
+    Task&lt;bool&gt; ValidateCustomerRfc(string rfc, CancellationToken cancellationToken);
+}">Copy</button></div><pre><code class="language-csharp">public interface ISatService
+{
+    Task&lt;bool&gt; ValidateCustomerRfc(string rfc, CancellationToken cancellationToken);
+}</code></pre></div>
+<p>Shared services live at the Business root, also grouped by service:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Services/
+  Audit/
+    IAuditService.cs
+    AuditService.cs">Copy</button></div><pre><code class="language-text">Services/
+  Audit/
+    IAuditService.cs
+    AuditService.cs</code></pre></div>
+<h3 id="controllers">Controllers</h3>
+<p>Controllers use plural resource names:</p>
+<ul>
+<li><code>CustomersController</code></li>
+<li><code>InvoicesController</code></li>
+<li><code>OrdersController</code></li>
+</ul>
+<p>Use RESTful routes for CRUD:</p>
+<ul>
+<li><code>[POST] customers</code> creates a resource.</li>
+<li><code>[PUT] customers/{id}</code> updates a resource.</li>
+<li><code>[DELETE] customers/{id}</code> deletes a resource.</li>
+<li><code>[GET] customers</code> reads the collection, normally paged.</li>
+<li><code>[GET] customers/{id}</code> reads one resource by id.</li>
+</ul>
+<p>Additional paged filters should be query filters resolved dynamically with DataScorpio.</p>
+<p>Use <code>POST</code> for actions outside CRUD:</p>
+<ul>
+<li><code>[POST] customers/{id}/deactivate</code></li>
+<li><code>[POST] invoices/{id}/cancel</code></li>
+</ul>
+<p>Use nested routes for subresources:</p>
+<ul>
+<li><code>[GET] customers/{id}/orders</code></li>
+<li><code>[DELETE] orders/{id}/details/{detailId}</code></li>
+</ul>
+<h3 id="hub-consumers">Hub Consumers</h3>
+<p>Hub consumers also use the plural resource name:</p>
+<ul>
+<li><code>CustomersHubConsumer</code></li>
+<li><code>InvoicesHubConsumer</code></li>
+</ul>
+<h3 id="entity-configurations">Entity Configurations</h3>
+<p>Entity configurations use the entity name plus <code>Configuration</code>:</p>
+<ul>
+<li><code>CustomerConfiguration</code></li>
+<li><code>InvoiceConfiguration</code></li>
+<li><code>OrderConfiguration</code></li>
+</ul>
+<h2 id="automations-2">Automations</h2>
+<p>Use <code>TurtlePath.Automations</code> when the feature follows the standard happy path and does not need a custom handler.</p>
+<h3 id="fluent-profile">Fluent Profile</h3>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.Automations.Profiles;
+
+public sealed class CustomerAutomationProfile : AutomationProfile
+{
+    public override void Configure(IAutomationProfileBuilder builder)
+    {
+        builder.For&lt;Customer&gt;()
+            .ToCreate&lt;CreateCustomerRequest, CustomerResponse&gt;()
+            .ToUpdate&lt;UpdateCustomerRequest, CustomerResponse&gt;()
+            .ToDelete&lt;DeleteCustomerRequest&gt;()
+            .ToQueryById&lt;GetCustomerByIdQuery, CustomerResponse&gt;()
+            .ToQueryPaged&lt;GetPagedCustomersQuery, CustomerResponse&gt;();
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.Automations.Profiles;
+
+public sealed class CustomerAutomationProfile : AutomationProfile
+{
+    public override void Configure(IAutomationProfileBuilder builder)
+    {
+        builder.For&lt;Customer&gt;()
+            .ToCreate&lt;CreateCustomerRequest, CustomerResponse&gt;()
+            .ToUpdate&lt;UpdateCustomerRequest, CustomerResponse&gt;()
+            .ToDelete&lt;DeleteCustomerRequest&gt;()
+            .ToQueryById&lt;GetCustomerByIdQuery, CustomerResponse&gt;()
+            .ToQueryPaged&lt;GetPagedCustomersQuery, CustomerResponse&gt;();
+    }
+}</code></pre></div>
+<p>Register automation profiles from the API composition root when the service starts using automations.</p>
+<h3 id="attributes">Attributes</h3>
+<p>Attributes are useful for very small features where the request itself can declare the automation intent.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="[AutomateCreate(typeof(Customer), typeof(CustomerResponse))]
+public sealed class CreateCustomerRequest : IRequest&lt;CustomerResponse&gt;
+{
+    public string Name { get; set; }
+}">Copy</button></div><pre><code class="language-csharp">[AutomateCreate(typeof(Customer), typeof(CustomerResponse))]
+public sealed class CreateCustomerRequest : IRequest&lt;CustomerResponse&gt;
+{
+    public string Name { get; set; }
+}</code></pre></div>
+<h3 id="customization-without-handlers">Customization Without Handlers</h3>
+<p>Prefer hooks when the default flow is still correct but needs a business step. See <a href="#hooks">Hooks</a> for the complete list of command and query hooks.</p>
+<p>Use a custom handler when the control flow changes substantially, the operation touches several aggregates, or the behavior would be hard to understand through hooks alone.</p>
+<h2 id="custom-handlers">Custom Handlers</h2>
+<p>Use custom handlers when the default TurtlePath happy path is not enough.</p>
+<p>Recommended handlers use <code>BaseEntity</code> and <code>CId</code>:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class CreateCustomerCommandHandler
+    : CreateCommandHandler&lt;CreateCustomerRequest, CustomerResponse, Customer&gt;
+{
+    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class CreateCustomerCommandHandler
+    : CreateCommandHandler&lt;CreateCustomerRequest, CustomerResponse, Customer&gt;
+{
+    public CreateCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}</code></pre></div>
+<p>For legacy or custom key contracts, use the generic handlers:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class CreateLegacyCustomerCommandHandler
+    : GenericCreateCommandHandler&lt;CreateLegacyCustomerRequest, LegacyCustomerResponse, LegacyCustomer, int&gt;
+{
+    public CreateLegacyCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class CreateLegacyCustomerCommandHandler
+    : GenericCreateCommandHandler&lt;CreateLegacyCustomerRequest, LegacyCustomerResponse, LegacyCustomer, int&gt;
+{
+    public CreateLegacyCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+}</code></pre></div>
+<p>Handlers still expose virtual methods for focused customization. Prefer overriding a method when the change belongs only to that handler. Prefer a hook when the behavior is reusable across handlers or automations.</p>
+<h3 id="command-handler-virtual-methods">Command Handler Virtual Methods</h3>
+<p>Create handlers:</p>
+<ul>
+<li><code>ValidateRequest</code>: enables or disables request validation. Defaults to <code>true</code>.</li>
+<li><code>UseProjectionFromStorage</code>: maps the response from a fresh storage projection after save. Applies only to handlers that return a response. Defaults to <code>false</code>.</li>
+<li><code>ValidateAsync(request, cancellationToken)</code>: validates the request.</li>
+<li><code>MapToEntityAsync(request, cancellationToken)</code>: creates the entity from the request.</li>
+<li><code>SaveEntityAsync(request, entity, cancellationToken)</code>: persists the new entity.</li>
+<li><code>MapToResponseAsync(request, entity, cancellationToken)</code>: builds the response. Applies only to handlers that return a response.</li>
+</ul>
+<p>Update handlers:</p>
+<ul>
+<li><code>ValidateRequest</code>: enables or disables request validation. Defaults to <code>true</code>.</li>
+<li><code>UseProjectionFromStorage</code>: maps the response from a fresh storage projection after save. Applies only to handlers that return a response. Defaults to <code>false</code>.</li>
+<li><code>GetEntityAsync(request, cancellationToken)</code>: loads the entity to update.</li>
+<li><code>ValidateAsync(request, entity, cancellationToken)</code>: validates the request with the loaded entity.</li>
+<li><code>MapEntityAsync(request, entity, cancellationToken)</code>: maps request values onto the entity.</li>
+<li><code>UpdateEntityAsync(request, entity, cancellationToken)</code>: saves the updated entity.</li>
+<li><code>MapToResponseAsync(request, entity, cancellationToken)</code>: builds the response. Applies only to handlers that return a response.</li>
+</ul>
+<p>Delete handlers:</p>
+<ul>
+<li><code>ValidateRequest</code>: enables or disables request validation. Defaults to <code>false</code>.</li>
+<li><code>GetEntityAsync(request, cancellationToken)</code>: loads the entity to delete.</li>
+<li><code>ValidateAsync(request, entity, cancellationToken)</code>: validates whether the delete is allowed.</li>
+<li><code>DeleteEntityAsync(entity, cancellationToken)</code>: deletes the entity.</li>
+<li><code>BuildResponseAsync(request, entity, cancellationToken)</code>: builds the response. Applies only to handlers that return a response.</li>
+</ul>
+<p>Patch handlers:</p>
+<ul>
+<li><code>ValidateRequest</code>: enables or disables request validation. Defaults to <code>false</code>.</li>
+<li><code>GetEntityAsync(request, cancellationToken)</code>: loads the entity to patch.</li>
+<li><code>ValidateAsync(request, entity, cancellationToken)</code>: validates whether the patch is allowed.</li>
+<li><code>PatchEntityAsync(request, entity, cancellationToken)</code>: applies the patch action to the entity.</li>
+<li><code>UpdateEntityAsync(request, entity, cancellationToken)</code>: saves the patched entity.</li>
+<li><code>BuildResponseAsync(request, entity, cancellationToken)</code>: builds the response. Applies only to handlers that return a response.</li>
+</ul>
+<p>Example: disable validation for an idempotent internal command.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class TouchCustomerCommandHandler
+    : UpdateCommandHandler&lt;TouchCustomerRequest, Customer&gt;
+{
+    public TouchCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override bool ValidateRequest =&gt; false;
+}">Copy</button></div><pre><code class="language-csharp">public sealed class TouchCustomerCommandHandler
+    : UpdateCommandHandler&lt;TouchCustomerRequest, Customer&gt;
+{
+    public TouchCustomerCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override bool ValidateRequest =&gt; false;
+}</code></pre></div>
+<p>Example: add a feature-specific lookup rule.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class CancelInvoiceCommandHandler
+    : UpdateCommandHandler&lt;CancelInvoiceRequest, InvoiceResponse, Invoice&gt;
+{
+    public CancelInvoiceCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override async Task&lt;Invoice&gt; GetEntityAsync(CancelInvoiceRequest request, CancellationToken cancellationToken)
+    {
+        var invoice = await StorageReaderAdapter
+            .For&lt;Invoice&gt;()
+            .Where(x =&gt; x.Id == request.Id &amp;&amp; !x.IsCanceled)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return invoice ?? throw new NotFoundException(nameof(Invoice), request.Id.ToString());
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class CancelInvoiceCommandHandler
+    : UpdateCommandHandler&lt;CancelInvoiceRequest, InvoiceResponse, Invoice&gt;
+{
+    public CancelInvoiceCommandHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override async Task&lt;Invoice&gt; GetEntityAsync(CancelInvoiceRequest request, CancellationToken cancellationToken)
+    {
+        var invoice = await StorageReaderAdapter
+            .For&lt;Invoice&gt;()
+            .Where(x =&gt; x.Id == request.Id &amp;&amp; !x.IsCanceled)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return invoice ?? throw new NotFoundException(nameof(Invoice), request.Id.ToString());
+    }
+}</code></pre></div>
+<h3 id="query-handler-virtual-methods">Query Handler Virtual Methods</h3>
+<p>Get one and get by id handlers:</p>
+<ul>
+<li><code>Handle(query, cancellationToken)</code>: can be overridden when the whole query flow needs to change.</li>
+<li><code>GetFilterExpression(query)</code>: defines how the entity is located.</li>
+</ul>
+<p>Get many handlers:</p>
+<ul>
+<li><code>Handle(query, cancellationToken)</code>: can be overridden when the whole query flow needs to change.</li>
+<li><code>GetFilterExpression(query)</code>: adds typed filters before DataScorpio string filters.</li>
+<li><code>GetSortingExpression(query)</code>: adds typed sorting before DataScorpio string sorting.</li>
+</ul>
+<p>Get paged handlers:</p>
+<ul>
+<li><code>DefaultSorts</code>: defines fallback DataScorpio-compatible sorting when the request does not specify sorts.</li>
+<li><code>GetFiltersExpression(query)</code>: adds typed filters before DataScorpio string filters.</li>
+<li><code>GetSortingExpression(query)</code>: adds typed sorting before DataScorpio string sorting.</li>
+</ul>
+<p>Example: force a customer-scoped invoice list while still allowing DataScorpio filters.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class GetPagedInvoicesQueryHandler
+    : GetPagedInfoQueryHandler&lt;GetPagedInvoicesQuery, Invoice, InvoiceResponse&gt;
+{
+    public GetPagedInvoicesQueryHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override string DefaultSorts =&gt; &quot;-CreatedAt&quot;;
+
+    protected override Expression&lt;Func&lt;Invoice, bool&gt;&gt; GetFiltersExpression(GetPagedInvoicesQuery query)
+    {
+        return invoice =&gt; invoice.CustomerId == query.CustomerId;
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class GetPagedInvoicesQueryHandler
+    : GetPagedInfoQueryHandler&lt;GetPagedInvoicesQuery, Invoice, InvoiceResponse&gt;
+{
+    public GetPagedInvoicesQueryHandler(IServiceProvider services) : base(services)
+    {
+    }
+
+    protected override string DefaultSorts =&gt; &quot;-CreatedAt&quot;;
+
+    protected override Expression&lt;Func&lt;Invoice, bool&gt;&gt; GetFiltersExpression(GetPagedInvoicesQuery query)
+    {
+        return invoice =&gt; invoice.CustomerId == query.CustomerId;
+    }
+}</code></pre></div>
+<h2 id="hooks-2">Hooks</h2>
+<p>Hooks let a feature customize the standard path without replacing the handler.</p>
+<p>Use hooks when the default flow is correct and you only need to add behavior at a known stage. Hooks are discovered through dependency injection, run in registration order, and can implement <code>IOrderedHook</code> when several hooks target the same stage.</p>
+<p>Command hooks use <code>CommandHookContext&lt;TRequest, TEntity&gt;</code> or <code>CommandHookContext&lt;TRequest, TEntity, TResponse&gt;</code>. The context exposes <code>Request</code>, <code>Entity</code>, <code>Response</code> when available, and typed key/value storage to share data between hooks in the same handler execution.</p>
+<p>Available command hooks:</p>
+<ul>
+<li><code>IBeforeValidationHook&lt;TRequest, TEntity&gt;</code>: normalize request data or load context before validation.</li>
+<li><code>IAfterValidationHook&lt;TRequest, TEntity&gt;</code>: run logic that depends on a valid request.</li>
+<li><code>IBeforeGetEntityHook&lt;TRequest, TEntity&gt;</code>: prepare data before update, delete, or patch loads the entity.</li>
+<li><code>IAfterGetEntityHook&lt;TRequest, TEntity&gt;</code>: inspect or enrich the loaded entity before validation or mutation.</li>
+<li><code>IBeforeMapHook&lt;TRequest, TEntity&gt;</code>: normalize data before create or update mapping.</li>
+<li><code>IAfterMapHook&lt;TRequest, TEntity&gt;</code>: enforce derived entity values after mapping.</li>
+<li><code>IBeforePatchHook&lt;TRequest, TEntity&gt;</code>: check patch preconditions.</li>
+<li><code>IAfterPatchHook&lt;TRequest, TEntity&gt;</code>: enforce derived values after patching.</li>
+<li><code>IBeforeSaveHook&lt;TRequest, TEntity&gt;</code>: stamp audit fields, assign business numbers, or prepare side effects before persistence.</li>
+<li><code>IAfterSaveHook&lt;TRequest, TEntity&gt;</code>: publish messages, write audit records, or trigger async work after persistence.</li>
+<li><code>IBeforeDeleteHook&lt;TRequest, TEntity&gt;</code>: block deletion or prepare related cleanup.</li>
+<li><code>IAfterDeleteHook&lt;TRequest, TEntity&gt;</code>: publish deletion events or write audit records.</li>
+<li><code>IBeforeResponseHook&lt;TRequest, TEntity, TResponse&gt;</code>: enrich data before the response is built.</li>
+<li><code>IAfterResponseHook&lt;TRequest, TEntity, TResponse&gt;</code>: adjust or enrich the response before it returns.</li>
+</ul>
+<p>Available query hooks:</p>
+<ul>
+<li><code>IBeforeQueryHook&lt;TQuery, TResult&gt;</code>: apply read context, capture telemetry data, or validate query preconditions.</li>
+<li><code>IAfterQueryHook&lt;TQuery, TResult&gt;</code>: enrich query results, capture metrics, or write read audit records.</li>
+</ul>
+<p>Example: assign a business number before saving a customer.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class AssignCustomerNumberBeforeSaveHook
+    : IBeforeSaveHook&lt;CreateCustomerRequest, Customer&gt;
+{
+    private readonly ICustomerNumberService customerNumberService;
+
+    public AssignCustomerNumberBeforeSaveHook(ICustomerNumberService customerNumberService)
+    {
+        this.customerNumberService = customerNumberService;
+    }
+
+    public async ValueTask BeforeSaveAsync(CommandHookContext&lt;CreateCustomerRequest, Customer&gt; context, CancellationToken cancellationToken)
+    {
+        context.Entity.CustomerNumber = await customerNumberService.NextAsync(cancellationToken);
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class AssignCustomerNumberBeforeSaveHook
+    : IBeforeSaveHook&lt;CreateCustomerRequest, Customer&gt;
+{
+    private readonly ICustomerNumberService customerNumberService;
+
+    public AssignCustomerNumberBeforeSaveHook(ICustomerNumberService customerNumberService)
+    {
+        this.customerNumberService = customerNumberService;
+    }
+
+    public async ValueTask BeforeSaveAsync(CommandHookContext&lt;CreateCustomerRequest, Customer&gt; context, CancellationToken cancellationToken)
+    {
+        context.Entity.CustomerNumber = await customerNumberService.NextAsync(cancellationToken);
+    }
+}</code></pre></div>
+<p>Example: publish an integration event after saving.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class PublishCustomerCreatedAfterSaveHook
+    : IAfterSaveHook&lt;CreateCustomerRequest, Customer&gt;
+{
+    private readonly ISpider spider;
+
+    public PublishCustomerCreatedAfterSaveHook(ISpider spider)
+    {
+        this.spider = spider;
+    }
+
+    public async ValueTask AfterSaveAsync(CommandHookContext&lt;CreateCustomerRequest, Customer&gt; context, CancellationToken cancellationToken)
+    {
+        await spider.Send(new CustomerCreatedEvent(context.Entity.Id), cancellationToken);
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class PublishCustomerCreatedAfterSaveHook
+    : IAfterSaveHook&lt;CreateCustomerRequest, Customer&gt;
+{
+    private readonly ISpider spider;
+
+    public PublishCustomerCreatedAfterSaveHook(ISpider spider)
+    {
+        this.spider = spider;
+    }
+
+    public async ValueTask AfterSaveAsync(CommandHookContext&lt;CreateCustomerRequest, Customer&gt; context, CancellationToken cancellationToken)
+    {
+        await spider.Send(new CustomerCreatedEvent(context.Entity.Id), cancellationToken);
+    }
+}</code></pre></div>
+<p>Example: enrich a paged query result after it runs.</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class AttachInvoiceSummaryAfterQueryHook
+    : IAfterQueryHook&lt;GetPagedInvoicesQuery, PagedResponse&lt;InvoiceResponse&gt;&gt;
+{
+    public ValueTask AfterQueryAsync(QueryHookContext&lt;GetPagedInvoicesQuery, PagedResponse&lt;InvoiceResponse&gt;&gt; context, CancellationToken cancellationToken)
+    {
+        foreach (var invoice in context.Result.Results)
+            invoice.CanBeCanceled = invoice.Status == InvoiceStatus.Pending;
+
+        return ValueTask.CompletedTask;
+    }
+}">Copy</button></div><pre><code class="language-csharp">public sealed class AttachInvoiceSummaryAfterQueryHook
+    : IAfterQueryHook&lt;GetPagedInvoicesQuery, PagedResponse&lt;InvoiceResponse&gt;&gt;
+{
+    public ValueTask AfterQueryAsync(QueryHookContext&lt;GetPagedInvoicesQuery, PagedResponse&lt;InvoiceResponse&gt;&gt; context, CancellationToken cancellationToken)
+    {
+        foreach (var invoice in context.Result.Results)
+            invoice.CanBeCanceled = invoice.Status == InvoiceStatus.Pending;
+
+        return ValueTask.CompletedTask;
+    }
+}</code></pre></div>
+<p>Use hooks for:</p>
+<ul>
+<li>cross-cutting audit and telemetry</li>
+<li>feature-specific enrichment</li>
+<li>request normalization before validation or mapping</li>
+<li>side effects after save or delete</li>
+<li>response enrichment</li>
+<li>business checks that fit naturally at one stage</li>
+</ul>
+<p>Avoid hooks when the main business flow becomes hard to understand without opening many files. In that case, use a custom handler.</p>
+<h2 id="filtering-with-datascorpio">Filtering With DataScorpio</h2>
+<p>DataScorpio is the default filtering and sorting engine for paged TurtlePath queries in this template. Keep query profiles inside the feature that owns the entity:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Customers/
+  Querying/
+    CustomerQueryProfile.cs">Copy</button></div><pre><code class="language-text">Customers/
+  Querying/
+    CustomerQueryProfile.cs</code></pre></div>
+<p>Example profile:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using DataScorpio.Profiles;
+
+public sealed class CustomerQueryProfile : QueryProfile&lt;Customer&gt;
+{
+    public override void Configure(IQueryProfileBuilder&lt;Customer&gt; builder)
+    {
+        builder
+            .AllowFilter(customer =&gt; customer.Name)
+            .AllowFilter(customer =&gt; customer.Email)
+            .AllowSort(customer =&gt; customer.Name)
+            .AllowSort(customer =&gt; customer.CreatedAt)
+            .AllowSearch(customer =&gt; customer.Name)
+            .AllowSearch(customer =&gt; customer.Email);
+    }
+}">Copy</button></div><pre><code class="language-csharp">using DataScorpio.Profiles;
+
+public sealed class CustomerQueryProfile : QueryProfile&lt;Customer&gt;
+{
+    public override void Configure(IQueryProfileBuilder&lt;Customer&gt; builder)
+    {
+        builder
+            .AllowFilter(customer =&gt; customer.Name)
+            .AllowFilter(customer =&gt; customer.Email)
+            .AllowSort(customer =&gt; customer.Name)
+            .AllowSort(customer =&gt; customer.CreatedAt)
+            .AllowSearch(customer =&gt; customer.Name)
+            .AllowSearch(customer =&gt; customer.Email);
+    }
+}</code></pre></div>
+<p>Profiles are discovered by the API composition root:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly));">Copy</button></div><pre><code class="language-csharp">services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseDataScorpio(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly));</code></pre></div>
+<p>Only fields declared in the profile can be filtered, sorted, or searched. Add aliases or custom filters in the profile when the public query name should differ from the entity property or when a filter needs business-specific behavior.</p>
+<h2 id="mapping-and-validation">Mapping And Validation</h2>
+<p>The template uses OctoMap and Crabalidator through TurtlePath adapters.</p>
+<h3 id="mapping">Mapping</h3>
+<p>Register maps in the Business assembly. The API composition root scans the assembly:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddOctoMap(registration =&gt;
+{
+    registration.Options.EnableRuntimeImplicitMaps = true;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(Constants).Assembly);
+});">Copy</button></div><pre><code class="language-csharp">services.AddOctoMap(registration =&gt;
+{
+    registration.Options.EnableRuntimeImplicitMaps = true;
+    registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
+    registration.AddMaps(typeof(Constants).Assembly);
+});</code></pre></div>
+<p>Keep maps close to the feature that owns them:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Feature/Mappings/">Copy</button></div><pre><code class="language-text">Feature/Mappings/</code></pre></div>
+<h3 id="validation">Validation</h3>
+<p>Register validators in the Business assembly. The API composition root scans the assembly:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddCrabalidator(typeof(Constants).Assembly);">Copy</button></div><pre><code class="language-csharp">services.AddCrabalidator(typeof(Constants).Assembly);</code></pre></div>
+<p>Keep validators close to the feature request:</p>
+<div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Feature/Validators/">Copy</button></div><pre><code class="language-text">Feature/Validators/</code></pre></div>
+<p>TurtlePath handlers and automations call the registered validator adapter before mapping or saving.</p>
+<h2 id="testing">Testing</h2>
+<p>The template includes a test project ready for TurtlePath unit and integration tests. Use <code>TemplateTestHost</code> from <code>tests/TurtlePath.Template.Tests/Testing</code> so each test only adds the feature-specific maps, validators, seeds, or query profiles it needs.</p>
+<h3 id="handler-unit-test">Handler Unit Test</h3>
+<p>Use the in-memory host for fast handler tests:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .WithMap&lt;CreateCustomerRequest, Customer&gt;(request =&gt; new Customer
+    {
+        Id = request.Id,
+        Name = request.Name
+    })
+    .WithMap&lt;Customer, CustomerResponse&gt;(customer =&gt; new CustomerResponse
+    {
+        Id = customer.Id,
+        Name = customer.Name
+    })
+    .WithValidRequest&lt;CreateCustomerRequest&gt;()
+    .BuildAsync();
+
+var handler = new CreateCustomerCommandHandler(host.Services);
+
+var response = await handler.Handle(new CreateCustomerRequest(1, &quot;Ada&quot;));
+
+Assert.Equal(&quot;Ada&quot;, response.Name);
+Assert.True(host.Store&lt;Customer&gt;().Contains(customer =&gt; customer.Id == 1));">Copy</button></div><pre><code class="language-csharp">await using var host = await TemplateTestHost
+    .CreateUnitHost()
+    .WithMap&lt;CreateCustomerRequest, Customer&gt;(request =&gt; new Customer
+    {
+        Id = request.Id,
+        Name = request.Name
+    })
+    .WithMap&lt;Customer, CustomerResponse&gt;(customer =&gt; new CustomerResponse
+    {
+        Id = customer.Id,
+        Name = customer.Name
+    })
+    .WithValidRequest&lt;CreateCustomerRequest&gt;()
+    .BuildAsync();
+
+var handler = new CreateCustomerCommandHandler(host.Services);
+
+var response = await handler.Handle(new CreateCustomerRequest(1, &quot;Ada&quot;));
+
+Assert.Equal(&quot;Ada&quot;, response.Name);
+Assert.True(host.Store&lt;Customer&gt;().Contains(customer =&gt; customer.Id == 1));</code></pre></div>
+<p>This keeps the test focused on handler behavior while TurtlePath provides the default test doubles.</p>
+<h3 id="sqlite-integration-test">SQLite Integration Test</h3>
+<p>Use <code>TurtlePath.Testing.EntityFrameworkCore</code> when the flow should exercise EF Core mappings, queries, and persistence:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="await using var host = await TemplateTestHost
+    .CreateIntegrationHost&lt;AppDbContext&gt;()
+    .UsePelican(typeof(CreateCustomerCommandHandler).Assembly)
+    .WithMap&lt;CreateCustomerRequest, Customer&gt;(request =&gt; new Customer
+    {
+        Id = request.Id,
+        Name = request.Name
+    })
+    .WithMap&lt;Customer, CustomerResponse&gt;(customer =&gt; new CustomerResponse
+    {
+        Id = customer.Id,
+        Name = customer.Name
+    })
+    .WithValidRequest&lt;CreateCustomerRequest&gt;()
+    .BuildAsync();
+
+await host.CreateSchemaAsync&lt;AppDbContext&gt;();
+
+var response = await host.SendAsync(new CreateCustomerRequest(1, &quot;Ada&quot;));">Copy</button></div><pre><code class="language-csharp">await using var host = await TemplateTestHost
+    .CreateIntegrationHost&lt;AppDbContext&gt;()
+    .UsePelican(typeof(CreateCustomerCommandHandler).Assembly)
+    .WithMap&lt;CreateCustomerRequest, Customer&gt;(request =&gt; new Customer
+    {
+        Id = request.Id,
+        Name = request.Name
+    })
+    .WithMap&lt;Customer, CustomerResponse&gt;(customer =&gt; new CustomerResponse
+    {
+        Id = customer.Id,
+        Name = customer.Name
+    })
+    .WithValidRequest&lt;CreateCustomerRequest&gt;()
+    .BuildAsync();
+
+await host.CreateSchemaAsync&lt;AppDbContext&gt;();
+
+var response = await host.SendAsync(new CreateCustomerRequest(1, &quot;Ada&quot;));</code></pre></div>
+<p>Use SQLite integration tests for automations too, because generated handlers are runtime infrastructure and the value is proving the full happy path.</p>
+<h3 id="elysium-adapter-testing">Elysium Adapter Testing</h3>
+<p><code>TurtlePath.Testing.Integration</code> composes TurtlePath with the Elysium testing packages:</p>
+<ul>
+<li><code>UsePelicanTesting(...)</code> registers Pelican testing services and handler discovery.</li>
+<li><code>UseOctoMapTesting(...)</code> registers real OctoMap maps.</li>
+<li><code>UseCrabalidatorTesting(...)</code> registers real Crabalidator validators.</li>
+<li><code>UsePigeonTesting(...)</code> registers the in-memory messaging transport.</li>
+<li><code>UseSpiderTesting(...)</code> registers Spider testing boundaries and traces.</li>
+<li><code>UseDataScorpioTesting(...)</code> registers DataScorpio query testing.</li>
+</ul>
+<p>Example:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="await using var host = await TurtlePathTestHost
+    .Create()
+    .UsePelicanTesting(typeof(Constants).Assembly)
+    .UseOctoMapTesting(typeof(Constants).Assembly)
+    .UseCrabalidatorTesting(typeof(Constants).Assembly)
+    .UseDataScorpioTesting(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .BuildAsync();">Copy</button></div><pre><code class="language-csharp">await using var host = await TurtlePathTestHost
+    .Create()
+    .UsePelicanTesting(typeof(Constants).Assembly)
+    .UseOctoMapTesting(typeof(Constants).Assembly)
+    .UseCrabalidatorTesting(typeof(Constants).Assembly)
+    .UseDataScorpioTesting(profiles =&gt; profiles.FromAssembly(typeof(Constants).Assembly))
+    .BuildAsync();</code></pre></div>
+<p>Use the delegate helpers for isolated unit tests and the Elysium testing adapters when the test should prove the real maps, validators, filters, messaging, or pipeline boundaries.</p>
+<h2 id="transactions">Transactions</h2>
+<p>The template uses a Spider execution boundary for ambient transactions instead of a Pelican pipeline behavior.</p>
+<p>Registration:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.Configure&lt;TransactionBoundaryOptions&gt;(configuration.GetSection(&quot;TransactionBoundary&quot;));
+services.AddSingleton&lt;ITransactionBoundaryRequestFilter&gt;(provider =&gt;
+{
+    var filter = new TransactionBoundaryRequestFilter(provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;());
+    filter.Discover(typeof(Constants).Assembly);
+
+    return filter;
+});
+
+services.AddSpider(builder =&gt;
+{
+    builder.AddExecutionBoundary&lt;TransactionExecutionBoundary&gt;();
+});">Copy</button></div><pre><code class="language-csharp">services.Configure&lt;TransactionBoundaryOptions&gt;(configuration.GetSection(&quot;TransactionBoundary&quot;));
+services.AddSingleton&lt;ITransactionBoundaryRequestFilter&gt;(provider =&gt;
+{
+    var filter = new TransactionBoundaryRequestFilter(provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;());
+    filter.Discover(typeof(Constants).Assembly);
+
+    return filter;
+});
+
+services.AddSpider(builder =&gt;
+{
+    builder.AddExecutionBoundary&lt;TransactionExecutionBoundary&gt;();
+});</code></pre></div>
+<p>Configuration:</p>
+<div class="code-card"><div class="code-toolbar"><span>json</span><button type="button" class="copy-code" data-code="&quot;TransactionBoundary&quot;: {
+  &quot;Enabled&quot;: true,
+  &quot;IncludeQueries&quot;: false,
+  &quot;IsolationLevel&quot;: &quot;ReadCommitted&quot;,
+  &quot;TimeoutSeconds&quot;: 30,
+  &quot;ExcludedRequestTypes&quot;: []
+}">Copy</button></div><pre><code class="language-json">&quot;TransactionBoundary&quot;: {
+  &quot;Enabled&quot;: true,
+  &quot;IncludeQueries&quot;: false,
+  &quot;IsolationLevel&quot;: &quot;ReadCommitted&quot;,
+  &quot;TimeoutSeconds&quot;: 30,
+  &quot;ExcludedRequestTypes&quot;: []
+}</code></pre></div>
+<p>By default:</p>
+<ul>
+<li>mutations run inside a <code>TransactionScope</code></li>
+<li>query requests are skipped</li>
+<li>requests marked with <code>[SkipTransactionBoundary]</code> are skipped</li>
+<li>request types listed in <code>ExcludedRequestTypes</code> are skipped</li>
+<li>request boundary decisions are discovered and cached by request type</li>
+</ul>
+<p><code>ExcludedRequestTypes</code> accepts either the full type name or the short type name.</p>
+<div class="code-card"><div class="code-toolbar"><span>json</span><button type="button" class="copy-code" data-code="&quot;ExcludedRequestTypes&quot;: [
+  &quot;RebuildSearchIndexCommand&quot;,
+  &quot;MyService.Features.Health.Commands.PingExternalDependencyCommand&quot;
+]">Copy</button></div><pre><code class="language-json">&quot;ExcludedRequestTypes&quot;: [
+  &quot;RebuildSearchIndexCommand&quot;,
+  &quot;MyService.Features.Health.Commands.PingExternalDependencyCommand&quot;
+]</code></pre></div>
+<h2 id="migration-checklist">Migration Checklist</h2>
+<p>Use this checklist when migrating a service created with the previous template.</p>
+<ul>
+<li>Replace <code>TurtlePath.Template.Domain.Identifier</code> usages with <code>TurtlePath.Domain.Identifier</code>.</li>
+<li>Replace <code>TurtlePath.Template.Domain.Contracts</code> usages with <code>TurtlePath.Domain.Contracts</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Commands</code> usages with <code>TurtlePath.Commands</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Queries</code> usages with <code>TurtlePath.Queries</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Models.Requests</code> usages with <code>TurtlePath.Models.Requests</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Models.Responses</code> usages with <code>TurtlePath.Models.Responses</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Hooks</code> usages with <code>TurtlePath.Hooks</code>.</li>
+<li>Replace <code>TurtlePath.Template.Business.Core.Exceptions</code> usages with <code>TurtlePath.Exceptions</code> or <code>TurtlePath.Validation</code>.</li>
+<li>Replace local <code>IDbContext</code> usages with <code>TurtlePath.EntityFrameworkCore.IDbContext</code>.</li>
+<li>Make the concrete DbContext inherit from <code>TurtlePath.EntityFrameworkCore.BaseDbContext</code>.</li>
+<li>Remove local handler core, local CId implementation, local storage adapters, local mapper adapter, and local validator adapter.</li>
+<li>Remove entity configurations that inherit from the old <code>BaseEntityConfiguration&lt;TEntity&gt;</code>.</li>
+<li>Register Business dependencies from the API composition root.</li>
+<li>Register TurtlePath from the API composition root.</li>
+<li>Register OctoMap through <code>TurtlePath.OctoMap</code>.</li>
+<li>Register Crabalidator through <code>TurtlePath.Crabalidator</code>.</li>
+<li>Register DataScorpio through <code>TurtlePath.DataScorpio</code>.</li>
+<li>Enable Pigeon EF Core outbox and make sure the outbox schema is created by auto-create, migrations, or the service deployment process.</li>
+<li>Keep Pigeon&#x27;s ambient transaction publish behavior on <code>SuppressTransaction</code> unless direct broker publishes inside a transaction should fail fast.</li>
+<li>Replace Pelican transaction pipeline behavior registration with the Spider transaction boundary.</li>
+<li>Add <code>TurtlePath.Analyzers</code> privately to Domain and Business projects.</li>
+<li>Build and run the composition tests before migrating feature code.</li>
+</ul>
+<h2 id="template-update-notes">Template Update Notes</h2>
+<p>The template was updated to consume the published TurtlePath NuGet packages instead of carrying the extracted handler, identifier, persistence, mapper, and validator infrastructure locally.</p>
+<p>Key changes:</p>
+<ul>
+<li><code>TurtlePath.Template.Domain</code> keeps service-owned entities and domain code only.</li>
+<li><code>TurtlePath.Template.Business</code> keeps service-owned commands, queries, validators, mappings, hooks, automations, and services.</li>
+<li><code>TurtlePath.Template.Persistence</code> keeps the concrete EF Core context and service-owned EF configurations only.</li>
+<li>Shared handler and identifier infrastructure now lives in TurtlePath packages.</li>
+<li>Business dependency registration moved to the API composition root.</li>
+<li>The transaction behavior moved from a Pelican pipeline behavior to a Spider execution boundary.</li>
+<li>Pigeon defaults to Azure Service Bus with EF Core outbox.</li>
+</ul>
+<p>Verification:</p>
+<div class="code-card"><div class="code-toolbar"><span>powershell</span><button type="button" class="copy-code" data-code="dotnet restore TurtlePath.Template.sln --verbosity minimal
+dotnet build TurtlePath.Template.sln --configuration Release --no-restore --verbosity minimal
+dotnet test TurtlePath.Template.sln --configuration Release --no-build --verbosity minimal">Copy</button></div><pre><code class="language-powershell">dotnet restore TurtlePath.Template.sln --verbosity minimal
+dotnet build TurtlePath.Template.sln --configuration Release --no-restore --verbosity minimal
+dotnet test TurtlePath.Template.sln --configuration Release --no-build --verbosity minimal</code></pre></div></article></main>
+</div>
+<script>
+(function() {
+  function escapeHtml(value) {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function highlightCode(value, language) {
+    var html = escapeHtml(value);
+
+    function wrap(value, className) {
+      return '<span class="' + className + '">' + value + '</span>';
+    }
+
+    if (language.indexOf('json') >= 0) {
+      return html.replace(/"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|\b\d+(?:\.\d+)?\b/g, function(token, index) {
+        if (token.charAt(0) === '"') {
+          var tail = html.slice(index + token.length);
+          return /^\s*:/.test(tail) ? wrap(token, 'token-property') : wrap(token, 'token-string');
+        }
+
+        return /^\d/.test(token) ? wrap(token, 'token-number') : wrap(token, 'token-keyword');
+      });
+    }
+
+    if (language.indexOf('powershell') >= 0) {
+      return html.replace(/"(?:`.|[^"`])*"|'(?:''|[^'])*'|#.*$|\b(?:dotnet|git|cd|mkdir|set-location|new-item)\b|-[A-Za-z][A-Za-z0-9-]*/gmi, function(token) {
+        if (token.charAt(0) === '"' || token.charAt(0) === "'") return wrap(token, 'token-string');
+        if (token.charAt(0) === '#') return wrap(token, 'token-comment');
+        if (token.charAt(0) === '-') return wrap(token, 'token-keyword');
+        return wrap(token, 'token-command');
+      });
+    }
+
+    if (language.indexOf('csharp') >= 0 || language.indexOf('cs') >= 0) {
+      return html.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/.*$|\[[^\]\n]+\]|\b(?:public|private|protected|internal|sealed|abstract|static|virtual|override|async|await|using|namespace|class|interface|record|struct|return|new|var|this|base|typeof|default|null|true|false|if|else|switch|case|foreach|in|where)\b|\b(?:Task|CancellationToken|IServiceCollection|IConfiguration|IRequest|IRequestHandler|DbContext|DbSet|EntityTypeBuilder|HttpPost|HttpGet|HttpPut|HttpDelete|string|int|Guid|bool|DateTime|CId)\b|\b\d+(?:\.\d+)?\b/gm, function(token) {
+        if (token.charAt(0) === '"' || token.charAt(0) === "'") return wrap(token, 'token-string');
+        if (token.indexOf('//') === 0) return wrap(token, 'token-comment');
+        if (token.charAt(0) === '[') return wrap(token, 'token-attribute');
+        if (/^\d/.test(token)) return wrap(token, 'token-number');
+        if (/^(Task|CancellationToken|IServiceCollection|IConfiguration|IRequest|IRequestHandler|DbContext|DbSet|EntityTypeBuilder|HttpPost|HttpGet|HttpPut|HttpDelete|string|int|Guid|bool|DateTime|CId)$/.test(token)) return wrap(token, 'token-type');
+        return wrap(token, 'token-keyword');
+      });
+    }
+
+    return html;
+  }
+
+  document.querySelectorAll('pre code').forEach(function(code) {
+    var language = code.className || '';
+    code.innerHTML = highlightCode(code.textContent, language);
+  });
+
+  function fallbackCopy(text) {
+    var input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+    try { document.execCommand('copy'); } finally { document.body.removeChild(input); }
+  }
+  document.addEventListener('click', function(event) {
+    var anchor = event.target.closest('a[href^="#"]');
+    if (anchor) {
+      var id = anchor.getAttribute('href').slice(1);
+      var target = document.getElementById(id);
+      if (target) {
+        event.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      }
+      return;
+    }
+
+    var button = event.target.closest('.copy-code');
+    if (!button) return;
+    var text = button.getAttribute('data-code') || '';
+    var done = function() {
+      button.textContent = 'Copied';
+      button.classList.add('copied');
+      setTimeout(function() { button.textContent = 'Copy'; button.classList.remove('copied'); }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text); done(); });
+    } else {
+      fallbackCopy(text); done();
+    }
+  });
+})();
+</script>
+</body>
+</html>
