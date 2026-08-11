@@ -1,29 +1,34 @@
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
 using TurtlePath.Studio.App.ViewModels;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace TurtlePath.Studio.App;
 
 public partial class MainPage : ContentPage
 {
+    private const string IconFont = "Segoe MDL2 Assets";
+
     private static readonly Color Ink = Color.FromArgb("#081F1A");
     private static readonly Color Muted = Color.FromArgb("#5A7168");
     private static readonly Color Surface = Color.FromArgb("#F4F8F5");
     private static readonly Color Panel = Colors.White;
     private static readonly Color Primary = Color.FromArgb("#2E7143");
     private static readonly Color PrimaryDark = Color.FromArgb("#083229");
-    private static readonly Color SidebarItem = Color.FromArgb("#114D3E");
-    private static readonly Color SidebarItemHover = Color.FromArgb("#EAF5EE");
+    private static readonly Color SidebarMuted = Color.FromArgb("#9AB9AD");
+    private static readonly Color SidebarTrack = Color.FromArgb("#0D3C31");
+    private static readonly Color SidebarActive = Color.FromArgb("#EAF5EE");
+    private static readonly Color SidebarAccent = Color.FromArgb("#7CCC55");
     private static readonly Color Line = Color.FromArgb("#D9E5DE");
 
     private readonly StudioViewModel viewModel;
     private readonly Grid root = new();
-    private readonly VerticalStackLayout navigation = new() { Spacing = 8 };
+    private readonly VerticalStackLayout navigation = new() { Spacing = 4 };
     private readonly ContentView body = new();
     private readonly ContentView modalHost = new() { IsVisible = false };
     private readonly Label title = new();
     private readonly Label subtitle = new();
-    private readonly Label environmentChip = new();
+    private readonly Label sidebarLogo = new();
     private readonly Label sidebarTitle = new();
     private readonly Label sidebarSubtitle = new();
     private readonly Button sidebarToggle = new();
@@ -39,7 +44,7 @@ public partial class MainPage : ContentPage
 
     private void BuildShell()
     {
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(292) });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(284) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
         root.BackgroundColor = Surface;
 
@@ -58,11 +63,10 @@ public partial class MainPage : ContentPage
             RowDefinitions =
             {
                 new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Star }
             },
-            Padding = new Thickness(18, 24),
-            RowSpacing = 18,
+            Padding = new Thickness(16, 24),
+            RowSpacing = 22,
             BackgroundColor = PrimaryDark
         };
 
@@ -74,16 +78,15 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Star },
                 new ColumnDefinition { Width = GridLength.Auto }
             },
-            ColumnSpacing = 12
+            ColumnSpacing = 8
         };
 
-        brand.Add(new Label
-        {
-            Text = "TP",
-            FontSize = 32,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#7CCC55")
-        }, 0, 0);
+        sidebarLogo.Text = "TP";
+        sidebarLogo.FontSize = 32;
+        sidebarLogo.FontAttributes = FontAttributes.Bold;
+        sidebarLogo.TextColor = SidebarAccent;
+        sidebarLogo.VerticalTextAlignment = TextAlignment.Center;
+        brand.Add(sidebarLogo, 0, 0);
 
         var brandText = new VerticalStackLayout { Spacing = 2 };
         sidebarTitle.Text = "TurtlePath Studio";
@@ -96,15 +99,18 @@ public partial class MainPage : ContentPage
         brandText.Add(sidebarSubtitle);
         brand.Add(brandText, 1, 0);
 
-        sidebarToggle.Text = "<";
-        sidebarToggle.FontSize = 18;
-        sidebarToggle.FontAttributes = FontAttributes.Bold;
-        sidebarToggle.TextColor = Colors.White;
-        sidebarToggle.BackgroundColor = Color.FromArgb("#15483B");
+        sidebarToggle.Text = "\uE700";
+        sidebarToggle.FontFamily = IconFont;
+        sidebarToggle.FontSize = 16;
+        sidebarToggle.TextColor = SidebarMuted;
+        sidebarToggle.BackgroundColor = Color.FromArgb("#124A3C");
         sidebarToggle.BorderWidth = 0;
-        sidebarToggle.CornerRadius = 8;
-        sidebarToggle.WidthRequest = 42;
-        sidebarToggle.HeightRequest = 42;
+        sidebarToggle.CornerRadius = 10;
+        sidebarToggle.WidthRequest = 38;
+        sidebarToggle.HeightRequest = 38;
+        sidebarToggle.MinimumWidthRequest = 38;
+        sidebarToggle.MinimumHeightRequest = 38;
+        sidebarToggle.Padding = 0;
         sidebarToggle.Clicked += (_, _) =>
         {
             viewModel.ToggleSidebar();
@@ -112,13 +118,8 @@ public partial class MainPage : ContentPage
         };
         brand.Add(sidebarToggle, 2, 0);
 
-        environmentChip.Padding = new Thickness(12, 8);
-        environmentChip.TextColor = Color.FromArgb("#D7E9DF");
-        environmentChip.BackgroundColor = Color.FromArgb("#15483B");
-
         sidebar.Add(brand, 0, 0);
-        sidebar.Add(environmentChip, 0, 1);
-        sidebar.Add(navigation, 0, 2);
+        sidebar.Add(navigation, 0, 1);
         return sidebar;
     }
 
@@ -151,12 +152,10 @@ public partial class MainPage : ContentPage
 
     private void Render()
     {
-        root.ColumnDefinitions[0].Width = new GridLength(viewModel.SidebarCollapsed ? 128 : 292);
+        root.ColumnDefinitions[0].Width = new GridLength(viewModel.SidebarCollapsed ? 84 : 284);
+        sidebarLogo.IsVisible = !viewModel.SidebarCollapsed;
         sidebarTitle.IsVisible = !viewModel.SidebarCollapsed;
         sidebarSubtitle.IsVisible = !viewModel.SidebarCollapsed;
-        sidebarToggle.Text = viewModel.SidebarCollapsed ? ">" : "<";
-        environmentChip.HorizontalTextAlignment = viewModel.SidebarCollapsed ? TextAlignment.Center : TextAlignment.Start;
-        environmentChip.Text = viewModel.EnvironmentText;
 
         title.Text = viewModel.PageTitle;
         subtitle.Text = viewModel.PageSubtitle;
@@ -180,13 +179,13 @@ public partial class MainPage : ContentPage
     private void RenderNavigation()
     {
         navigation.Clear();
-        navigation.Add(CreateSideItem("Home", "H", "Start", StudioSection.Home));
-        navigation.Add(CreateSideItem("Templates", "T", "Create projects", StudioSection.Templates));
-        navigation.Add(CreateSideItem("Usage guides", "G", "Learn structure", StudioSection.Guides));
-        navigation.Add(CreateSideItem("Environment", "E", "Setup tools", StudioSection.Environment));
+        navigation.Add(CreateSideItem("Home", "\uE80F", "Start", StudioSection.Home));
+        navigation.Add(CreateSideItem("Templates", "\uE8A5", "Create projects", StudioSection.Templates));
+        navigation.Add(CreateSideItem("Guides", "\uE82D", "Use the template", StudioSection.Guides));
+        navigation.Add(CreateSideItem("Environment", "\uE713", "Setup tools", StudioSection.Environment));
     }
 
-    private View CreateSideItem(string text, string compactText, string caption, StudioSection target)
+    private View CreateSideItem(string text, string iconGlyph, string caption, StudioSection target)
     {
         var selected = viewModel.Section == target;
         var item = new Grid
@@ -196,26 +195,51 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Auto },
                 new ColumnDefinition { Width = GridLength.Star }
             },
-            ColumnSpacing = 12
+            ColumnSpacing = 12,
+            VerticalOptions = LayoutOptions.Center
         };
+
+        var leading = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 8,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        leading.Add(new BoxView
+        {
+            WidthRequest = 3,
+            HeightRequest = 30,
+            Color = selected ? SidebarAccent : Colors.Transparent,
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
 
         var mark = new Border
         {
-            WidthRequest = 38,
-            HeightRequest = 38,
+            WidthRequest = 40,
+            HeightRequest = 40,
             StrokeThickness = 0,
-            BackgroundColor = selected ? Primary : Color.FromArgb("#1C5B49"),
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(10) },
+            BackgroundColor = selected && !viewModel.SidebarCollapsed ? SidebarActive : Colors.Transparent,
             Content = new Label
             {
-                Text = compactText,
+                Text = iconGlyph,
+                FontFamily = IconFont,
                 HorizontalTextAlignment = TextAlignment.Center,
                 VerticalTextAlignment = TextAlignment.Center,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White
+                TextColor = selected
+                    ? viewModel.SidebarCollapsed ? SidebarAccent : PrimaryDark
+                    : SidebarMuted,
+                FontSize = 18
             }
         };
 
-        item.Add(mark, 0, 0);
+        leading.Add(mark, 1, 0);
+        item.Add(leading, 0, 0);
 
         if (!viewModel.SidebarCollapsed)
         {
@@ -224,13 +248,13 @@ public partial class MainPage : ContentPage
             {
                 Text = text,
                 FontAttributes = selected ? FontAttributes.Bold : FontAttributes.None,
-                TextColor = selected ? Ink : Colors.White,
+                TextColor = selected ? Colors.White : Color.FromArgb("#DCEBE5"),
                 FontSize = 14
             });
             copy.Add(new Label
             {
                 Text = caption,
-                TextColor = selected ? Color.FromArgb("#537066") : Color.FromArgb("#A9C7BA"),
+                TextColor = selected ? Color.FromArgb("#BFE1D1") : SidebarMuted,
                 FontSize = 12
             });
             item.Add(copy, 1, 0);
@@ -238,10 +262,10 @@ public partial class MainPage : ContentPage
 
         var border = new Border
         {
-            Padding = new Thickness(viewModel.SidebarCollapsed ? 9 : 12, 10),
-            StrokeThickness = selected ? 1 : 0,
-            Stroke = selected ? Color.FromArgb("#D7E9DF") : Colors.Transparent,
-            BackgroundColor = selected ? SidebarItemHover : SidebarItem,
+            Padding = new Thickness(viewModel.SidebarCollapsed ? 0 : 2, 6),
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(12) },
+            BackgroundColor = selected && !viewModel.SidebarCollapsed ? SidebarTrack : Colors.Transparent,
             Content = item
         };
 
