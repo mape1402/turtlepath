@@ -15,6 +15,11 @@ namespace TurtlePath.Persistence
         public Expression<Func<TEntity, bool>> FiltersExpression { get; set; }
 
         /// <summary>
+        /// Gets or sets navigation expressions to include when the provider supports eager loading.
+        /// </summary>
+        public IReadOnlyCollection<Expression<Func<TEntity, object>>> IncludeExpressions { get; set; } = [];
+
+        /// <summary>
         /// Gets or sets the string-based filter to select the entity.
         /// </summary>
         public string Filters { get; set; }
@@ -35,6 +40,11 @@ namespace TurtlePath.Persistence
         /// Gets or sets the filter expression to select entities.
         /// </summary>
         public Expression<Func<TEntity, bool>> FiltersExpression { get; set; }
+
+        /// <summary>
+        /// Gets or sets navigation expressions to include when the provider supports eager loading.
+        /// </summary>
+        public IReadOnlyCollection<Expression<Func<TEntity, object>>> IncludeExpressions { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the expression to order the entities.
@@ -191,6 +201,13 @@ namespace TurtlePath.Persistence
         /// <param name="filter">The expression used to filter the entity set.</param>
         /// <returns>The current read set with the filter applied.</returns>
         IStorageReadSet<TEntity> Where(Expression<Func<TEntity, bool>> filter);
+
+        /// <summary>
+        /// Includes navigation expressions when the active storage provider supports eager loading.
+        /// </summary>
+        /// <param name="includes">The navigation expressions to include.</param>
+        /// <returns>The current read set with includes applied.</returns>
+        IStorageReadSet<TEntity> Include(params Expression<Func<TEntity, object>>[] includes);
 
         /// <summary>
         /// Applies string-based filters supported by the active storage provider.

@@ -187,8 +187,14 @@ namespace TurtlePath.Commands
         /// <param name="entity">The entity to update.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A ValueTask representing the asynchronous mapping operation.</returns>
-        protected virtual ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => EntityMappingStep.MapAsync(request, entity, cancellationToken);
+        protected virtual async ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+        {
+            var entityId = entity.Id;
+
+            await EntityMappingStep.MapAsync(request, entity, cancellationToken);
+
+            entity.Id = entityId;
+        }
 
         /// <summary>
         /// Updates the entity in the storage using the storage adapter.
@@ -359,8 +365,14 @@ namespace TurtlePath.Commands
         /// <param name="entity">The entity to update.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected virtual ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
-            => EntityMappingStep.MapAsync(request, entity, cancellationToken);
+        protected virtual async ValueTask MapEntityAsync(TRequest request, TEntity entity, CancellationToken cancellationToken)
+        {
+            var entityId = entity.Id;
+
+            await EntityMappingStep.MapAsync(request, entity, cancellationToken);
+
+            entity.Id = entityId;
+        }
 
         /// <summary>
         /// Saves the updated entity.

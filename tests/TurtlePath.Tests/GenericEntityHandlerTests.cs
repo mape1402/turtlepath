@@ -547,6 +547,8 @@ public class GenericEntityHandlerTests
 
         public IStorageReadSet<TEntity> FilterBy(string filters) => this;
 
+        public IStorageReadSet<TEntity> Include(params Expression<Func<TEntity, object>>[] includes) => this;
+
         public IStorageReadSet<TEntity> SortBy(Expression<Func<TEntity, object>> sort) => this;
 
         public IStorageReadSet<TEntity> SortByDescending(Expression<Func<TEntity, object>> sort) => this;

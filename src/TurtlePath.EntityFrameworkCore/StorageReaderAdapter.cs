@@ -54,6 +54,8 @@ namespace TurtlePath.EntityFrameworkCore
 
             var query = _dbContext.Set<TEntity>().AsQueryable();
 
+            query = ApplyIncludes(query, criteria.IncludeExpressions);
+
             if (!criteria.UseTracking)
                 query = query.AsNoTracking();
 
@@ -90,6 +92,8 @@ namespace TurtlePath.EntityFrameworkCore
 
             var query = _dbContext.Set<TEntity>().AsQueryable();
 
+            query = ApplyIncludes(query, criteria.IncludeExpressions);
+
             if (!criteria.UseTracking)
                 query = query.AsNoTracking();
 
@@ -101,12 +105,12 @@ namespace TurtlePath.EntityFrameworkCore
 
             if (typeof(TEntity) == typeof(TExpected))
             {
-                var entities = await pagedQuery.query.ToListAsync(cancellationToken);
+                var entities = await ToListAsync(pagedQuery.query, cancellationToken);
                 results = entities.Cast<TExpected>();
             }
             else
             {
-                var entities = await pagedQuery.query.ToListAsync(cancellationToken);
+                var entities = await ToListAsync(pagedQuery.query, cancellationToken);
                 var mapped = new List<TExpected>(entities.Count);
 
                 foreach (var entity in entities)
@@ -123,6 +127,28 @@ namespace TurtlePath.EntityFrameworkCore
                 PageCount = pagedQuery.pageCount,
                 Results = results
             };
+        }
+
+        private static Task<List<TEntity>> ToListAsync<TEntity>(IQueryable<TEntity> query, CancellationToken cancellationToken)
+        {
+            if (query is IAsyncEnumerable<TEntity>)
+                return EntityFrameworkQueryableExtensions.ToListAsync(query, cancellationToken);
+
+            return Task.FromResult(query.ToList());
+        }
+
+        private static IQueryable<TEntity> ApplyIncludes<TEntity>(
+            IQueryable<TEntity> source,
+            IReadOnlyCollection<Expression<Func<TEntity, object>>> includeExpressions)
+            where TEntity : class, IEntity
+        {
+            if (includeExpressions == null || includeExpressions.Count == 0)
+                return source;
+
+            foreach (var includeExpression in includeExpressions.Where(include => include != null))
+                source = source.Include(includeExpression);
+
+            return source;
         }
 
         /// <summary>
@@ -223,6 +249,19 @@ namespace TurtlePath.EntityFrameworkCore
             }
 
             /// <inheritdoc/>
+            public IStorageReadSet<TEntity> Include(params Expression<Func<TEntity, object>>[] includes)
+            {
+                if (includes == null || includes.Length == 0)
+                    return this;
+
+                _criteria.IncludeExpressions = _criteria.IncludeExpressions
+                    .Concat(includes.Where(include => include != null))
+                    .ToArray();
+
+                return this;
+            }
+
+            /// <inheritdoc/>
             public IStorageReadSet<TEntity> FilterBy(string filters)
             {
                 _criteria.Filters = filters;
@@ -281,6 +320,7 @@ namespace TurtlePath.EntityFrameworkCore
                 return _reader.GetOneAsync<TEntity, TExpected>(new GetOneCriteria<TEntity>
                 {
                     FiltersExpression = _criteria.FiltersExpression,
+                    IncludeExpressions = _criteria.IncludeExpressions,
                     Filters = _criteria.Filters,
                     UseTracking = _criteria.UseTracking
                 }, cancellationToken);

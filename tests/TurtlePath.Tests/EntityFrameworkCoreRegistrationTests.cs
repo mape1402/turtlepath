@@ -139,6 +139,43 @@ public class EntityFrameworkCoreRegistrationTests
         Assert.IsType<StorageWriterAdapter>(scope.ServiceProvider.GetRequiredService<IStorageWriterAdapter>());
     }
 
+    [Fact]
+    public async Task StorageReaderAdapter_supports_non_async_queryable_after_criteria_applier()
+    {
+        var databaseName = Guid.NewGuid().ToString("N");
+        var services = new ServiceCollection();
+
+        services.AddDbContext<SampleDbContext>(options => options.UseInMemoryDatabase(databaseName));
+        services.AddSingleton<IMapperAdapter, EmptyMapperAdapter>();
+        services.AddSingleton<IStorageCriteriaApplier, InMemoryCriteriaApplier>();
+
+        services
+            .AddTurtlePath()
+            .UseEntityFrameworkCore<SampleDbContext>();
+
+        using var provider = services.BuildServiceProvider();
+
+        await using (var seedScope = provider.CreateAsyncScope())
+        {
+            var context = seedScope.ServiceProvider.GetRequiredService<SampleDbContext>();
+            context.Set<SampleEntity>().AddRange(
+                new SampleEntity { Id = 1, Name = "Alpha" },
+                new SampleEntity { Id = 2, Name = "Beta" });
+            await context.SaveChangesAsync();
+        }
+
+        await using var scope = provider.CreateAsyncScope();
+        var reader = scope.ServiceProvider.GetRequiredService<IStorageReaderAdapter>();
+
+        var batch = await reader.For<SampleEntity>()
+            .SortBy("name")
+            .Page(1, 10)
+            .ToBatchAsync<SampleEntity>();
+
+        Assert.Equal(2, batch.RowCount);
+        Assert.Equal(["Alpha", "Beta"], batch.Results.Select(item => item.Name));
+    }
+
     private sealed class SampleDbContext : BaseDbContext
     {
         public SampleDbContext(
@@ -148,6 +185,8 @@ public class EntityFrameworkCoreRegistrationTests
             : base(options, turtlePathOptions, modelConventions)
         {
         }
+
+        public DbSet<SampleEntity> SampleEntities => Set<SampleEntity>();
     }
 
     private sealed class EmptyMapperAdapter : IMapperAdapter
@@ -161,5 +200,19 @@ public class EntityFrameworkCoreRegistrationTests
             where TSource : class
             where TDestination : class
             => throw new NotSupportedException();
+    }
+
+    private sealed class InMemoryCriteriaApplier : IStorageCriteriaApplier
+    {
+        public IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> source, GetManyCriteria<TEntity> criteria)
+            where TEntity : class, TurtlePath.Domain.Contracts.IEntity
+            => source.ToArray().AsQueryable();
+    }
+
+    private sealed class SampleEntity : TurtlePath.Domain.Contracts.IEntity<int>
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; }
     }
 }

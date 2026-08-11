@@ -29,6 +29,8 @@ namespace TurtlePath.Testing.Persistence
 
         public IStorageReadSet<TEntity> FilterBy(string filters) => this;
 
+        public IStorageReadSet<TEntity> Include(params Expression<Func<TEntity, object>>[] includes) => this;
+
         public IStorageReadSet<TEntity> SortBy(Expression<Func<TEntity, object>> sort)
         {
             if (sort != null)
