@@ -31,6 +31,7 @@ namespace TurtlePath.Template.Api.DependencyInjection
                 {
                     options.Title = OpenApiConstants.Docs.ApiName;
                     options.DefaultHttpClient = new(ScalarTarget.CSharp, ScalarClient.HttpClient);
+                    options.DisableAgent();
                 });
             });
         }
