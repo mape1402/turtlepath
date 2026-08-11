@@ -6,9 +6,6 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Pelican.Mediator;
-using Pigeon.Messaging;
-using Pigeon.Messaging.Outbox;
-using Pigeon.Messaging.Producing;
 using Spider.Pipelines.Core;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.EntityFrameworkCore;
@@ -53,16 +50,11 @@ public sealed class TemplateCompositionTests
         Assert.NotNull(scopedProvider.GetRequiredService<IHttpExceptionResponseFactory>());
         Assert.NotNull(scopedProvider.GetRequiredService<IHttpExceptionStatusCodeMapper>());
         Assert.NotNull(scopedProvider.GetRequiredService<IConsumerExceptionBoundary>());
-        Assert.NotNull(scopedProvider.GetRequiredService<IOutboxDiagnostics>());
-
         var transactionOptions = provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>().Value;
-        var pigeonOptions = provider.GetRequiredService<IOptions<GlobalSettings>>().Value;
 
         Assert.True(transactionOptions.Enabled);
         Assert.False(transactionOptions.IncludeQueries);
         Assert.Equal(30, transactionOptions.TimeoutSeconds);
-        Assert.True(pigeonOptions.Outbox.Enabled);
-        Assert.Equal(AmbientTransactionPublishBehavior.SuppressTransaction, pigeonOptions.Publishing.AmbientTransactionBehavior);
     }
 
     private static IConfiguration CreateConfiguration()

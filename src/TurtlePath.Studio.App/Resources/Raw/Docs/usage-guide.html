@@ -182,7 +182,7 @@ a { color:var(--primary); }
 <li><code>Pelican.Mediator</code> for request dispatch.</li>
 <li><code>Spider.Pipelines</code> for execution boundaries, including the default transaction boundary.</li>
 <li><code>TurtlePath.Spider</code> for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.</li>
-<li><code>Pigeon.Messaging</code> with Azure Service Bus and EF Core outbox defaults.</li>
+<li><code>Pigeon.Messaging</code> with Azure Service Bus and EF Core outbox prepared as an opt-in messaging stack.</li>
 <li><code>TurtlePath.Analyzers</code> to prevent unsafe <code>CId</code> comparisons and assignments.</li>
 </ul>
 <p>The recommended rule is simple:</p>
@@ -208,7 +208,7 @@ dotnet build --configuration Release --no-restore
 dotnet test --configuration Release --no-build</code></pre></div>
 <p>The API/consumer host and job host share the same Business, Domain, Persistence, and testing shape. The main difference is the presentation host:</p>
 <ul>
-<li><code>api-consumer</code> starts an ASP.NET Core app with controllers, Pigeon consumers, Swagger, health checks, Spider, Pigeon, and exception filters.</li>
+<li><code>api-consumer</code> starts an ASP.NET Core app with controllers, Swagger, health checks, Spider, and exception filters. Pigeon consumers are ready to enable when the service has broker settings.</li>
 <li><code>job</code> starts a generic host that runs registered one-shot jobs and exits with code <code>0</code> when all jobs succeed.</li>
 </ul>
 <h2 id="3-project-shape">3. Project Shape</h2>
@@ -392,7 +392,7 @@ tests/
     TransactionExecutionBoundaryTests.cs
     TurtlePathTestingExamplesTests.cs
     TurtlePath.Template.Tests.csproj</code></pre></div>
-<p><code>Api</code> is the host layer. It owns controllers, consumers, startup composition, exception handling, Spider transaction boundaries, Pigeon configuration, Swagger filters, health checks, and the custom dependency injection entry point.</p>
+<p><code>Api</code> is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, Swagger filters, health checks, and the custom dependency injection entry point.</p>
 <p><code>Business</code> owns use cases. The template includes a <code>Feature</code> placeholder only to show the intended folder shape. In real code, replace <code>Feature</code> with the actual feature name:</p>
 <div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="Customers/
   Commands/
@@ -720,7 +720,8 @@ public sealed class GetPagedInvoicesQueryHandler
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
-        .AddMessagingDefaults(configuration)
+        // Enable this only when the service needs Pigeon and has broker settings.
+        // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
         .AddCustomContainer();
 }">Copy</button></div><pre><code class="language-csharp">public static IServiceCollection AddDefaults(
@@ -734,7 +735,8 @@ public sealed class GetPagedInvoicesQueryHandler
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
-        .AddMessagingDefaults(configuration)
+        // Enable this only when the service needs Pigeon and has broker settings.
+        // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
         .AddCustomContainer();
 }</code></pre></div>
@@ -752,7 +754,7 @@ public sealed class GetPagedInvoicesQueryHandler
 
     return services;
 }</code></pre></div>
-<p>Use <code>AddCustomContainer</code> as the mandatory place for custom dependency injection in a real service. Do not put business dependencies in <code>AddDefaults</code>, <code>AddApplicationDefaults</code>, <code>AddMessagingDefaults</code>, or <code>AddPipelineDefaults</code> unless you are intentionally changing the base template.</p>
+<p>Use <code>AddCustomContainer</code> as the mandatory place for custom dependency injection in a real service. Do not put business dependencies in <code>AddDefaults</code>, <code>AddApplicationDefaults</code>, optional <code>AddMessagingDefaults</code>, or <code>AddPipelineDefaults</code> unless you are intentionally changing the base template.</p>
 <h3 id="application-defaults">Application Defaults</h3>
 <p><code>AddApplicationDefaults</code> registers Pelican, Crabalidator, OctoMap, TurtlePath, DataScorpio, CId configuration, and EF Core adapters:</p>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddPelican(typeof(Constants).Assembly);
@@ -2450,8 +2452,9 @@ public sealed class RebuildSearchIndexRequest : IRequest
 }</code></pre></div>
 <p>Use Spider when a flow must go through execution boundaries. The controller base and hub consumer base expose <code>Spider</code> for that reason.</p>
 <h2 id="15-pigeon-consumers-and-outbox">15. Pigeon Consumers And Outbox</h2>
-<p>The template uses Pigeon with Azure Service Bus and EF Core outbox.</p>
-<p>Registration:</p>
+<p>The template includes Pigeon with Azure Service Bus and EF Core outbox as an opt-in messaging stack. It is not registered by default because Azure Service Bus requires a real connection string.</p>
+<p>To enable it, configure the <code>Pigeon</code> section with real broker values and uncomment the <code>.AddMessagingDefaults(configuration)</code> line in <code>AddDefaults</code>.</p>
+<p>The prepared registration is:</p>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddPigeon(configuration, builder =&gt;
 {
     builder.ConfigurePublishing(publishing =&gt;
@@ -2481,7 +2484,7 @@ public sealed class RebuildSearchIndexRequest : IRequest
         configuration.GetSection("Pigeon:Outbox").Bind(outbox);
     });
 });</code></pre></div>
-<p>The outbox is enabled by default so messages created inside the service can be persisted with the database transaction and dispatched after commit.</p>
+<p>When Pigeon is enabled, the outbox defaults persist messages with the database transaction and dispatch them after commit.</p>
 <p>Consumer example:</p>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using Billing.Service.Business.Invoices.Models.Requests;
 using Billing.Service.Business.Invoices.Models.Responses;

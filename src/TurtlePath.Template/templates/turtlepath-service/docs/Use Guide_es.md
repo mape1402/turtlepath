@@ -43,7 +43,7 @@ El proyecto generado no es un ASP.NET Core vacio. Ya trae configurado el stack e
 - `Pelican.Mediator` para dispatch de requests.
 - `Spider.Pipelines` para execution boundaries, incluyendo el transaction boundary.
 - `TurtlePath.Spider` para el bridge propio de TurtlePath que envia requests de Pelican por Spider sin acoplar esas librerias entre si.
-- `Pigeon.Messaging` con Azure Service Bus y EF Core outbox por default.
+- `Pigeon.Messaging` con Azure Service Bus y EF Core outbox preparado como stack opcional.
 - `TurtlePath.Analyzers` para evitar comparaciones y asignaciones inseguras de `CId`.
 
 La regla recomendada:
@@ -84,7 +84,7 @@ dotnet test --configuration Release --no-build
 
 Ambos hosts comparten la misma forma de Business, Domain, Persistence y tests. La diferencia principal es la capa de presentacion:
 
-- `api-consumer` levanta ASP.NET Core con controllers, Pigeon consumers, Swagger, health checks, Spider, Pigeon y exception filters.
+- `api-consumer` levanta ASP.NET Core con controllers, Swagger, health checks, Spider y exception filters. Los consumers con Pigeon quedan listos para habilitarse cuando el servicio tenga configuracion del broker.
 - `job` levanta un generic host, ejecuta los jobs registrados y termina con exit code `0` si todo salio bien.
 
 ## 3. Estructura Del Proyecto
@@ -184,7 +184,7 @@ tests/
     TurtlePath.Template.Tests.csproj
 ```
 
-`Api` es la capa host. Ahi viven controllers, consumers, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion de Pigeon, Swagger, health checks y el punto para registrar dependencias custom.
+`Api` es la capa host. Ahi viven controllers, consumers opcionales, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion opcional de Pigeon, Swagger, health checks y el punto para registrar dependencias custom.
 
 `Business` contiene los casos de uso. El template incluye una carpeta `Feature` solo como placeholder para mostrar la estructura esperada. En codigo real se sustituye por el nombre del feature:
 
@@ -480,7 +480,8 @@ public static IServiceCollection AddDefaults(
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
-        .AddMessagingDefaults(configuration)
+        // Habilita esto solo cuando el servicio use Pigeon y tenga configuracion del broker.
+        // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
         .AddCustomContainer();
 }
@@ -498,7 +499,7 @@ internal static IServiceCollection AddCustomContainer(this IServiceCollection se
 }
 ```
 
-No metas dependencias de negocio en `AddDefaults`, `AddApplicationDefaults`, `AddMessagingDefaults` o `AddPipelineDefaults` salvo que estes cambiando el template base. Para un servicio real, usa `AddCustomContainer`.
+No metas dependencias de negocio en `AddDefaults`, `AddApplicationDefaults`, el `AddMessagingDefaults` opcional o `AddPipelineDefaults` salvo que estes cambiando el template base. Para un servicio real, usa `AddCustomContainer`.
 
 ### Application Defaults
 
@@ -1635,7 +1636,11 @@ public sealed class RebuildSearchIndexRequest : IRequest
 
 ## 15. Consumers Con Pigeon Y Outbox
 
-El template usa Pigeon con Azure Service Bus y EF Core outbox.
+El template incluye Pigeon con Azure Service Bus y EF Core outbox como stack opcional. No se registra por default porque Azure Service Bus necesita una cadena de conexion real.
+
+Para habilitarlo, configura la seccion `Pigeon` con valores reales del broker y descomenta la linea `.AddMessagingDefaults(configuration)` en `AddDefaults`.
+
+El registro preparado es:
 
 ```csharp
 services.AddPigeon(configuration, builder =>
