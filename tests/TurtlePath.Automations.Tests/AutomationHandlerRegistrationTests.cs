@@ -178,12 +178,34 @@ namespace TurtlePath.Automations.Tests
             AssertGeneratedHandler(
                 handler.ImplementationType,
                 typeof(GenericPatchCommandHandler<PatchCustomerCommand, CustomerResponse, Customer, CId>));
-            AssertOverrides(
-                handler.ImplementationType,
-                "BuildResponseAsync",
-                typeof(PatchCustomerCommand),
+        }
+
+        [Fact]
+        public void Register_adds_command_response_options_for_mutation_response_projection()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.Create,
+                typeof(CreateCustomerCommand),
                 typeof(Customer),
-                typeof(CancellationToken));
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse),
+                reloadBeforeResponse: true,
+                responseIncludeExpressions: [Expression((Customer customer) => customer.Parent)]);
+
+            CreateRegistration().Register(services, [descriptor]);
+
+            var service = services.Single(service =>
+                service.ServiceType == typeof(ICommandResponseOptions<CreateCustomerCommand, Customer>));
+            var options = Assert.IsType<DescriptorCommandResponseOptionsProxy>(
+                new DescriptorCommandResponseOptionsProxy(service.ImplementationFactory!(null)));
+
+            Assert.True(options.Value.UseProjectionFromStorage);
+            var include = Assert.Single(options.Value.GetIncludeExpressions(new CreateCustomerCommand()));
+            Assert.Equal("customer.Parent", include.Body.ToString());
         }
 
         [Fact]
@@ -222,7 +244,8 @@ namespace TurtlePath.Automations.Tests
             new AutomationHandlerRegistration(
                 generator,
                 new AutomationHandlerServiceTypeResolver(),
-                new Options.AutomationQueryOptionsRegistration()).Register(services, [descriptor]);
+                new Options.AutomationQueryOptionsRegistration(),
+                new Options.AutomationCommandResponseOptionsRegistration()).Register(services, [descriptor]);
 
             var handler = services.SingleOrDefault(service =>
                 service.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
@@ -234,6 +257,7 @@ namespace TurtlePath.Automations.Tests
 
         public sealed class Customer : BaseEntity
         {
+            public Customer Parent { get; set; }
         }
 
         public sealed class CustomerResponse : IBaseResponse<CId>
@@ -294,7 +318,11 @@ namespace TurtlePath.Automations.Tests
                 new AutomationHandlerBaseTypeResolver(),
                 new DefaultAutomationHandlerTypeNamePolicy()),
                 new AutomationHandlerServiceTypeResolver(),
-                new Options.AutomationQueryOptionsRegistration());
+                new Options.AutomationQueryOptionsRegistration(),
+                new Options.AutomationCommandResponseOptionsRegistration());
+
+        private static System.Linq.Expressions.Expression<Func<Customer, object>> Expression(System.Linq.Expressions.Expression<Func<Customer, object>> expression)
+            => expression;
 
         private static void AssertGeneratedHandler(Type implementationType, Type expectedBaseType)
         {
@@ -344,6 +372,16 @@ namespace TurtlePath.Automations.Tests
                 return new AutomationHandlerGenerationResult(
                     [new AutomationGeneratedHandler(Descriptor, "ConfiguredCreateCustomerHandler", implementationType)]);
             }
+        }
+
+        private sealed class DescriptorCommandResponseOptionsProxy
+        {
+            public DescriptorCommandResponseOptionsProxy(object value)
+            {
+                Value = Assert.IsAssignableFrom<ICommandResponseOptions<CreateCustomerCommand, Customer>>(value);
+            }
+
+            public ICommandResponseOptions<CreateCustomerCommand, Customer> Value { get; }
         }
     }
 }

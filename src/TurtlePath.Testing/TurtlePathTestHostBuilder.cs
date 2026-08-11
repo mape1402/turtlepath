@@ -21,6 +21,7 @@ namespace TurtlePath.Testing
     {
         private readonly DelegateMapperAdapter mapper = new();
         private readonly DelegateValidatorAdapter validator = new();
+        private readonly List<Action<IServiceCollection>> applicationServiceConfigurations = [];
         private readonly List<Action<IServiceCollection>> serviceConfigurations = [];
         private readonly List<Assembly> pelicanAssemblies = [];
         private readonly List<Assembly> hookAssemblies = [];
@@ -32,6 +33,23 @@ namespace TurtlePath.Testing
         /// Gets the service collection being configured.
         /// </summary>
         public IServiceCollection Services { get; } = new ServiceCollection();
+
+        /// <summary>
+        /// Uses the application's real service registrations as the base of this test host.
+        /// </summary>
+        /// <param name="configure">The application service registration delegate.</param>
+        /// <returns>The current builder.</returns>
+        public TurtlePathTestHostBuilder UseApplicationServices(Action<IServiceCollection> configure)
+        {
+            if (configure == null)
+                throw new ArgumentNullException(nameof(configure));
+
+            applicationServiceConfigurations.Add(configure);
+            registerTurtlePath = false;
+            registerInMemoryStorage = false;
+
+            return this;
+        }
 
         /// <summary>
         /// Configures TurtlePath registration.
@@ -182,14 +200,17 @@ namespace TurtlePath.Testing
         /// </summary>
         public ValueTask<TurtlePathTestHost> BuildAsync()
         {
-            Services.TryAddSingleton<IMapperAdapter>(mapper);
-            Services.TryAddSingleton<IValidatorAdapter>(validator);
+            foreach (var configure in applicationServiceConfigurations)
+                configure(Services);
 
             if (registerTurtlePath)
                 Services.AddTurtlePath(hookAssemblies.Distinct().ToArray());
 
             if (pelicanAssemblies.Count > 0)
                 Services.AddPelican(pelicanAssemblies.Distinct().ToArray());
+
+            Services.TryAddSingleton<IMapperAdapter>(mapper);
+            Services.TryAddSingleton<IValidatorAdapter>(validator);
 
             if (registerInMemoryStorage)
             {

@@ -219,6 +219,19 @@ public sealed class CommerceMappingProfile : OctoMapProfile
 }
 ```
 
+When a mutation response exposes fields derived from navigation properties, configure the mutation to read the entity again before mapping the response:
+
+```csharp
+builder.For<Customer>()
+    .ToCreate<CreateCustomerRequest, CustomerResponse>(mutation => mutation
+        .Include(customer => customer.AccountManager))
+    .ToUpdate<UpdateCustomerRequest, CustomerResponse>(mutation => mutation
+        .ReloadBeforeResponse()
+        .Include(customer => customer.AccountManager));
+```
+
+`Include(...)` implies response projection from storage. Use `ReloadBeforeResponse()` when the response should be rebuilt from storage even without navigation includes.
+
 The recommended validator adapter is Crabalidator. TurtlePath calls `IValidatorAdapter` from its command steps, so validators stay outside handlers:
 
 ```csharp
@@ -448,6 +461,17 @@ await using var host = await TurtlePathTestHost
     .UseSpiderTesting(typeof(TransactionBoundary).Assembly)
     .UseDynaBeeTesting()
     .UseKrackendTesting()
+    .UseDataScorpioTesting(profiles => profiles.FromAssemblyOf<CustomerQueryProfile>())
+    .BuildAsync();
+```
+
+When the test should start from the same dependency registration as the application, use `CreateFromServices(...)` and layer testing helpers on top:
+
+```csharp
+await using var host = await TurtlePathTestHost
+    .CreateFromServices(services => services.AddDefaults(configuration, environment))
+    .UseOctoMapTesting(typeof(CustomerMappingProfile).Assembly)
+    .UseCrabalidatorTesting(typeof(CreateCustomerRequestValidator).Assembly)
     .UseDataScorpioTesting(profiles => profiles.FromAssemblyOf<CustomerQueryProfile>())
     .BuildAsync();
 ```

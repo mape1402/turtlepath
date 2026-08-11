@@ -9,6 +9,8 @@ namespace TurtlePath.Automations.Profiles
     {
         private Expression<Func<TRequest, TKey>> keySelector;
         private string notFoundMessage;
+        private bool reloadBeforeResponse;
+        private readonly List<Expression<Func<TEntity, object>>> responseIncludeExpressions = [];
 
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> GetKeyFrom(Expression<Func<TRequest, TKey>> keySelector)
         {
@@ -19,6 +21,22 @@ namespace TurtlePath.Automations.Profiles
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> NotFoundMessage(string message)
         {
             notFoundMessage = message;
+            return this;
+        }
+
+        public IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse()
+        {
+            reloadBeforeResponse = true;
+            return this;
+        }
+
+        public IMutationAutomationBuilder<TRequest, TEntity, TKey> Include(Expression<Func<TEntity, object>> includeExpression)
+        {
+            if (includeExpression == null)
+                throw new ArgumentNullException(nameof(includeExpression));
+
+            reloadBeforeResponse = true;
+            responseIncludeExpressions.Add(includeExpression);
             return this;
         }
 
@@ -38,6 +56,8 @@ namespace TurtlePath.Automations.Profiles
                 responseType,
                 AutomationSourceKind.Profile,
                 keySelector,
-                notFoundMessage: notFoundMessage);
+                notFoundMessage: notFoundMessage,
+                reloadBeforeResponse: reloadBeforeResponse,
+                responseIncludeExpressions: responseIncludeExpressions);
     }
 }

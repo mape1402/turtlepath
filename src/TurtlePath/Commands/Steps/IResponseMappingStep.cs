@@ -18,6 +18,7 @@ namespace TurtlePath.Commands.Steps
             TEntity entity,
             bool useProjectionFromStorage,
             Expression<Func<TEntity, bool>> projectionFilter,
+            Expression<Func<TEntity, object>>[] includeExpressions,
             CancellationToken cancellationToken);
     }
 }

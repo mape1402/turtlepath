@@ -17,7 +17,9 @@ namespace TurtlePath.Automations.Descriptors
             AutomationSourceKind sourceKind = AutomationSourceKind.Profile,
             LambdaExpression keySelector = null,
             string defaultSortProperty = null,
-            string notFoundMessage = null)
+            string notFoundMessage = null,
+            bool reloadBeforeResponse = false,
+            IReadOnlyCollection<LambdaExpression> responseIncludeExpressions = null)
         {
             OperationKind = operationKind;
             RequestType = requestType ?? throw new ArgumentNullException(nameof(requestType));
@@ -29,6 +31,8 @@ namespace TurtlePath.Automations.Descriptors
             KeySelector = keySelector;
             DefaultSortProperty = defaultSortProperty;
             NotFoundMessage = notFoundMessage;
+            ReloadBeforeResponse = reloadBeforeResponse || responseIncludeExpressions?.Count > 0;
+            ResponseIncludeExpressions = responseIncludeExpressions ?? [];
         }
 
         public AutomationOperationKind OperationKind { get; }
@@ -50,6 +54,10 @@ namespace TurtlePath.Automations.Descriptors
         public string DefaultSortProperty { get; }
 
         public string NotFoundMessage { get; }
+
+        public bool ReloadBeforeResponse { get; }
+
+        public IReadOnlyCollection<LambdaExpression> ResponseIncludeExpressions { get; }
 
         public bool HasResponse => ReturnMode == AutomationReturnMode.Response;
 
