@@ -197,9 +197,11 @@
         ? "Complete the project name and destination folder"
         : Path.Combine(outputRoot, projectName);
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        await RefreshEnvironment();
+        message = "Ready. Use Refresh when you want to check the local .NET and template environment.";
+        messageIsError = false;
+        return Task.CompletedTask;
     }
 
     private async Task RefreshEnvironment()
