@@ -252,9 +252,6 @@ public sealed class StudioViewModel(
                 ? "Project created successfully."
                 : "Project creation finished with errors. Check the execution log.";
             MessageIsError = !result.Succeeded;
-
-            if (result.Succeeded)
-                await workspace.OpenDirectoryAsync(CreatedDirectory);
         });
     }
 
