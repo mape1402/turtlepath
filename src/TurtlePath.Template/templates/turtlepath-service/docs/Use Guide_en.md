@@ -84,7 +84,7 @@ dotnet test --configuration Release --no-build
 
 The API/consumer host and job host share the same Business, Domain, Persistence, and testing shape. The main difference is the presentation host:
 
-- `api-consumer` starts an ASP.NET Core app with controllers, Swagger, health checks, Spider, and exception filters. Pigeon consumers are ready to enable when the service has broker settings.
+- `api-consumer` starts an ASP.NET Core app with controllers, Scalar OpenAPI docs, health checks, Spider, and exception filters. Pigeon consumers are ready to enable when the service has broker settings.
 - `job` starts a generic host that runs registered one-shot jobs and exits with code `0` when all jobs succeed.
 
 ## 3. Project Shape
@@ -112,16 +112,15 @@ src/
       PersistenceExtensions.cs
       PipelineExtensions.cs
       StartupExtensions.cs
-      SwaggerExtensions.cs
+      OpenApiExtensions.cs
       TransactionBoundaryExtensions.cs
     HubConsumers/
       BaseHubConsumer.cs
-    Swagger/
-      CIdSchemaFilter.cs
-      ConfigureSwaggerOptions.cs
+    OpenApi/
+      CIdSchemaTransformer.cs
       RemoveVersionParametersFilter.cs
       SetVersionInPathsFilter.cs
-      SwaggerConstants.cs
+      OpenApiConstants.cs
     Program.cs
     appsettings.json
     appsettings.Development.json
@@ -184,7 +183,7 @@ tests/
     TurtlePath.Template.Tests.csproj
 ```
 
-`Api` is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, Swagger filters, health checks, and the custom dependency injection entry point.
+`Api` is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, OpenAPI schema configuration, Scalar UI, health checks, and the custom dependency injection entry point.
 
 `Business` owns use cases. The template includes a `Feature` placeholder only to show the intended folder shape. In real code, replace `Feature` with the actual feature name:
 
@@ -476,7 +475,7 @@ public static IServiceCollection AddDefaults(
 {
     return services
         .AddMvcDefaults()
-        .AddSwaggerDefaults()
+        .AddOpenApiDefaults()
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()

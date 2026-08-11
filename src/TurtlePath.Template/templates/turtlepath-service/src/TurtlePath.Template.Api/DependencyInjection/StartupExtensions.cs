@@ -27,7 +27,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             return services
                 .AddMvcDefaults()
-                .AddSwaggerDefaults()
+                .AddOpenApiDefaults()
                 .AddHealthCheckDefaults(configuration)
                 .AddPersistenceDefaults(configuration)
                 .AddApplicationDefaults()
@@ -47,7 +47,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IApplicationBuilder UseDefaults(this IApplicationBuilder app, IWebHostEnvironment environment)
         {
             app.UseLoggingDefaults(environment);
-            app.UseSwaggerDefaults(environment);
+            app.UseOpenApiDefaults(environment);
             app.UseRoutingDefaults();
             app.UseEndpointDefaults();
 

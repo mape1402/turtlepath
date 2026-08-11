@@ -1,6 +1,6 @@
-namespace TurtlePath.Template.Api.Swagger
+namespace TurtlePath.Template.Api.OpenApi
 {
-    internal static class SwaggerConstants
+    internal static class OpenApiConstants
     {
         internal static class Docs
         {

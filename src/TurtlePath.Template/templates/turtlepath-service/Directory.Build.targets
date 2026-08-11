@@ -1,6 +1,6 @@
 <Project>
 	<ItemGroup>
-    <PackageReference Update="Swashbuckle.AspNetCore" Version="10.2.3"/>
+    <PackageReference Update="Scalar.AspNetCore" Version="2.16.18"/>
     <PackageReference Update="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Update="Pelican.Mediator" Version="2.0.0" />
     <PackageReference Update="Pigeon.Messaging" Version="2.3.0" />
@@ -11,6 +11,7 @@
     <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageReference Update="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Update="Crabalidator" Version="1.0.4" />
     <PackageReference Update="OctoMap" Version="1.1.1" />
     <PackageReference Update="OctoMap.Analyzers" Version="1.1.1" />
