@@ -1,9 +1,6 @@
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
-using TurtlePath.Studio.Abstractions.Validation;
-using TurtlePath.Studio.Abstractions.Workspace;
-using TurtlePath.Studio.Application.Environment;
-using TurtlePath.Studio.Application.UseCases;
+using TurtlePath.Studio.App.ViewModels;
 
 namespace TurtlePath.Studio.App;
 
@@ -17,44 +14,21 @@ public partial class MainPage : ContentPage
     private static readonly Color PrimaryDark = Color.FromArgb("#083229");
     private static readonly Color Line = Color.FromArgb("#D9E5DE");
 
-    private readonly InspectStudioEnvironmentUseCase inspectEnvironment;
-    private readonly CreateTurtlePathProjectUseCase createProject;
-    private readonly IStudioWorkspaceService workspace;
-
+    private readonly StudioViewModel viewModel;
     private readonly Grid root = new();
     private readonly VerticalStackLayout navigation = new() { Spacing = 8 };
-    private readonly Grid workspaceGrid = new();
     private readonly ContentView body = new();
     private readonly ContentView modalHost = new() { IsVisible = false };
     private readonly Label title = new();
     private readonly Label subtitle = new();
     private readonly Label environmentChip = new();
+    private readonly Label sidebarTitle = new();
+    private readonly Label sidebarSubtitle = new();
+    private readonly Button sidebarToggle = new();
 
-    private StudioSection section = StudioSection.Home;
-    private StudioEnvironmentReport? environment;
-    private ProjectHostMode selectedHost = ProjectHostMode.ApiConsumer;
-    private WizardStep wizardStep = WizardStep.Basics;
-    private string projectName = "BillingService";
-    private string outputRoot = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-    private bool restoreAfterCreation = true;
-    private bool buildAfterCreation = true;
-    private bool testAfterCreation = true;
-    private bool hideGuideAfterCreation;
-    private bool busy;
-    private bool created;
-    private string? createdDirectory;
-    private string message = "Ready.";
-    private bool messageIsError;
-    private IReadOnlyList<CommandExecutionResult> commands = [];
-
-    public MainPage(
-        InspectStudioEnvironmentUseCase inspectEnvironment,
-        CreateTurtlePathProjectUseCase createProject,
-        IStudioWorkspaceService workspace)
+    public MainPage(StudioViewModel viewModel)
     {
-        this.inspectEnvironment = inspectEnvironment;
-        this.createProject = createProject;
-        this.workspace = workspace;
+        this.viewModel = viewModel;
 
         InitializeComponent();
         BuildShell();
@@ -83,34 +57,58 @@ public partial class MainPage : ContentPage
             {
                 new RowDefinition { Height = GridLength.Auto },
                 new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = GridLength.Star },
-                new RowDefinition { Height = GridLength.Auto }
+                new RowDefinition { Height = GridLength.Star }
             },
-            Padding = new Thickness(24, 28),
-            RowSpacing = 26,
+            Padding = new Thickness(18, 24),
+            RowSpacing = 18,
             BackgroundColor = PrimaryDark
         };
 
-        var brand = new VerticalStackLayout { Spacing = 12 };
+        var brand = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 12
+        };
+
         brand.Add(new Label
         {
             Text = "TP",
             FontSize = 32,
             FontAttributes = FontAttributes.Bold,
             TextColor = Color.FromArgb("#7CCC55")
-        });
-        brand.Add(new Label
+        }, 0, 0);
+
+        var brandText = new VerticalStackLayout { Spacing = 2 };
+        sidebarTitle.Text = "TurtlePath Studio";
+        sidebarTitle.FontSize = 19;
+        sidebarTitle.FontAttributes = FontAttributes.Bold;
+        sidebarTitle.TextColor = Colors.White;
+        sidebarSubtitle.Text = "Project launcher";
+        sidebarSubtitle.TextColor = Color.FromArgb("#B9D2C8");
+        brandText.Add(sidebarTitle);
+        brandText.Add(sidebarSubtitle);
+        brand.Add(brandText, 1, 0);
+
+        sidebarToggle.Text = "<";
+        sidebarToggle.FontSize = 18;
+        sidebarToggle.FontAttributes = FontAttributes.Bold;
+        sidebarToggle.TextColor = Colors.White;
+        sidebarToggle.BackgroundColor = Color.FromArgb("#15483B");
+        sidebarToggle.BorderWidth = 0;
+        sidebarToggle.CornerRadius = 8;
+        sidebarToggle.WidthRequest = 42;
+        sidebarToggle.HeightRequest = 42;
+        sidebarToggle.Clicked += (_, _) =>
         {
-            Text = "TurtlePath Studio",
-            FontSize = 20,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-        brand.Add(new Label
-        {
-            Text = "Project launcher",
-            TextColor = Color.FromArgb("#B9D2C8")
-        });
+            viewModel.ToggleSidebar();
+            Render();
+        };
+        brand.Add(sidebarToggle, 2, 0);
 
         environmentChip.Padding = new Thickness(12, 8);
         environmentChip.TextColor = Color.FromArgb("#D7E9DF");
@@ -119,26 +117,20 @@ public partial class MainPage : ContentPage
         sidebar.Add(brand, 0, 0);
         sidebar.Add(environmentChip, 0, 1);
         sidebar.Add(navigation, 0, 2);
-        sidebar.Add(CreateSideButton("Refresh environment", StudioSection.Environment), 0, 3);
-
         return sidebar;
     }
 
     private View BuildWorkspace()
     {
-        workspaceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        workspaceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Star });
-        workspaceGrid.Padding = new Thickness(34, 30);
-        workspaceGrid.RowSpacing = 22;
-
-        var header = new Grid
+        var workspace = new Grid
         {
-            ColumnDefinitions =
+            RowDefinitions =
             {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Auto }
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
             },
-            ColumnSpacing = 16
+            Padding = new Thickness(34, 30),
+            RowSpacing = 22
         };
 
         var heading = new VerticalStackLayout { Spacing = 4 };
@@ -150,31 +142,25 @@ public partial class MainPage : ContentPage
         heading.Add(title);
         heading.Add(subtitle);
 
-        header.Add(heading, 0, 0);
-        header.Add(CreateButton("Refresh", RefreshEnvironmentAsync, secondary: true), 1, 0);
-
-        workspaceGrid.Add(header, 0, 0);
-        workspaceGrid.Add(body, 0, 1);
-        return workspaceGrid;
+        workspace.Add(heading, 0, 0);
+        workspace.Add(body, 0, 1);
+        return workspace;
     }
 
     private void Render()
     {
+        root.ColumnDefinitions[0].Width = new GridLength(viewModel.SidebarCollapsed ? 128 : 292);
+        sidebarTitle.IsVisible = !viewModel.SidebarCollapsed;
+        sidebarSubtitle.IsVisible = !viewModel.SidebarCollapsed;
+        sidebarToggle.Text = viewModel.SidebarCollapsed ? ">" : "<";
+        environmentChip.HorizontalTextAlignment = viewModel.SidebarCollapsed ? TextAlignment.Center : TextAlignment.Start;
+        environmentChip.Text = viewModel.EnvironmentText;
+
+        title.Text = viewModel.PageTitle;
+        subtitle.Text = viewModel.PageSubtitle;
+
         RenderNavigation();
-        environmentChip.Text = environment is null
-            ? "Environment: not checked"
-            : environment.CanCreateProjects ? "Environment: ready" : "Environment: needs attention";
-
-        (title.Text, subtitle.Text) = section switch
-        {
-            StudioSection.Home => ("Build TurtlePath projects faster", "Start from the template, read the guide, or check your local environment."),
-            StudioSection.Templates => ("Templates", "Pick the host type and let the wizard create the project."),
-            StudioSection.Guides => ("Usage guides", "Step-by-step notes for generated projects and TurtlePath conventions."),
-            StudioSection.Environment => ("Environment", "Validate .NET and the installed TurtlePath template package."),
-            _ => ("TurtlePath Studio", "Project launcher")
-        };
-
-        body.Content = section switch
+        body.Content = viewModel.Section switch
         {
             StudioSection.Home => BuildHome(),
             StudioSection.Templates => BuildTemplates(),
@@ -182,23 +168,28 @@ public partial class MainPage : ContentPage
             StudioSection.Environment => BuildEnvironment(),
             _ => BuildHome()
         };
+
+        if (viewModel.IsWizardOpen)
+            RenderWizard();
+        else
+            modalHost.IsVisible = false;
     }
 
     private void RenderNavigation()
     {
         navigation.Clear();
-        navigation.Add(CreateSideButton("Home", StudioSection.Home));
-        navigation.Add(CreateSideButton("Templates", StudioSection.Templates));
-        navigation.Add(CreateSideButton("Usage guides", StudioSection.Guides));
-        navigation.Add(CreateSideButton("Environment", StudioSection.Environment));
+        navigation.Add(CreateSideButton("Home", "H", StudioSection.Home));
+        navigation.Add(CreateSideButton("Templates", "T", StudioSection.Templates));
+        navigation.Add(CreateSideButton("Usage guides", "G", StudioSection.Guides));
+        navigation.Add(CreateSideButton("Environment", "E", StudioSection.Environment));
     }
 
-    private Button CreateSideButton(string text, StudioSection target)
+    private Button CreateSideButton(string text, string compactText, StudioSection target)
     {
-        var selected = section == target;
+        var selected = viewModel.Section == target;
         var button = new Button
         {
-            Text = text,
+            Text = viewModel.SidebarCollapsed ? compactText : text,
             HorizontalOptions = LayoutOptions.Fill,
             Padding = new Thickness(16, 12),
             CornerRadius = 8,
@@ -210,7 +201,7 @@ public partial class MainPage : ContentPage
 
         button.Clicked += (_, _) =>
         {
-            section = target;
+            viewModel.Navigate(target);
             Render();
         };
 
@@ -220,7 +211,6 @@ public partial class MainPage : ContentPage
     private View BuildHome()
     {
         var layout = new VerticalStackLayout { Spacing = 22 };
-
         layout.Add(CreateHero());
 
         var grid = new Grid
@@ -234,21 +224,9 @@ public partial class MainPage : ContentPage
             ColumnSpacing = 16
         };
 
-        grid.Add(CreateActionCard("Create from template", "API / Consumer or one-shot Job with a focused wizard.", "Open templates", () =>
-        {
-            section = StudioSection.Templates;
-            Render();
-        }), 0, 0);
-        grid.Add(CreateActionCard("Read the guide", "Review conventions, structure, automations and testing.", "Open guides", () =>
-        {
-            section = StudioSection.Guides;
-            Render();
-        }), 1, 0);
-        grid.Add(CreateActionCard("Check environment", "Validate local .NET and the TurtlePath template package.", "Inspect", () =>
-        {
-            section = StudioSection.Environment;
-            Render();
-        }), 2, 0);
+        grid.Add(CreateActionCard("Create from template", "API / Consumer or one-shot Job with a focused wizard.", "Open templates", () => Navigate(StudioSection.Templates)), 0, 0);
+        grid.Add(CreateActionCard("Read the guide", "Use the project step-by-step guide instead of guessing structure.", "Open guides", () => Navigate(StudioSection.Guides)), 1, 0);
+        grid.Add(CreateActionCard("Repair environment", "Install or update the TurtlePath template when setup is incomplete.", "Open setup", () => Navigate(StudioSection.Environment)), 2, 0);
 
         layout.Add(grid);
         return new ScrollView { Content = layout };
@@ -264,7 +242,7 @@ public partial class MainPage : ContentPage
                 new ColumnDefinition { Width = GridLength.Auto }
             },
             Padding = new Thickness(28),
-            BackgroundColor = Color.FromArgb("#FFFFFF")
+            BackgroundColor = Colors.White
         };
 
         var copy = new VerticalStackLayout { Spacing = 10 };
@@ -283,20 +261,13 @@ public partial class MainPage : ContentPage
         });
 
         panel.Add(copy, 0, 0);
-        panel.Add(CreateButton("Create project", () =>
-        {
-            section = StudioSection.Templates;
-            Render();
-            return Task.CompletedTask;
-        }), 1, 0);
-
+        panel.Add(CreateButton("Create project", () => Navigate(StudioSection.Templates)), 1, 0);
         return CreateBorder(panel);
     }
 
     private View BuildTemplates()
     {
         var layout = new VerticalStackLayout { Spacing = 18 };
-        layout.Add(CreateMessage());
 
         var grid = new Grid
         {
@@ -348,15 +319,10 @@ public partial class MainPage : ContentPage
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Create", () =>
         {
-            OpenWizard(hostMode);
-            return Task.CompletedTask;
-        }));
-        actions.Add(CreateButton("Guide", () =>
-        {
-            section = StudioSection.Guides;
+            viewModel.OpenWizard(hostMode);
             Render();
-            return Task.CompletedTask;
-        }, secondary: true));
+        }));
+        actions.Add(CreateButton("Guide", () => Navigate(StudioSection.Guides), secondary: true));
         layout.Add(actions);
 
         return CreateBorder(layout, minHeight: 260);
@@ -383,37 +349,115 @@ public partial class MainPage : ContentPage
         });
         copy.Add(new Label
         {
-            Text = "Open the usage guide after creation or jump to the documentation section now.",
+            Text = "Open the guide after creation or jump to the documentation section now.",
             TextColor = Muted
         });
         grid.Add(copy, 0, 0);
-        grid.Add(CreateButton("Open guide", () =>
-        {
-            section = StudioSection.Guides;
-            Render();
-            return Task.CompletedTask;
-        }, secondary: true), 1, 0);
+        grid.Add(CreateButton("Open guide", () => Navigate(StudioSection.Guides), secondary: true), 1, 0);
         return CreateBorder(grid);
     }
 
     private View BuildGuides()
     {
         var layout = new VerticalStackLayout { Spacing = 18 };
-
-        layout.Add(CreateDocSection("Recommended flow",
-            "Use automations for happy paths. Create DTOs and entities first, then register the automation profile. Add hooks for cross-cutting behavior. Write custom handlers only when the workflow stops being standard."));
-
-        layout.Add(CreateDocSection("Generated structure",
-            "Replace the Feature folder with the real feature name, for example Customers or Invoices. Keep Commands, Queries, Validators, Mappings, Hooks, Automations, Models and Services scoped to that feature."));
-
-        layout.Add(CreateDocSection("Testing",
-            "The template includes testing setup so developers can focus on scenario code. Handlers can be tested directly; automations are better validated through integration tests."));
-
-        layout.Add(CreateDocSection("Jobs",
-            "Use API / Consumer when the service owns HTTP or consumers. Use One-shot Job when Kubernetes owns the schedule and the executable should finish after completing its work."));
+        layout.Add(CreateGuideTopic("1. Create the project", "Open Templates, choose API / Consumer or One-shot Job, then use the wizard to set name, destination and validation steps.",
+        [
+            "API / Consumer creates the host for HTTP endpoints and message consumers.",
+            "One-shot Job creates an executable intended for Kubernetes CronJobs.",
+            "Keep Restore and Build enabled unless you only want to scaffold fast."
+        ]));
+        layout.Add(CreateGuideTopic("2. Replace Feature with real features", "The generated structure uses Feature as a placeholder. Replace it with Customers, Invoices, Orders or the real domain slice.",
+        [
+            "Customers/Commands contains CreateCustomerRequest, UpdateCustomerRequest and command handlers when needed.",
+            "Customers/Automations contains CustomerAutomationProfile for happy-path CRUD.",
+            "Customers/Services contains integrations scoped only to that feature, for example Services/SAT/ISatService."
+        ]));
+        layout.Add(CreateGuideTopic("3. Prefer automations first", "For standard CRUD, create DTOs, entities and an automation profile. Add custom handlers only when the path stops being standard.",
+        [
+            "Use automations for Create, Update, Delete, QueryById and paged queries.",
+            "Use hooks for validation, enrichment, event sourcing, auditing or post-save behavior.",
+            "Use a command/query handler when the use case needs custom orchestration."
+        ]));
+        layout.Add(CreateGuideTopic("4. Filtering and mapping", "Use DataScorpio for dynamic filtering and OctoMap for mapping. Crabalidator handles validation through the TurtlePath adapter.",
+        [
+            "Paged endpoints should receive filters through query parameters.",
+            "Mapping profiles stay inside the feature Mappings folder.",
+            "Validators use the Request suffix, for example CreateCustomerRequestValidator."
+        ]));
+        layout.Add(CreateGuideTopic("5. Testing", "The generated test projects already include the base TurtlePath testing setup.",
+        [
+            "Unit-test custom handlers directly with the handler test helpers.",
+            "Integration-test automations because generated handlers are not handwritten code.",
+            "Keep feature test data close to the feature scenario being validated."
+        ]));
+        layout.Add(CreateGuideTopic("6. Jobs", "Use One-shot Job when Kubernetes owns the schedule. Use API / Consumer when the same host owns HTTP, consumers or background workloads.",
+        [
+            "A one-shot job runs configured jobs and exits.",
+            "Background services stay in the API / Consumer host when the service owns the lifecycle.",
+            "Job code should still use Business features and shared services instead of becoming a separate architecture."
+        ]));
 
         return new ScrollView { Content = layout };
     }
+
+    private View CreateGuideTopic(string heading, string summary, IReadOnlyList<string> bullets)
+    {
+        var layout = new VerticalStackLayout { Spacing = 10 };
+        layout.Add(new Label
+        {
+            Text = heading,
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        layout.Add(new Label
+        {
+            Text = summary,
+            FontSize = 15,
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        foreach (var bullet in bullets)
+            layout.Add(new Label { Text = $"- {bullet}", FontSize = 14, TextColor = Ink, LineBreakMode = LineBreakMode.WordWrap });
+
+        return CreateBorder(layout);
+    }
+
+    private View BuildEnvironment()
+    {
+        var layout = new VerticalStackLayout { Spacing = 18 };
+        layout.Add(CreateMessage());
+
+        var statusText = viewModel.Environment is null
+            ? "Environment has not been checked yet."
+            : viewModel.Environment.CanCreateProjects
+                ? $"TurtlePath.Template is installed{FormatVersion(viewModel.Environment.Template.Version)}. You can create projects."
+                : "TurtlePath.Template is missing or .NET template discovery failed. Install the template, then check again.";
+
+        layout.Add(CreateDocSection("Local status", statusText));
+
+        var actions = new HorizontalStackLayout { Spacing = 10 };
+        actions.Add(CreateButton("Check environment", async () =>
+        {
+            await viewModel.RefreshEnvironmentAsync();
+            Render();
+        }, secondary: true));
+        actions.Add(CreateButton("Install template", async () =>
+        {
+            await viewModel.InstallTemplateAsync();
+            Render();
+        }));
+        actions.Add(CreateButton("Open templates", () => Navigate(StudioSection.Templates), secondary: true));
+        layout.Add(actions);
+
+        if (viewModel.Commands.Count > 0)
+            layout.Add(CreateExecutionLog());
+
+        return new ScrollView { Content = layout };
+    }
+
+    private static string FormatVersion(string version) => string.IsNullOrWhiteSpace(version) ? string.Empty : $" ({version})";
 
     private View CreateDocSection(string heading, string text)
     {
@@ -435,23 +479,6 @@ public partial class MainPage : ContentPage
         return CreateBorder(layout);
     }
 
-    private View BuildEnvironment()
-    {
-        var layout = new VerticalStackLayout { Spacing = 18 };
-        layout.Add(CreateMessage());
-
-        layout.Add(CreateDocSection(
-            "Local status",
-            environment is null
-                ? "Environment has not been checked yet."
-                : environment.CanCreateProjects
-                    ? "Environment is ready to create TurtlePath projects."
-                    : "Environment needs attention. Refresh to inspect .NET and the installed template package."));
-
-        layout.Add(CreateButton("Refresh environment", RefreshEnvironmentAsync));
-        return layout;
-    }
-
     private View CreateActionCard(string heading, string text, string actionText, Action action)
     {
         var layout = new VerticalStackLayout { Spacing = 12 };
@@ -463,28 +490,8 @@ public partial class MainPage : ContentPage
             TextColor = Ink
         });
         layout.Add(new Label { Text = text, TextColor = Muted, LineBreakMode = LineBreakMode.WordWrap });
-
-        var button = CreateButton(actionText, () =>
-        {
-            action();
-            return Task.CompletedTask;
-        }, secondary: true);
-        layout.Add(button);
+        layout.Add(CreateButton(actionText, action, secondary: true));
         return CreateBorder(layout, minHeight: 190);
-    }
-
-    private void OpenWizard(ProjectHostMode hostMode)
-    {
-        selectedHost = hostMode;
-        projectName = hostMode == ProjectHostMode.Job ? "BillingJob" : "BillingService";
-        wizardStep = WizardStep.Basics;
-        created = false;
-        createdDirectory = null;
-        commands = [];
-        message = "Ready.";
-        messageIsError = false;
-        RenderWizard();
-        modalHost.IsVisible = true;
     }
 
     private void RenderWizard()
@@ -520,6 +527,7 @@ public partial class MainPage : ContentPage
 
         overlay.Add(CreateBorder(modal, stroke: Color.FromArgb("#CFE0D6")));
         modalHost.Content = overlay;
+        modalHost.IsVisible = true;
     }
 
     private View BuildWizardHeader()
@@ -536,7 +544,7 @@ public partial class MainPage : ContentPage
         var copy = new VerticalStackLayout { Spacing = 4 };
         copy.Add(new Label
         {
-            Text = selectedHost == ProjectHostMode.Job ? "Create one-shot job" : "Create API / Consumer service",
+            Text = viewModel.SelectedHost == ProjectHostMode.Job ? "Create one-shot job" : "Create API / Consumer service",
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             TextColor = Ink
@@ -548,7 +556,11 @@ public partial class MainPage : ContentPage
         });
 
         header.Add(copy, 0, 0);
-        header.Add(CreateButton("Close", CloseWizardAsync, secondary: true), 1, 0);
+        header.Add(CreateButton("Close", () =>
+        {
+            viewModel.CloseWizard();
+            Render();
+        }, secondary: true), 1, 0);
         return header;
     }
 
@@ -575,7 +587,7 @@ public partial class MainPage : ContentPage
 
     private View CreateWizardStep(string text, WizardStep target)
     {
-        var active = wizardStep == target;
+        var active = viewModel.WizardStep == target;
         return new Label
         {
             Text = text,
@@ -589,7 +601,7 @@ public partial class MainPage : ContentPage
 
     private View BuildWizardBody()
     {
-        return wizardStep switch
+        return viewModel.WizardStep switch
         {
             WizardStep.Basics => BuildBasicsStep(),
             WizardStep.Options => BuildOptionsStep(),
@@ -603,12 +615,12 @@ public partial class MainPage : ContentPage
     {
         var layout = new VerticalStackLayout { Spacing = 16 };
 
-        var nameEntry = CreateEntry(projectName, "BillingService");
-        nameEntry.TextChanged += (_, args) => projectName = args.NewTextValue;
+        var nameEntry = CreateEntry(viewModel.ProjectName, "BillingService");
+        nameEntry.TextChanged += (_, args) => viewModel.ProjectName = args.NewTextValue;
 
-        var pathEntry = CreateEntry(outputRoot, "C:\\work");
+        var pathEntry = CreateEntry(viewModel.OutputRoot, "C:\\work");
         pathEntry.HorizontalOptions = LayoutOptions.Fill;
-        pathEntry.TextChanged += (_, args) => outputRoot = args.NewTextValue;
+        pathEntry.TextChanged += (_, args) => viewModel.OutputRoot = args.NewTextValue;
 
         var pathRow = new Grid
         {
@@ -620,11 +632,15 @@ public partial class MainPage : ContentPage
             ColumnSpacing = 10
         };
         pathRow.Add(pathEntry, 0, 0);
-        pathRow.Add(CreateButton("Browse", PickFolderInWizardAsync, secondary: true), 1, 0);
+        pathRow.Add(CreateButton("Browse", async () =>
+        {
+            await viewModel.PickOutputDirectoryAsync();
+            Render();
+        }, secondary: true), 1, 0);
 
         layout.Add(CreateField("Project name", nameEntry));
         layout.Add(CreateField("Destination folder", pathRow));
-        layout.Add(CreateMessage($"Project will be created at: {ProjectDirectoryPreview}", error: false));
+        layout.Add(CreateMessage($"Project will be created at: {viewModel.ProjectDirectoryPreview}", error: false));
         return layout;
     }
 
@@ -632,10 +648,10 @@ public partial class MainPage : ContentPage
     {
         var layout = new VerticalStackLayout { Spacing = 16 };
         layout.Add(CreateDocSection("Validation after creation", "Choose what Studio should run after creating the project."));
-        layout.Add(CreateSwitchRow("Restore packages", "Runs package restore after template generation.", restoreAfterCreation, value => restoreAfterCreation = value));
-        layout.Add(CreateSwitchRow("Build project", "Compiles the generated solution.", buildAfterCreation, value => buildAfterCreation = value));
-        layout.Add(CreateSwitchRow("Run tests", "Executes the generated test project.", testAfterCreation, value => testAfterCreation = value));
-        layout.Add(CreateSwitchRow("Skip guide after success", "Goes back to Templates after creating the project.", hideGuideAfterCreation, value => hideGuideAfterCreation = value));
+        layout.Add(CreateSwitchRow("Restore packages", "Runs package restore after template generation.", viewModel.RestoreAfterCreation, value => viewModel.RestoreAfterCreation = value));
+        layout.Add(CreateSwitchRow("Build project", "Compiles the generated solution.", viewModel.BuildAfterCreation, value => viewModel.BuildAfterCreation = value));
+        layout.Add(CreateSwitchRow("Run tests", "Executes the generated test project.", viewModel.TestAfterCreation, value => viewModel.TestAfterCreation = value));
+        layout.Add(CreateSwitchRow("Skip guide after success", "Goes back to Templates after creating the project.", viewModel.HideGuideAfterCreation, value => viewModel.HideGuideAfterCreation = value));
         return layout;
     }
 
@@ -643,10 +659,10 @@ public partial class MainPage : ContentPage
     {
         var layout = new VerticalStackLayout { Spacing = 14 };
         layout.Add(CreateDocSection("Ready to create", "Review the project settings before executing the template command."));
-        layout.Add(CreateSummaryRow("Template", selectedHost == ProjectHostMode.Job ? "One-shot Job" : "API / Consumer"));
-        layout.Add(CreateSummaryRow("Project name", projectName));
-        layout.Add(CreateSummaryRow("Destination", ProjectDirectoryPreview));
-        layout.Add(CreateSummaryRow("Validation", $"{BoolText(restoreAfterCreation)} restore, {BoolText(buildAfterCreation)} build, {BoolText(testAfterCreation)} test"));
+        layout.Add(CreateSummaryRow("Template", viewModel.SelectedTemplateName));
+        layout.Add(CreateSummaryRow("Project name", viewModel.ProjectName));
+        layout.Add(CreateSummaryRow("Destination", viewModel.ProjectDirectoryPreview));
+        layout.Add(CreateSummaryRow("Validation", $"{BoolText(viewModel.RestoreAfterCreation)} restore, {BoolText(viewModel.BuildAfterCreation)} build, {BoolText(viewModel.TestAfterCreation)} test"));
         layout.Add(CreateMessage());
         return layout;
     }
@@ -657,9 +673,9 @@ public partial class MainPage : ContentPage
         layout.Add(CreateMessage());
         layout.Add(new Label
         {
-            Text = created ? $"Created at {createdDirectory}" : busy ? "Creating project..." : "No project created yet.",
+            Text = viewModel.IsCreated ? $"Created at {viewModel.CreatedDirectory}" : viewModel.IsBusy ? "Creating project..." : "No project created yet.",
             FontAttributes = FontAttributes.Bold,
-            TextColor = created ? Primary : Muted
+            TextColor = viewModel.IsCreated ? Primary : Muted
         });
         layout.Add(CreateExecutionLog());
         return layout;
@@ -679,26 +695,52 @@ public partial class MainPage : ContentPage
         var left = new HorizontalStackLayout { Spacing = 10 };
         left.Add(CreateButton("Help", () =>
         {
-            section = StudioSection.Guides;
-            modalHost.IsVisible = false;
-            Render();
-            return Task.CompletedTask;
+            viewModel.CloseWizard();
+            Navigate(StudioSection.Guides);
         }, secondary: true));
 
-        if (created)
-            left.Add(CreateButton("Open folder", OpenCreatedFolderAsync, secondary: true));
+        if (viewModel.IsCreated)
+            left.Add(CreateButton("Open folder", async () =>
+            {
+                await viewModel.OpenCreatedFolderAsync();
+                Render();
+            }, secondary: true));
 
         var right = new HorizontalStackLayout { Spacing = 10 };
-        if (wizardStep != WizardStep.Basics && !busy)
-            right.Add(CreateButton("Back", PreviousWizardStepAsync, secondary: true));
+        if (viewModel.WizardStep != WizardStep.Basics && !viewModel.IsBusy)
+            right.Add(CreateButton("Back", () =>
+            {
+                viewModel.PreviousWizardStep();
+                Render();
+            }, secondary: true));
 
-        right.Add(wizardStep switch
+        right.Add(viewModel.WizardStep switch
         {
-            WizardStep.Basics => CreateButton("Continue", NextWizardStepAsync),
-            WizardStep.Options => CreateButton("Continue", NextWizardStepAsync),
-            WizardStep.Review => CreateButton("Create project", CreateProjectFromWizardAsync, disabled: busy),
-            WizardStep.Result => CreateButton(created && hideGuideAfterCreation ? "Done" : "Open guide", FinishWizardAsync),
-            _ => CreateButton("Continue", NextWizardStepAsync)
+            WizardStep.Basics => CreateButton("Continue", () =>
+            {
+                viewModel.NextWizardStep();
+                Render();
+            }),
+            WizardStep.Options => CreateButton("Continue", () =>
+            {
+                viewModel.NextWizardStep();
+                Render();
+            }),
+            WizardStep.Review => CreateButton("Create project", async () =>
+            {
+                await viewModel.CreateProjectAsync();
+                Render();
+            }, disabled: viewModel.IsBusy),
+            WizardStep.Result => CreateButton(viewModel.IsCreated && viewModel.HideGuideAfterCreation ? "Done" : "Open guide", () =>
+            {
+                viewModel.FinishWizard();
+                Render();
+            }),
+            _ => CreateButton("Continue", () =>
+            {
+                viewModel.NextWizardStep();
+                Render();
+            })
         });
 
         footer.Add(left, 0, 0);
@@ -723,12 +765,7 @@ public partial class MainPage : ContentPage
         copy.Add(new Label { Text = heading, FontAttributes = FontAttributes.Bold, TextColor = Ink });
         copy.Add(new Label { Text = description, TextColor = Muted });
 
-        var toggle = new Switch
-        {
-            IsToggled = value,
-            OnColor = Primary,
-            ThumbColor = Colors.White
-        };
+        var toggle = new Switch { IsToggled = value, OnColor = Primary, ThumbColor = Colors.White };
         toggle.Toggled += (_, args) => changed(args.Value);
 
         row.Add(copy, 0, 0);
@@ -752,164 +789,6 @@ public partial class MainPage : ContentPage
         return row;
     }
 
-    private async Task NextWizardStepAsync()
-    {
-        if (wizardStep == WizardStep.Basics && !ValidateInput())
-        {
-            RenderWizard();
-            return;
-        }
-
-        wizardStep = wizardStep switch
-        {
-            WizardStep.Basics => WizardStep.Options,
-            WizardStep.Options => WizardStep.Review,
-            WizardStep.Review => WizardStep.Result,
-            _ => wizardStep
-        };
-        RenderWizard();
-        await Task.CompletedTask;
-    }
-
-    private async Task PreviousWizardStepAsync()
-    {
-        wizardStep = wizardStep switch
-        {
-            WizardStep.Options => WizardStep.Basics,
-            WizardStep.Review => WizardStep.Options,
-            WizardStep.Result => WizardStep.Review,
-            _ => wizardStep
-        };
-        RenderWizard();
-        await Task.CompletedTask;
-    }
-
-    private async Task CloseWizardAsync()
-    {
-        modalHost.IsVisible = false;
-        await Task.CompletedTask;
-    }
-
-    private async Task FinishWizardAsync()
-    {
-        modalHost.IsVisible = false;
-        if (created && !hideGuideAfterCreation)
-            section = StudioSection.Guides;
-        Render();
-        await Task.CompletedTask;
-    }
-
-    private async Task PickFolderInWizardAsync()
-    {
-        outputRoot = await workspace.PickOutputDirectoryAsync(outputRoot);
-        RenderWizard();
-    }
-
-    private async Task RefreshEnvironmentAsync()
-    {
-        await RunAsync(async () =>
-        {
-            environment = await inspectEnvironment.ExecuteAsync();
-            message = environment.CanCreateProjects
-                ? "Environment ready."
-                : "Template or .NET environment is not ready. Creating a project may fail until the template is installed.";
-            messageIsError = !environment.CanCreateProjects;
-        });
-    }
-
-    private async Task CreateProjectFromWizardAsync()
-    {
-        if (!ValidateInput())
-        {
-            wizardStep = WizardStep.Basics;
-            RenderWizard();
-            return;
-        }
-
-        wizardStep = WizardStep.Result;
-        created = false;
-        commands = [];
-        RenderWizard();
-
-        await RunAsync(async () =>
-        {
-            var result = await createProject.ExecuteAsync(new CreateProjectRequest(
-                projectName.Trim(),
-                ProjectDirectoryPreview,
-                selectedHost,
-                restoreAfterCreation,
-                buildAfterCreation,
-                testAfterCreation));
-
-            commands = CollectCommands(result).ToArray();
-            created = result.Succeeded;
-            createdDirectory = result.Creation.ProjectDirectory;
-            message = result.Succeeded
-                ? "Project created successfully."
-                : "Project creation finished with errors. Check the execution log.";
-            messageIsError = !result.Succeeded;
-
-            if (result.Succeeded)
-                await workspace.OpenDirectoryAsync(createdDirectory);
-        }, renderWizard: true);
-    }
-
-    private async Task OpenCreatedFolderAsync()
-    {
-        if (!string.IsNullOrWhiteSpace(createdDirectory))
-            await workspace.OpenDirectoryAsync(createdDirectory);
-    }
-
-    private async Task RunAsync(Func<Task> action, bool renderWizard = false)
-    {
-        busy = true;
-        if (renderWizard)
-            RenderWizard();
-        else
-            Render();
-
-        try
-        {
-            await action();
-        }
-        catch (Exception exception)
-        {
-            SetError(exception.Message);
-        }
-        finally
-        {
-            busy = false;
-            if (renderWizard)
-                RenderWizard();
-            else
-                Render();
-        }
-    }
-
-    private bool ValidateInput()
-    {
-        if (string.IsNullOrWhiteSpace(projectName))
-        {
-            SetError("Project name is required.");
-            return false;
-        }
-
-        if (projectName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            SetError("Project name contains invalid characters.");
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(outputRoot))
-        {
-            SetError("Destination folder is required.");
-            return false;
-        }
-
-        ClearMessage();
-        return true;
-    }
-
     private View CreateField(string label, View input)
     {
         var layout = new VerticalStackLayout { Spacing = 7 };
@@ -931,6 +810,15 @@ public partial class MainPage : ContentPage
         };
     }
 
+    private Button CreateButton(string text, Action action, bool secondary = false, bool disabled = false)
+    {
+        return CreateButton(text, () =>
+        {
+            action();
+            return Task.CompletedTask;
+        }, secondary, disabled);
+    }
+
     private Button CreateButton(string text, Func<Task> action, bool secondary = false, bool disabled = false)
     {
         var button = new Button
@@ -943,12 +831,12 @@ public partial class MainPage : ContentPage
             BorderWidth = secondary ? 1 : 0,
             CornerRadius = 9,
             Padding = new Thickness(18, 11),
-            IsEnabled = !disabled && !busy
+            IsEnabled = !disabled && !viewModel.IsBusy
         };
 
         button.Clicked += async (_, _) =>
         {
-            if (busy)
+            if (viewModel.IsBusy)
                 return;
 
             await action();
@@ -957,7 +845,7 @@ public partial class MainPage : ContentPage
         return button;
     }
 
-    private View CreateMessage() => CreateMessage(message, messageIsError);
+    private View CreateMessage() => CreateMessage(viewModel.Message, viewModel.MessageIsError);
 
     private static View CreateMessage(string text, bool error)
     {
@@ -991,11 +879,11 @@ public partial class MainPage : ContentPage
 
     private View CreateExecutionLog()
     {
-        if (commands.Count == 0)
+        if (viewModel.Commands.Count == 0)
             return new Label { Text = "No commands executed yet.", TextColor = Muted };
 
         var layout = new VerticalStackLayout { Spacing = 10 };
-        foreach (var command in commands)
+        foreach (CommandExecutionResult command in viewModel.Commands)
         {
             var output = string.Join(Environment.NewLine, command.Output.TakeLast(8).Select(line => line.Text));
             layout.Add(CreateBorder(new Label
@@ -1010,48 +898,11 @@ public partial class MainPage : ContentPage
         return layout;
     }
 
-    private static IEnumerable<CommandExecutionResult> CollectCommands(CreateTurtlePathProjectUseCaseResult result)
+    private void Navigate(StudioSection section)
     {
-        yield return result.Creation.Generation;
-
-        if (result.Validation is null)
-            yield break;
-
-        foreach (ProjectValidationStepResult step in result.Validation.Steps)
-            yield return step.Execution;
-    }
-
-    private void SetError(string text)
-    {
-        message = text;
-        messageIsError = true;
-    }
-
-    private void ClearMessage()
-    {
-        message = "Ready.";
-        messageIsError = false;
+        viewModel.Navigate(section);
+        Render();
     }
 
     private static string BoolText(bool value) => value ? "yes" : "no";
-
-    private string ProjectDirectoryPreview => string.IsNullOrWhiteSpace(projectName) || string.IsNullOrWhiteSpace(outputRoot)
-        ? "Complete the project name and destination folder"
-        : Path.Combine(outputRoot, projectName);
-
-    private enum StudioSection
-    {
-        Home,
-        Templates,
-        Guides,
-        Environment
-    }
-
-    private enum WizardStep
-    {
-        Basics,
-        Options,
-        Review,
-        Result
-    }
 }
