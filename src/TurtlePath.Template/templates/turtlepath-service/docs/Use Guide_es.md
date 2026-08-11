@@ -84,7 +84,7 @@ dotnet test --configuration Release --no-build
 
 Ambos hosts comparten la misma forma de Business, Domain, Persistence y tests. La diferencia principal es la capa de presentacion:
 
-- `api-consumer` levanta ASP.NET Core con controllers, Swagger, health checks, Spider y exception filters. Los consumers con Pigeon quedan listos para habilitarse cuando el servicio tenga configuracion del broker.
+- `api-consumer` levanta ASP.NET Core con controllers, Scalar OpenAPI docs, health checks, Spider y exception filters. Los consumers con Pigeon quedan listos para habilitarse cuando el servicio tenga configuracion del broker.
 - `job` levanta un generic host, ejecuta los jobs registrados y termina con exit code `0` si todo salio bien.
 
 ## 3. Estructura Del Proyecto
@@ -112,16 +112,15 @@ src/
       PersistenceExtensions.cs
       PipelineExtensions.cs
       StartupExtensions.cs
-      SwaggerExtensions.cs
+      OpenApiExtensions.cs
       TransactionBoundaryExtensions.cs
     HubConsumers/
       BaseHubConsumer.cs
-    Swagger/
-      CIdSchemaFilter.cs
-      ConfigureSwaggerOptions.cs
+    OpenApi/
+      CIdSchemaTransformer.cs
       RemoveVersionParametersFilter.cs
       SetVersionInPathsFilter.cs
-      SwaggerConstants.cs
+      OpenApiConstants.cs
     Program.cs
     appsettings.json
     appsettings.Development.json
@@ -184,7 +183,7 @@ tests/
     TurtlePath.Template.Tests.csproj
 ```
 
-`Api` es la capa host. Ahi viven controllers, consumers opcionales, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion opcional de Pigeon, Swagger, health checks y el punto para registrar dependencias custom.
+`Api` es la capa host. Ahi viven controllers, consumers opcionales, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion opcional de Pigeon, Scalar OpenAPI docs, health checks y el punto para registrar dependencias custom.
 
 `Business` contiene los casos de uso. El template incluye una carpeta `Feature` solo como placeholder para mostrar la estructura esperada. En codigo real se sustituye por el nombre del feature:
 
@@ -476,7 +475,7 @@ public static IServiceCollection AddDefaults(
 {
     return services
         .AddMvcDefaults()
-        .AddSwaggerDefaults()
+        .AddOpenApiDefaults()
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
