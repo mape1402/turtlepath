@@ -12,6 +12,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCssItems>false</EnableDefaultCssItems>
     <Nullable>enable</Nullable>
+    <SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
     <MauiXamlInflator>SourceGen</MauiXamlInflator>
     <ApplicationTitle>TurtlePath Studio</ApplicationTitle>
     <ApplicationId>com.turtlepath.studio</ApplicationId>
@@ -32,14 +33,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Studio.Application\TurtlePath.Studio.Application.csproj" />
     <ProjectReference Include="..\TurtlePath.Studio.Infrastructure\TurtlePath.Studio.Infrastructure.csproj" />
-    <ProjectReference Include="..\TurtlePath.Studio.Web\TurtlePath.Studio.Web.csproj" />
   </ItemGroup>
 
 </Project>
