@@ -18,6 +18,7 @@ public static class TurtlePathStudioInfrastructureExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<HttpClient>();
         services.AddSingleton<ICommandExecutor, ProcessCommandExecutor>();
         services.AddSingleton<IDotNetEnvironmentReader, DotNetEnvironmentReader>();
         services.AddSingleton<ITemplatePackageManager, DotNetTemplatePackageManager>();
