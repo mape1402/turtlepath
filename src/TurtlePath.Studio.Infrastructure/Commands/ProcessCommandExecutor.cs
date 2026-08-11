@@ -19,7 +19,7 @@ public sealed class ProcessCommandExecutor : ICommandExecutor
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
             {
-                FileName = command.FileName,
+                FileName = ResolveFileName(command.FileName),
                 WorkingDirectory = string.IsNullOrWhiteSpace(command.WorkingDirectory)
                     ? global::System.Environment.CurrentDirectory
                     : command.WorkingDirectory,
@@ -54,6 +54,40 @@ public sealed class ProcessCommandExecutor : ICommandExecutor
 
             return new CommandExecutionResult(command, -1, stopwatch.Elapsed, output);
         }
+    }
+
+    private static string ResolveFileName(string fileName)
+    {
+        if (!string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase))
+            return fileName;
+
+        var candidates = new[]
+        {
+            Path.Combine(
+                global::System.Environment.GetFolderPath(global::System.Environment.SpecialFolder.ProgramFiles),
+                "dotnet",
+                "dotnet.exe"),
+            Path.Combine(
+                global::System.Environment.GetFolderPath(global::System.Environment.SpecialFolder.ProgramFilesX86),
+                "dotnet",
+                "dotnet.exe")
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        var path = global::System.Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = Path.Combine(directory, "dotnet.exe");
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return fileName;
     }
 
     private static void AddOutput(
