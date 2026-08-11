@@ -43,7 +43,7 @@ The generated service is not an empty ASP.NET Core project. It already has the s
 - `Pelican.Mediator` for request dispatch.
 - `Spider.Pipelines` for execution boundaries, including the default transaction boundary.
 - `TurtlePath.Spider` for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.
-- `Pigeon.Messaging` with Azure Service Bus and EF Core outbox defaults.
+- `Pigeon.Messaging` with Azure Service Bus and EF Core outbox prepared as an opt-in messaging stack.
 - `TurtlePath.Analyzers` to prevent unsafe `CId` comparisons and assignments.
 
 The recommended rule is simple:
@@ -84,7 +84,7 @@ dotnet test --configuration Release --no-build
 
 The API/consumer host and job host share the same Business, Domain, Persistence, and testing shape. The main difference is the presentation host:
 
-- `api-consumer` starts an ASP.NET Core app with controllers, Pigeon consumers, Swagger, health checks, Spider, Pigeon, and exception filters.
+- `api-consumer` starts an ASP.NET Core app with controllers, Swagger, health checks, Spider, and exception filters. Pigeon consumers are ready to enable when the service has broker settings.
 - `job` starts a generic host that runs registered one-shot jobs and exits with code `0` when all jobs succeed.
 
 ## 3. Project Shape
@@ -184,7 +184,7 @@ tests/
     TurtlePath.Template.Tests.csproj
 ```
 
-`Api` is the host layer. It owns controllers, consumers, startup composition, exception handling, Spider transaction boundaries, Pigeon configuration, Swagger filters, health checks, and the custom dependency injection entry point.
+`Api` is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, Swagger filters, health checks, and the custom dependency injection entry point.
 
 `Business` owns use cases. The template includes a `Feature` placeholder only to show the intended folder shape. In real code, replace `Feature` with the actual feature name:
 
@@ -480,7 +480,8 @@ public static IServiceCollection AddDefaults(
         .AddHealthCheckDefaults(configuration)
         .AddPersistenceDefaults(configuration)
         .AddApplicationDefaults()
-        .AddMessagingDefaults(configuration)
+        // Enable this only when the service needs Pigeon and has broker settings.
+        // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
         .AddCustomContainer();
 }
@@ -498,7 +499,7 @@ internal static IServiceCollection AddCustomContainer(this IServiceCollection se
 }
 ```
 
-Use `AddCustomContainer` as the mandatory place for custom dependency injection in a real service. Do not put business dependencies in `AddDefaults`, `AddApplicationDefaults`, `AddMessagingDefaults`, or `AddPipelineDefaults` unless you are intentionally changing the base template.
+Use `AddCustomContainer` as the mandatory place for custom dependency injection in a real service. Do not put business dependencies in `AddDefaults`, `AddApplicationDefaults`, optional `AddMessagingDefaults`, or `AddPipelineDefaults` unless you are intentionally changing the base template.
 
 ### Application Defaults
 
@@ -1785,9 +1786,11 @@ Use Spider when a flow must go through execution boundaries. The controller base
 
 ## 15. Pigeon Consumers And Outbox
 
-The template uses Pigeon with Azure Service Bus and EF Core outbox.
+The template includes Pigeon with Azure Service Bus and EF Core outbox as an opt-in messaging stack. It is not registered by default because Azure Service Bus requires a real connection string.
 
-Registration:
+To enable it, configure the `Pigeon` section with real broker values and uncomment the `.AddMessagingDefaults(configuration)` line in `AddDefaults`.
+
+The prepared registration is:
 
 ```csharp
 services.AddPigeon(configuration, builder =>
@@ -1807,7 +1810,7 @@ services.AddPigeon(configuration, builder =>
 });
 ```
 
-The outbox is enabled by default so messages created inside the service can be persisted with the database transaction and dispatched after commit.
+When Pigeon is enabled, the outbox defaults persist messages with the database transaction and dispatch them after commit.
 
 Consumer example:
 

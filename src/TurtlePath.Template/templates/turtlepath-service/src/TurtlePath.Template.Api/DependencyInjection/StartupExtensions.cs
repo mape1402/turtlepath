@@ -31,7 +31,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddHealthCheckDefaults(configuration)
                 .AddPersistenceDefaults(configuration)
                 .AddApplicationDefaults()
-                .AddMessagingDefaults(configuration)
+                // Pigeon is ready but intentionally opt-in because Azure Service Bus requires a real connection string.
+                // Uncomment this line when the service needs consumers, producers, or the EF Core outbox.
+                // .AddMessagingDefaults(configuration)
                 .AddPipelineDefaults(configuration)
                 .AddCustomContainer();
         }
