@@ -6,4 +6,10 @@ public static class TurtlePathStudioDefaults
     public const string TemplateShortName = "turtlepath";
     public const string HeroesShowcaseTemplatePackageId = "TurtlePath.Template.HeroesShowcase";
     public const string HeroesShowcaseTemplateShortName = "turtlepath-heroes-showcase";
+
+    public static readonly string[] TemplatePackageIds =
+    [
+        TemplatePackageId,
+        HeroesShowcaseTemplatePackageId
+    ];
 }

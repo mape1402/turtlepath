@@ -1,6 +1,7 @@
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
 using TurtlePath.Studio.App.ViewModels;
+using TurtlePath.Studio.Application.Environment;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace TurtlePath.Studio.App;
@@ -649,21 +650,27 @@ public partial class MainPage : ContentPage
 
     private string BuildEnvironmentStatusText()
     {
-        if (viewModel.Environment is null)
-            return "Environment has not been checked yet. Studio will also validate the template before creating a project.";
+        if (viewModel.TemplateEnvironments.Count == 0)
+            return "Environment has not been checked yet. Studio will validate the base template and demo templates before creating projects.";
 
-        var template = viewModel.Environment.Template;
-        if (viewModel.Environment.CanCreateProjects)
-            return $"TurtlePath.Template is ready. Installed: {template.Version}. Latest: {template.LatestVersion}.";
+        var lines = viewModel.TemplateEnvironments
+            .Select(FormatTemplateEnvironmentStatus);
 
-        if (viewModel.Environment.TemplateRequiresUpdate)
-        {
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string FormatTemplateEnvironmentStatus(StudioEnvironmentReport environment)
+    {
+        var template = environment.Template;
+        if (environment.CanCreateProjects)
+            return $"{template.PackageId} is ready. Installed: {template.Version}. Latest: {template.LatestVersion}.";
+
+        if (environment.TemplateRequiresUpdate)
             return template.HasLatestVersion
-                ? $"TurtlePath.Template must be updated before creating projects. Installed: {template.Version}. Latest: {template.LatestVersion}."
-                : $"TurtlePath.Template is installed ({template.Version}), but Studio could not verify the latest NuGet version. Check the environment again or update the template.";
-        }
+                ? $"{template.PackageId} must be updated. Installed: {template.Version}. Latest: {template.LatestVersion}."
+                : $"{template.PackageId} is installed ({template.Version}), but Studio could not verify the latest NuGet version.";
 
-        return "TurtlePath.Template is missing or .NET template discovery failed. Install the template, then check again.";
+        return $"{template.PackageId} is missing or .NET template discovery failed.";
     }
 
     private View BuildDefaultSettings()
