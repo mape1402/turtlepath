@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>turtlepath-studio</ToolCommandName>
+    <PackageId>TurtlePath.Studio.Tool</PackageId>
+    <Title>TurtlePath Studio Tool</Title>
+    <Description>Installs TurtlePath Studio from the GitHub release asset.</Description>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
