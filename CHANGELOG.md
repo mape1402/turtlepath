@@ -2,6 +2,15 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.6.0] - 2026-08-12
+
+### Added
+
+- Added discoverable exception handling profiles for core exception kinds and target-specific HTTP, consumer, and background worker mappings.
+- Added template support for custom exception handling profiles discovered from the generated Business and API assemblies.
+- Added transaction boundary profiles to the generated service template so feature-specific transaction rules can be extended without editing default pipeline registration.
+- Added template and Studio guide documentation for exception handling profiles and transaction boundary profiles.
+
 ## [v1.5.1] - 2026-08-12
 
 ### Added
