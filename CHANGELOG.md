@@ -2,6 +2,17 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.5.0] - 2026-08-12
+
+### Added
+
+- Added `TurtlePath.Studio.Tool`, a .NET tool that installs TurtlePath Studio from the latest published Studio GitHub release.
+- Added a dedicated TurtlePath Studio GitHub release workflow that publishes the Windows Studio app only when `.studio.release` changes.
+
+### Fixed
+
+- Centered the TurtlePath Studio window on startup.
+
 ## [v1.4.3] - 2026-08-11
 
 ### Added
