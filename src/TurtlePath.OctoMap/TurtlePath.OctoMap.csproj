@@ -15,6 +15,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
-    <PackageReference Include="OctoMap" Version="1.0.0" />
+    <PackageReference Include="OctoMap" Version="1.1.1" />
   </ItemGroup>
 </Project>
