@@ -2030,28 +2030,114 @@ services.AddTurtlePathExceptionHandlingCore(builder =>
 });
 ```
 
-Agrega excepciones propias:
+No vuelvas a registrar los adapters de excepciones desde `CustomContainer`. El template ya llama:
 
 ```csharp
-services.AddExceptionHandlingDefaults(builder =>
-{
-    builder.For<InvoiceAlreadyCanceledException>(
-        ExceptionKind.Conflict,
-        exception => $"Invoice '{exception.InvoiceId}' is already canceled.");
+services.AddTurtlePathExceptionHandlingCore(...);
+services.AddTurtlePathAspNetCoreExceptionHandling(...);
+services.AddTurtlePathConsumerExceptionHandling(...);
+services.AddTurtlePathWorkerExceptionHandling(...);
+```
 
-    builder.For<SatUnavailableException>(
-        _ => ExceptionKind.Transient,
-        exception => "sat_unavailable",
-        exception => new[] { exception.Message },
-        exception => new Dictionary<string, object>
-        {
-            ["provider"] = "SAT",
-            ["retryable"] = true
-        });
-});
+Las excepciones propias se agregan con profiles. El template descubre automaticamente los profiles de excepciones desde los ensamblados de Business y API, entonces un servicio generado solo necesita crear las clases de profile.
+
+Usa un profile core para describir la excepcion una sola vez:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public static class SubscriptionExceptionKinds
+{
+    public static readonly ExceptionKind SubscriptionExpired = new("subscription_expired");
+}
+
+public sealed class SubscriptionExpiredException : Exception
+{
+    public SubscriptionExpiredException(string customerId)
+        : base($"Customer '{customerId}' has an expired subscription.")
+    {
+        CustomerId = customerId;
+    }
+
+    public string CustomerId { get; }
+}
+
+public sealed class SubscriptionExceptionProfile : ExceptionHandlingProfile
+{
+    public override void Configure(ExceptionHandlingOptionsBuilder builder)
+    {
+        builder.For<SubscriptionExpiredException>(
+            SubscriptionExceptionKinds.SubscriptionExpired,
+            exception => $"Subscription expired for customer '{exception.CustomerId}'.");
+    }
+}
+```
+
+Usa un profile HTTP cuando la API debe devolver un status concreto:
+
+```csharp
+using Microsoft.AspNetCore.Http;
+using TurtlePath.ExceptionHandling.AspNetCore;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionHttpExceptionProfile : HttpExceptionHandlingProfile
+{
+    public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+    {
+        builder.Map(SubscriptionExceptionKinds.SubscriptionExpired, StatusCodes.Status403Forbidden);
+    }
+}
+```
+
+Usa un profile de consumer cuando el mensaje debe completarse, relanzarse, reintentarse por broker o reportarse con una estrategia distinta:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Consumers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionConsumerExceptionProfile : ConsumerExceptionHandlingProfile
+{
+    public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen((descriptor, context) =>
+            descriptor.Kind != SubscriptionExceptionKinds.SubscriptionExpired);
+    }
+}
+```
+
+Con este profile, `SubscriptionExpiredException` queda handled y complete dentro del boundary del consumer. Las demas excepciones se relanzan para que el broker aplique su retry o dead-letter normal.
+
+Usa un profile de worker cuando jobs o background services deben comportarse distinto:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Workers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionWorkerExceptionProfile : BackgroundExceptionHandlingProfile
+{
+    public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen(descriptor =>
+            descriptor.Kind == ExceptionKind.Transient);
+    }
+}
 ```
 
 HTTP usa `ProblemDetails`, consumers usan `IConsumerExceptionBoundary` y jobs usan `IBackgroundExceptionBoundary`.
+
+Despues lanza la excepcion de dominio desde un service, hook, automation action o handler manual:
+
+```csharp
+if (!subscription.IsActive)
+    throw new SubscriptionExpiredException(subscription.CustomerId);
+```
 
 ## 18. Jobs
 

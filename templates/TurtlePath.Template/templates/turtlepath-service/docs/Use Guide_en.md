@@ -2158,49 +2158,113 @@ services.AddTurtlePathConsumerExceptionHandling();
 services.AddTurtlePathWorkerExceptionHandling();
 ```
 
-Add service-specific mappings in `AddExceptionHandlingDefaults`:
+Do not register the TurtlePath exception adapters again from `CustomContainer`. The template already calls:
 
 ```csharp
-services.AddExceptionHandlingDefaults(builder =>
-{
-    builder.For<InvoiceAlreadyCanceledException>(
-        ExceptionKind.Conflict,
-        exception => $"Invoice '{exception.InvoiceId}' is already canceled.");
+services.AddTurtlePathExceptionHandlingCore(...);
+services.AddTurtlePathAspNetCoreExceptionHandling(...);
+services.AddTurtlePathConsumerExceptionHandling(...);
+services.AddTurtlePathWorkerExceptionHandling(...);
+```
 
-    builder.For<SatUnavailableException>(
-        _ => ExceptionKind.Transient,
-        exception => "sat_unavailable",
-        exception => new[] { exception.Message },
-        exception => new Dictionary<string, object>
-        {
-            ["provider"] = "SAT",
-            ["retryable"] = true
-        });
-});
+Service-specific exceptions are added with profiles. The template discovers exception profiles automatically from the Business and API assemblies, so a generated service only needs to add profile classes.
+
+Use a core profile to describe the exception once:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public static class SubscriptionExceptionKinds
+{
+    public static readonly ExceptionKind SubscriptionExpired = new("subscription_expired");
+}
+
+public sealed class SubscriptionExpiredException : Exception
+{
+    public SubscriptionExpiredException(string customerId)
+        : base($"Customer '{customerId}' has an expired subscription.")
+    {
+        CustomerId = customerId;
+    }
+
+    public string CustomerId { get; }
+}
+
+public sealed class SubscriptionExceptionProfile : ExceptionHandlingProfile
+{
+    public override void Configure(ExceptionHandlingOptionsBuilder builder)
+    {
+        builder.For<SubscriptionExpiredException>(
+            SubscriptionExceptionKinds.SubscriptionExpired,
+            exception => $"Subscription expired for customer '{exception.CustomerId}'.");
+    }
+}
+```
+
+Use an HTTP profile when the API should return a specific HTTP status:
+
+```csharp
+using Microsoft.AspNetCore.Http;
+using TurtlePath.ExceptionHandling.AspNetCore;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionHttpExceptionProfile : HttpExceptionHandlingProfile
+{
+    public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+    {
+        builder.Map(SubscriptionExceptionKinds.SubscriptionExpired, StatusCodes.Status403Forbidden);
+    }
+}
+```
+
+Use a consumer profile when message handling should complete, rethrow, retry through the broker, or apply a specific reporting strategy:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Consumers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionConsumerExceptionProfile : ConsumerExceptionHandlingProfile
+{
+    public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen((descriptor, context) =>
+            descriptor.Kind != SubscriptionExceptionKinds.SubscriptionExpired);
+    }
+}
+```
+
+With this profile, `SubscriptionExpiredException` is handled and completed by the consumer boundary, while other exceptions are rethrown so the broker can apply its normal retry or dead-letter behavior.
+
+Use a worker profile when jobs or background services should behave differently:
+
+```csharp
+using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Workers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionWorkerExceptionProfile : BackgroundExceptionHandlingProfile
+{
+    public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen(descriptor =>
+            descriptor.Kind == ExceptionKind.Transient);
+    }
+}
 ```
 
 HTTP uses `ProblemDetails` through `GlobalExceptionFilter`. Consumers use `IConsumerExceptionBoundary`. Jobs use `IBackgroundExceptionBoundary` through the TurtlePath job executor.
 
-Use domain-specific exceptions when the caller should receive a clear failure:
+Then throw the domain-specific exception from a service, hook, automation action, or manual handler:
 
 ```csharp
-public sealed class InvoiceAlreadyCanceledException : Exception
-{
-    public InvoiceAlreadyCanceledException(CId invoiceId)
-        : base($"Invoice '{invoiceId}' is already canceled.")
-    {
-        InvoiceId = invoiceId;
-    }
-
-    public CId InvoiceId { get; }
-}
-```
-
-Then throw it from a hook or handler:
-
-```csharp
-if (context.Entity.Status == InvoiceStatus.Canceled)
-    throw new InvoiceAlreadyCanceledException(context.Entity.Id);
+if (!subscription.IsActive)
+    throw new SubscriptionExpiredException(subscription.CustomerId);
 ```
 
 ## 18. Jobs

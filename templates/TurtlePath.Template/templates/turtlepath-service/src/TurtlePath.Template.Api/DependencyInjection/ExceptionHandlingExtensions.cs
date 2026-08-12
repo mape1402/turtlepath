@@ -1,10 +1,12 @@
 using System.Net;
+using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using TurtlePath.Exceptions;
 using TurtlePath.ExceptionHandling;
 using TurtlePath.ExceptionHandling.AspNetCore;
 using TurtlePath.ExceptionHandling.Consumers;
 using TurtlePath.ExceptionHandling.Workers;
+using TurtlePath.Template.Business;
 using TurtlePath.Validation;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -16,9 +18,24 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services,
             Action<ExceptionHandlingOptionsBuilder> configure = null)
         {
+            var profileAssemblies = GetExceptionHandlingProfileAssemblies();
+
             services.AddTemplateExceptionHandlingCore(configure);
-            services.AddTurtlePathAspNetCoreExceptionHandling();
-            services.AddTurtlePathConsumerExceptionHandling();
+            services.AddTurtlePathAspNetCoreExceptionHandling(builder =>
+            {
+                ConfigureProfiles(
+                    profileAssemblies,
+                    "TurtlePath.ExceptionHandling.AspNetCore.IHttpExceptionHandlingProfile",
+                    builder);
+            });
+            services.AddTurtlePathConsumerExceptionHandling(builder =>
+            {
+                ConfigureProfiles(
+                    profileAssemblies,
+                    "TurtlePath.ExceptionHandling.Consumers.IConsumerExceptionHandlingProfile",
+                    builder);
+            });
+            services.AddExceptionHandlingProfiles(profileAssemblies);
 
             return services;
         }
@@ -27,8 +44,17 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services,
             Action<ExceptionHandlingOptionsBuilder> configure = null)
         {
+            var profileAssemblies = GetExceptionHandlingProfileAssemblies();
+
             services.AddTemplateExceptionHandlingCore(configure);
-            services.AddTurtlePathWorkerExceptionHandling();
+            services.AddTurtlePathWorkerExceptionHandling(builder =>
+            {
+                ConfigureProfiles(
+                    profileAssemblies,
+                    "TurtlePath.ExceptionHandling.Workers.IBackgroundExceptionHandlingProfile",
+                    builder);
+            });
+            services.AddExceptionHandlingProfiles(profileAssemblies);
 
             return services;
         }
@@ -56,6 +82,55 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 configure?.Invoke(builder);
             });
+        }
+
+        private static Assembly[] GetExceptionHandlingProfileAssemblies()
+        {
+            return
+            [
+                typeof(Constants).Assembly,
+                typeof(ExceptionHandlingExtensions).Assembly
+            ];
+        }
+
+        private static void ConfigureProfiles(
+            IEnumerable<Assembly> profileAssemblies,
+            string profileInterfaceName,
+            object builder)
+        {
+            foreach (var profileType in profileAssemblies.SelectMany(assembly => assembly.GetTypes()))
+            {
+                if (profileType.IsAbstract ||
+                    !profileType.GetInterfaces().Any(type => type.FullName == profileInterfaceName))
+                {
+                    continue;
+                }
+
+                var constructor = profileType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null,
+                    Type.EmptyTypes,
+                    null);
+                if (constructor == null)
+                    continue;
+
+                var configure = profileType
+                    .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                    .FirstOrDefault(method =>
+                    {
+                        if (method.Name != "Configure")
+                            return false;
+
+                        var parameters = method.GetParameters();
+                        return parameters.Length == 1 && parameters[0].ParameterType.IsInstanceOfType(builder);
+                    });
+
+                if (configure == null)
+                    continue;
+
+                var profile = constructor.Invoke(null);
+                configure.Invoke(profile, [ builder ]);
+            }
         }
 
         private static ExceptionKind MapHttpStatusCode(HttpStatusCode statusCode)
