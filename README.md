@@ -30,6 +30,7 @@ The recommended package set is:
 - `TurtlePath.Sieve`: optional Sieve filtering and sorting adapter kept for projects that still use Sieve.
 - `TurtlePath.Analyzers`: optional compile-time checks for unsafe `CId` usage across entities with different configured identifier value types.
 - `TurtlePath.Template.HeroesShowcase`: official `dotnet new` demo template that generates a complete Heroes service showcasing TurtlePath features end to end.
+- `TurtlePath.Studio.Tool`: .NET tool that installs and updates TurtlePath Studio from GitHub Releases.
 
 Alternative adapters are available when a project needs them: `TurtlePath.AutoMapper` and `TurtlePath.FluentValidation`.
 
@@ -62,6 +63,30 @@ Install the Heroes Showcase demo template when you want a full reference project
 ```powershell
 dotnet new install TurtlePath.Template.HeroesShowcase
 dotnet new turtlepath-heroes-showcase -n Heroes.Service
+```
+
+Install TurtlePath Studio when you prefer creating projects from the desktop UI:
+
+```powershell
+dotnet tool install TurtlePath.Studio.Tool --global
+turtlepath-studio install
+```
+
+The installer downloads the latest published Studio release, installs it under `%LOCALAPPDATA%\TurtlePath\Studio`, and creates a desktop shortcut named `TurtlePath Studio`.
+
+Update Studio later with:
+
+```powershell
+turtlepath-studio update
+```
+
+Useful options:
+
+```powershell
+turtlepath-studio install --launch
+turtlepath-studio install --output C:\Tools\TurtlePathStudio
+turtlepath-studio install --no-shortcut
+turtlepath-studio update --version studio-v1.0.0
 ```
 
 ## Template Defaults

@@ -32,6 +32,7 @@ static void PrintHelp()
 
         Usage:
           turtlepath-studio install [options]
+          turtlepath-studio update [options]
 
         Options:
           --version <tag>     GitHub release tag to download. Default: latest Studio release
@@ -39,22 +40,26 @@ static void PrintHelp()
           --asset <name>      Release asset name. Default: TurtlePath.Studio.win-x64.zip
           --output <path>     Install directory. Default: %LOCALAPPDATA%\TurtlePath\Studio
           --force             Replace the existing install directory.
+          --no-shortcut       Do not create or update the desktop shortcut.
           --launch            Launch Studio after installation.
           -h|--help           Show help.
         """);
 }
 
 internal sealed record StudioInstallOptions(
+    StudioToolCommand Command,
     string Repository,
     string ReleaseTag,
     string AssetName,
     string OutputDirectory,
     bool Force,
+    bool CreateShortcut,
     bool Launch,
     bool ShowHelp)
 {
     public static StudioInstallOptions Parse(string[] args)
     {
+        var command = StudioToolCommand.Install;
         var repository = StudioToolDefaults.Repository;
         var releaseTag = StudioToolDefaults.ReleaseTag;
         var assetName = StudioToolDefaults.AssetName;
@@ -63,11 +68,21 @@ internal sealed record StudioInstallOptions(
             "TurtlePath",
             "Studio");
         var force = false;
+        var createShortcut = true;
         var launch = false;
 
         var index = 0;
-        if (args.Length > 0 && string.Equals(args[0], "install", StringComparison.OrdinalIgnoreCase))
+        if (args.Length > 0 && !args[0].StartsWith("-", StringComparison.Ordinal))
+        {
+            command = args[0].ToLowerInvariant() switch
+            {
+                "install" => StudioToolCommand.Install,
+                "update" => StudioToolCommand.Update,
+                _ => throw new InvalidOperationException($"Unknown command '{args[0]}'. Use --help for usage.")
+            };
+
             index = 1;
+        }
 
         while (index < args.Length)
         {
@@ -76,7 +91,7 @@ internal sealed record StudioInstallOptions(
             {
                 case "-h":
                 case "--help":
-                    return new StudioInstallOptions(repository, releaseTag, assetName, outputDirectory, force, launch, true);
+                    return new StudioInstallOptions(command, repository, releaseTag, assetName, outputDirectory, force, createShortcut, launch, true);
 
                 case "--repo":
                     repository = ReadValue(args, ref index, arg);
@@ -98,6 +113,10 @@ internal sealed record StudioInstallOptions(
                     force = true;
                     break;
 
+                case "--no-shortcut":
+                    createShortcut = false;
+                    break;
+
                 case "--launch":
                     launch = true;
                     break;
@@ -109,7 +128,7 @@ internal sealed record StudioInstallOptions(
             index++;
         }
 
-        return new StudioInstallOptions(repository, releaseTag, assetName, outputDirectory, force, launch, false);
+        return new StudioInstallOptions(command, repository, releaseTag, assetName, outputDirectory, force, createShortcut, launch, false);
     }
 
     private static string ReadValue(string[] args, ref int index, string option)
@@ -131,9 +150,10 @@ internal sealed class StudioInstaller
         if (string.IsNullOrWhiteSpace(options.Repository) || !options.Repository.Contains("/", StringComparison.Ordinal))
             throw new InvalidOperationException("Repository must use the 'owner/name' format.");
 
+        var replaceExistingInstall = options.Force || options.Command == StudioToolCommand.Update;
         if (Directory.Exists(options.OutputDirectory))
         {
-            if (!options.Force)
+            if (!replaceExistingInstall)
                 throw new InvalidOperationException($"Install directory already exists: {options.OutputDirectory}. Use --force to replace it.");
 
             Directory.Delete(options.OutputDirectory, recursive: true);
@@ -169,8 +189,43 @@ internal sealed class StudioInstaller
         Console.WriteLine($"Version: {release.TagName}");
         Console.WriteLine($"Executable: {executablePath}");
 
+        if (options.CreateShortcut)
+            CreateDesktopShortcut(executablePath);
+
         if (options.Launch)
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executablePath) { UseShellExecute = true });
+    }
+
+    private static void CreateDesktopShortcut(string executablePath)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("Desktop shortcut skipped because shortcuts are only supported on Windows.");
+            return;
+        }
+
+        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        if (string.IsNullOrWhiteSpace(desktopPath))
+        {
+            Console.WriteLine("Desktop shortcut skipped because the desktop folder could not be resolved.");
+            return;
+        }
+
+        var shortcutPath = Path.Combine(desktopPath, $"{StudioToolDefaults.ShortcutName}.lnk");
+        var shellType = Type.GetTypeFromProgID("WScript.Shell");
+        if (shellType is null)
+            throw new InvalidOperationException("Could not create the desktop shortcut because Windows Script Host is not available.");
+
+        dynamic shell = Activator.CreateInstance(shellType)
+            ?? throw new InvalidOperationException("Could not create the desktop shortcut shell.");
+        dynamic shortcut = shell.CreateShortcut(shortcutPath);
+        shortcut.TargetPath = executablePath;
+        shortcut.WorkingDirectory = Path.GetDirectoryName(executablePath) ?? string.Empty;
+        shortcut.IconLocation = executablePath;
+        shortcut.Description = StudioToolDefaults.ShortcutName;
+        shortcut.Save();
+
+        Console.WriteLine($"Desktop shortcut: {shortcutPath}");
     }
 
     private static async Task<GitHubRelease> GetReleaseAsync(
@@ -267,6 +322,13 @@ internal sealed record GitHubRelease(string TagName, IReadOnlyList<GitHubRelease
 
 internal sealed record GitHubReleaseAsset(string Name, string DownloadUrl);
 
+internal enum StudioToolCommand
+{
+    Install,
+
+    Update
+}
+
 internal static class StudioToolDefaults
 {
     public const string Repository = "mape1402/turtlepath";
@@ -280,4 +342,6 @@ internal static class StudioToolDefaults
     public const string AssetName = "TurtlePath.Studio.win-x64.zip";
 
     public const string ExecutableName = "TurtlePath.Studio.App.exe";
+
+    public const string ShortcutName = "TurtlePath Studio";
 }
