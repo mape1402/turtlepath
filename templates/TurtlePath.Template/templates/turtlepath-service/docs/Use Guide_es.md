@@ -97,9 +97,11 @@ La solucion generada esta separada por responsabilidad:
 src/
   TurtlePath.Template.Api/
     Boundaries/
+      ITransactionBoundaryProfile.cs
       ITransactionBoundaryRequestFilter.cs
       SkipTransactionBoundaryAttribute.cs
       TransactionBoundaryOptions.cs
+      TransactionBoundaryProfile.cs
       TransactionBoundaryRequestFilter.cs
       TransactionExecutionBoundary.cs
     Controllers/
@@ -1605,12 +1607,20 @@ El template usa Spider execution boundaries para comportamiento transversal. El 
 
 ```csharp
 services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
+services.PostConfigure<TransactionBoundaryOptions>(options =>
+{
+    options.DiscoverRequestsFrom(typeof(Constants).Assembly);
+    options.DiscoverRequestsFrom(typeof(TransactionBoundaryExtensions).Assembly);
+
+    // Los TransactionBoundaryProfile se descubren desde Business y Api.
+});
+
 services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
 {
-    var filter = new TransactionBoundaryRequestFilter(
-        provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
+    var options = provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>();
+    var filter = new TransactionBoundaryRequestFilter(options);
 
-    filter.Discover(typeof(Constants).Assembly);
+    filter.Discover(options.Value.RequestAssemblies.ToArray());
     return filter;
 });
 
@@ -1636,6 +1646,7 @@ Por default:
 - queries se omiten salvo que `IncludeQueries` sea `true`
 - `[SkipTransactionBoundary]` omite la transaccion
 - tipos en `ExcludedRequestTypes` se omiten
+- las clases `TransactionBoundaryProfile` pueden agregar exclusiones o ensamblados para discovery por codigo
 - las decisiones por tipo se descubren una vez y quedan cacheadas
 
 ```csharp
@@ -1644,6 +1655,25 @@ public sealed class RebuildSearchIndexRequest : IRequest
 {
 }
 ```
+
+Prefiere un perfil cuando un feature o modulo tenga varias reglas de transaccion. Coloca el perfil cerca del feature, por ejemplo `Business/Search/Boundaries/SearchTransactionBoundaryProfile.cs`:
+
+```csharp
+using TurtlePath.Template.Api.Boundaries;
+
+namespace TurtlePath.Template.Business.Search.Boundaries;
+
+public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfile
+{
+    public override void Configure(TransactionBoundaryOptions options)
+    {
+        options.Exclude<RebuildSearchIndexRequest>();
+        options.DiscoverRequestsFrom<RebuildSearchIndexRequest>();
+    }
+}
+```
+
+El container default descubre perfiles de transaction boundary desde los assemblies de Business y Api. No edites `AddPipelineDefaults` para reglas especificas de un feature.
 
 ## 15. Consumers Con Pigeon Y Outbox
 

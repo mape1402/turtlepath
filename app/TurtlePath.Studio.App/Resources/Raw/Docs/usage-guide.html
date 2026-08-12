@@ -226,9 +226,11 @@ dotnet test --configuration Release --no-build</code></pre></div>
 <div class="code-card"><div class="code-toolbar"><span>text</span><button type="button" class="copy-code" data-code="src/
   TurtlePath.Template.Api/
     Boundaries/
+      ITransactionBoundaryProfile.cs
       ITransactionBoundaryRequestFilter.cs
       SkipTransactionBoundaryAttribute.cs
       TransactionBoundaryOptions.cs
+      TransactionBoundaryProfile.cs
       TransactionBoundaryRequestFilter.cs
       TransactionExecutionBoundary.cs
     Controllers/
@@ -314,9 +316,11 @@ tests/
     TurtlePath.Template.Tests.csproj">Copy</button></div><pre><code class="language-text">src/
   TurtlePath.Template.Api/
     Boundaries/
+      ITransactionBoundaryProfile.cs
       ITransactionBoundaryRequestFilter.cs
       SkipTransactionBoundaryAttribute.cs
       TransactionBoundaryOptions.cs
+      TransactionBoundaryProfile.cs
       TransactionBoundaryRequestFilter.cs
       TransactionExecutionBoundary.cs
     Controllers/
@@ -2410,12 +2414,20 @@ public sealed class CustomersController : BaseController
 <p>The template uses Spider execution boundaries for cross-cutting execution behavior. The default boundary is transaction handling.</p>
 <p>Registration:</p>
 <div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.Configure&lt;TransactionBoundaryOptions&gt;(configuration.GetSection(&quot;TransactionBoundary&quot;));
+services.PostConfigure&lt;TransactionBoundaryOptions&gt;(options =&gt;
+{
+    options.DiscoverRequestsFrom(typeof(Constants).Assembly);
+    options.DiscoverRequestsFrom(typeof(TransactionBoundaryExtensions).Assembly);
+
+    // TransactionBoundaryProfile implementations are discovered from Business and Api.
+});
+
 services.AddSingleton&lt;ITransactionBoundaryRequestFilter&gt;(provider =&gt;
 {
-    var filter = new TransactionBoundaryRequestFilter(
-        provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;());
+    var options = provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;();
+    var filter = new TransactionBoundaryRequestFilter(options);
 
-    filter.Discover(typeof(Constants).Assembly);
+    filter.Discover(options.Value.RequestAssemblies.ToArray());
     return filter;
 });
 
@@ -2423,12 +2435,20 @@ services.AddSpider(builder =&gt;
 {
     builder.AddExecutionBoundary&lt;TransactionExecutionBoundary&gt;();
 });">Copy</button></div><pre><code class="language-csharp">services.Configure&lt;TransactionBoundaryOptions&gt;(configuration.GetSection("TransactionBoundary"));
+services.PostConfigure&lt;TransactionBoundaryOptions&gt;(options =&gt;
+{
+    options.DiscoverRequestsFrom(typeof(Constants).Assembly);
+    options.DiscoverRequestsFrom(typeof(TransactionBoundaryExtensions).Assembly);
+
+    // TransactionBoundaryProfile implementations are discovered from Business and Api.
+});
+
 services.AddSingleton&lt;ITransactionBoundaryRequestFilter&gt;(provider =&gt;
 {
-    var filter = new TransactionBoundaryRequestFilter(
-        provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;());
+    var options = provider.GetRequiredService&lt;IOptions&lt;TransactionBoundaryOptions&gt;&gt;();
+    var filter = new TransactionBoundaryRequestFilter(options);
 
-    filter.Discover(typeof(Constants).Assembly);
+    filter.Discover(options.Value.RequestAssemblies.ToArray());
     return filter;
 });
 
@@ -2456,6 +2476,7 @@ services.AddSpider(builder =&gt;
 <li>queries are skipped unless <code>IncludeQueries</code> is enabled</li>
 <li><code>[SkipTransactionBoundary]</code> skips the transaction</li>
 <li>configured excluded request types are skipped</li>
+<li><code>TransactionBoundaryProfile</code> classes can add exclusions or request discovery by code</li>
 <li>request type decisions are discovered once and cached</li>
 </ul>
 <p>Skip a request:</p>
@@ -2466,6 +2487,31 @@ public sealed class RebuildSearchIndexRequest : IRequest
 public sealed class RebuildSearchIndexRequest : IRequest
 {
 }</code></pre></div>
+<p>Prefer a profile when a feature or module has several transaction rules. Put the profile close to the feature, for example <code>Business/Search/Boundaries/SearchTransactionBoundaryProfile.cs</code>:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.Template.Api.Boundaries;
+
+namespace TurtlePath.Template.Business.Search.Boundaries;
+
+public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfile
+{
+    public override void Configure(TransactionBoundaryOptions options)
+    {
+        options.Exclude&lt;RebuildSearchIndexRequest&gt;();
+        options.DiscoverRequestsFrom&lt;RebuildSearchIndexRequest&gt;();
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.Template.Api.Boundaries;
+
+namespace TurtlePath.Template.Business.Search.Boundaries;
+
+public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfile
+{
+    public override void Configure(TransactionBoundaryOptions options)
+    {
+        options.Exclude&lt;RebuildSearchIndexRequest&gt;();
+        options.DiscoverRequestsFrom&lt;RebuildSearchIndexRequest&gt;();
+    }
+}</code></pre></div>
+<p>The default container discovers transaction boundary profiles from the Business and Api assemblies. Do not edit <code>AddPipelineDefaults</code> for feature-specific transaction rules.</p>
 <p>Use Spider when a flow must go through execution boundaries. The controller base and hub consumer base expose <code>Spider</code> for that reason.</p>
 <h2 id="15-pigeon-consumers-and-outbox">15. Pigeon Consumers And Outbox</h2>
 <p>The template includes Pigeon with Azure Service Bus and EF Core outbox as an opt-in messaging stack. It is not registered by default because Azure Service Bus requires a real connection string.</p>

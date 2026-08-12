@@ -97,9 +97,11 @@ Generated projects are split by responsibility:
 src/
   TurtlePath.Template.Api/
     Boundaries/
+      ITransactionBoundaryProfile.cs
       ITransactionBoundaryRequestFilter.cs
       SkipTransactionBoundaryAttribute.cs
       TransactionBoundaryOptions.cs
+      TransactionBoundaryProfile.cs
       TransactionBoundaryRequestFilter.cs
       TransactionExecutionBoundary.cs
     Controllers/
@@ -1749,12 +1751,20 @@ Registration:
 
 ```csharp
 services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
+services.PostConfigure<TransactionBoundaryOptions>(options =>
+{
+    options.DiscoverRequestsFrom(typeof(Constants).Assembly);
+    options.DiscoverRequestsFrom(typeof(TransactionBoundaryExtensions).Assembly);
+
+    // TransactionBoundaryProfile implementations are discovered from Business and Api.
+});
+
 services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
 {
-    var filter = new TransactionBoundaryRequestFilter(
-        provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
+    var options = provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>();
+    var filter = new TransactionBoundaryRequestFilter(options);
 
-    filter.Discover(typeof(Constants).Assembly);
+    filter.Discover(options.Value.RequestAssemblies.ToArray());
     return filter;
 });
 
@@ -1782,6 +1792,7 @@ Default behavior:
 - queries are skipped unless `IncludeQueries` is enabled
 - `[SkipTransactionBoundary]` skips the transaction
 - configured excluded request types are skipped
+- `TransactionBoundaryProfile` classes can add exclusions or request discovery by code
 - request type decisions are discovered once and cached
 
 Skip a request:
@@ -1792,6 +1803,25 @@ public sealed class RebuildSearchIndexRequest : IRequest
 {
 }
 ```
+
+Prefer a profile when a feature or module has several transaction rules. Put the profile close to the feature, for example `Business/Search/Boundaries/SearchTransactionBoundaryProfile.cs`:
+
+```csharp
+using TurtlePath.Template.Api.Boundaries;
+
+namespace TurtlePath.Template.Business.Search.Boundaries;
+
+public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfile
+{
+    public override void Configure(TransactionBoundaryOptions options)
+    {
+        options.Exclude<RebuildSearchIndexRequest>();
+        options.DiscoverRequestsFrom<RebuildSearchIndexRequest>();
+    }
+}
+```
+
+The default container discovers transaction boundary profiles from the Business and Api assemblies. Do not edit `AddPipelineDefaults` for feature-specific transaction rules.
 
 Use Spider when a flow must go through execution boundaries. The controller base and hub consumer base expose `Spider` for that reason.
 

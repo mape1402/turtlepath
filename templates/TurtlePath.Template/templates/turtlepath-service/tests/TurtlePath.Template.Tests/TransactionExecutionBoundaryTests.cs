@@ -74,6 +74,21 @@ public sealed class TransactionExecutionBoundaryTests
         Assert.False(filter.ShouldOpenTransaction(typeof(SampleExcludedCommand)));
     }
 
+    [Fact]
+    public void RequestFilter_uses_options_configured_by_code()
+    {
+        var boundaryOptions = new TransactionBoundaryOptions()
+            .DiscoverRequestsFrom<SampleCommand>()
+            .Exclude<SampleExcludedCommand>();
+
+        var filter = new TransactionBoundaryRequestFilter(Options.Create(boundaryOptions));
+
+        filter.Discover(boundaryOptions.RequestAssemblies.ToArray());
+
+        Assert.True(filter.ShouldOpenTransaction(typeof(SampleCommand)));
+        Assert.False(filter.ShouldOpenTransaction(typeof(SampleExcludedCommand)));
+    }
+
     private static PipelineExecutionContext CreateContext(Type requestType)
         => new()
         {

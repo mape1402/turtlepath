@@ -55,6 +55,8 @@ public sealed class TemplateCompositionTests
         Assert.True(transactionOptions.Enabled);
         Assert.False(transactionOptions.IncludeQueries);
         Assert.Equal(30, transactionOptions.TimeoutSeconds);
+        Assert.Contains(typeof(TurtlePath.Template.Business.Constants).Assembly, transactionOptions.RequestAssemblies);
+        Assert.Contains(typeof(StartupExtensions).Assembly, transactionOptions.RequestAssemblies);
     }
 
     private static IConfiguration CreateConfiguration()
