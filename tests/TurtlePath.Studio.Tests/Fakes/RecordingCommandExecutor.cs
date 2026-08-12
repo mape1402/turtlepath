@@ -15,7 +15,7 @@ internal sealed class RecordingCommandExecutor : ICommandExecutor
             .ToArray();
 
         results.Enqueue(new CommandExecutionResult(
-            new CommandSpec("fake", [], Environment.CurrentDirectory),
+            new CommandSpec("fake", [], global::System.Environment.CurrentDirectory),
             0,
             TimeSpan.Zero,
             lines));

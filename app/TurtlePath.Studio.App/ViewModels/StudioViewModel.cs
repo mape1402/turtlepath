@@ -40,7 +40,10 @@ public sealed class StudioViewModel
     public bool DefaultTestAfterCreation { get; set; }
     public bool DefaultHideGuideAfterCreation { get; set; }
     public bool IsBusy { get; private set; }
+    public string BusyTitle { get; private set; } = "Working";
+    public string BusyMessage { get; private set; } = "Studio is running a command. This can take a moment.";
     public bool IsWizardOpen { get; private set; }
+    public bool IsCommandOutputOpen { get; private set; }
     public bool IsCreated { get; private set; }
     public string? CreatedDirectory { get; private set; }
     public string Message { get; private set; } = "Ready.";
@@ -68,7 +71,7 @@ public sealed class StudioViewModel
 
     public string EnvironmentText => TemplateEnvironments.Count == 0
         ? SidebarCollapsed ? "?" : "Environment: not checked"
-        : TemplatesAreReady
+        : TemplatesCanCreateProjects
             ? SidebarCollapsed ? "OK" : "Environment: ready"
             : TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
                 ? SidebarCollapsed ? "!" : "Environment: update required"
@@ -86,9 +89,9 @@ public sealed class StudioViewModel
         ? "Update templates"
         : "Install templates";
 
-    public bool TemplateIsCurrent => TemplatesAreReady;
+    public bool TemplateIsCurrent => TemplatesCanCreateProjects && !TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate);
 
-    public bool TemplatesAreReady => TemplateEnvironments.Count > 0
+    public bool TemplatesCanCreateProjects => TemplateEnvironments.Count > 0
         && TemplateEnvironments.All(environment => environment.CanCreateProjects);
 
     public StudioViewModel(
@@ -141,6 +144,7 @@ public sealed class StudioViewModel
         IsCreated = false;
         CreatedDirectory = null;
         Commands = [];
+        IsCommandOutputOpen = false;
         IsWizardOpen = true;
         ClearMessage();
     }
@@ -162,11 +166,20 @@ public sealed class StudioViewModel
         IsCreated = false;
         CreatedDirectory = null;
         Commands = [];
+        IsCommandOutputOpen = false;
         IsWizardOpen = true;
         ClearMessage();
     }
 
     public void CloseWizard() => IsWizardOpen = false;
+
+    public void OpenCommandOutput()
+    {
+        if (Commands.Count > 0)
+            IsCommandOutputOpen = true;
+    }
+
+    public void CloseCommandOutput() => IsCommandOutputOpen = false;
 
     public void FinishWizard()
     {
@@ -214,22 +227,22 @@ public sealed class StudioViewModel
 
     public Task RefreshEnvironmentAsync()
     {
-        return RunAsync(async () =>
+        return RunAsync("Checking environment", "Studio is checking .NET and installed TurtlePath templates.", async () =>
         {
             TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
             Environment = TemplateEnvironments.FirstOrDefault(environment =>
                 environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
 
-            Message = TemplatesAreReady
+            Message = TemplatesCanCreateProjects
                 ? "Environment ready."
                 : "One or more templates need attention. Use the actions below to repair them.";
-            MessageIsError = !TemplatesAreReady;
+            MessageIsError = !TemplatesCanCreateProjects;
         });
     }
 
     public Task InstallTemplateAsync()
     {
-        return RunAsync(async () =>
+        return RunAsync("Installing templates", "Studio is installing or updating the TurtlePath template packages.", async () =>
         {
             var commands = new List<CommandExecutionResult>();
             foreach (var packageId in TurtlePathStudioDefaults.TemplatePackageIds)
@@ -244,8 +257,9 @@ public sealed class StudioViewModel
                 ? "Templates installed. Environment was checked again."
                 : "Template installation failed. Check the command output.";
             MessageIsError = !commands.All(command => command.Succeeded);
+            IsCommandOutputOpen = true;
 
-            if (TemplatesAreReady)
+            if (TemplatesCanCreateProjects)
                 MessageIsError = false;
         });
     }
@@ -298,7 +312,7 @@ public sealed class StudioViewModel
         IsCreated = false;
         Commands = [];
 
-        await RunAsync(async () =>
+        await RunAsync("Creating project", "Studio is running the template and optional validation commands.", async () =>
         {
             var selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
             if (!selectedTemplate.CanCreateProjects)
@@ -309,16 +323,21 @@ public sealed class StudioViewModel
                 selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
                 if (!install.Succeeded || !selectedTemplate.CanCreateProjects)
                 {
-                    Message = selectedTemplate.TemplateRequiresUpdate
-                        ? BuildTemplateUpdateRequiredMessage(selectedTemplate)
-                        : $"{SelectedTemplatePackageId} must be installed before creating projects.";
+                    Message = $"{SelectedTemplatePackageId} must be installed before creating projects.";
                     MessageIsError = true;
+                    IsCommandOutputOpen = true;
                     return;
                 }
             }
 
             if (SelectedTemplatePackageId == TurtlePathStudioDefaults.TemplatePackageId)
                 Environment = selectedTemplate;
+
+            if (selectedTemplate.TemplateRequiresUpdate)
+            {
+                Message = BuildTemplateUpdateSuggestionMessage(selectedTemplate);
+                MessageIsError = false;
+            }
 
             var result = await createProject.ExecuteAsync(new CreateProjectRequest(
                 ProjectName.Trim(),
@@ -334,9 +353,12 @@ public sealed class StudioViewModel
             IsCreated = result.Succeeded;
             CreatedDirectory = result.Creation.ProjectDirectory;
             Message = result.Succeeded
-                ? "Project created successfully."
+                ? selectedTemplate.TemplateRequiresUpdate
+                    ? $"{BuildTemplateUpdateSuggestionMessage(selectedTemplate)} Project created successfully."
+                    : "Project created successfully."
                 : "Project creation finished with errors. Check the execution log.";
             MessageIsError = !result.Succeeded;
+            IsCommandOutputOpen = true;
         });
     }
 
@@ -346,8 +368,10 @@ public sealed class StudioViewModel
             await workspace.OpenDirectoryAsync(CreatedDirectory);
     }
 
-    private async Task RunAsync(Func<Task> action)
+    private async Task RunAsync(string title, string message, Func<Task> action)
     {
+        BusyTitle = title;
+        BusyMessage = message;
         IsBusy = true;
         try
         {
@@ -429,10 +453,10 @@ public sealed class StudioViewModel
         DefaultHideGuideAfterCreation = settings.HideGuideAfterCreation;
     }
 
-    private static string BuildTemplateUpdateRequiredMessage(StudioEnvironmentReport environment)
+    private static string BuildTemplateUpdateSuggestionMessage(StudioEnvironmentReport environment)
     {
         return environment.Template.HasLatestVersion
-            ? $"TurtlePath.Template must be updated before creating projects. Installed: {environment.Template.Version}; latest: {environment.Template.LatestVersion}."
-            : "TurtlePath.Template must be verified against NuGet before creating projects. Check the environment or update the template.";
+            ? $"{environment.Template.PackageId} has a newer version available. Installed: {environment.Template.Version}; latest: {environment.Template.LatestVersion}."
+            : $"{environment.Template.PackageId} is installed, but Studio could not verify the latest NuGet version.";
     }
 }

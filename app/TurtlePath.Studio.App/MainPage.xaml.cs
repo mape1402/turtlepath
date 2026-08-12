@@ -196,6 +196,10 @@ public partial class MainPage : ContentPage
 
         if (viewModel.IsWizardOpen)
             RenderWizard();
+        else if (viewModel.IsBusy)
+            RenderBusyOverlay();
+        else if (viewModel.IsCommandOutputOpen)
+            RenderCommandOutputOverlay();
         else
             modalHost.IsVisible = false;
     }
@@ -628,20 +632,27 @@ public partial class MainPage : ContentPage
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Check environment", async () =>
         {
-            await viewModel.RefreshEnvironmentAsync();
+            var check = viewModel.RefreshEnvironmentAsync();
+            Render();
+            await check;
             Render();
         }, secondary: true));
         actions.Add(CreateButton(viewModel.TemplateActionText, async () =>
         {
-            await viewModel.InstallTemplateAsync();
+            var install = viewModel.InstallTemplateAsync();
+            Render();
+            await install;
             Render();
         }));
         actions.Add(CreateButton("Open templates", () => Navigate(StudioSection.Templates), secondary: true));
+        if (viewModel.Commands.Count > 0)
+            actions.Add(CreateButton("View command output", () =>
+            {
+                viewModel.OpenCommandOutput();
+                Render();
+            }, secondary: true));
         layout.Add(actions);
         layout.Add(BuildDefaultSettings());
-
-        if (viewModel.Commands.Count > 0)
-            layout.Add(CreateExecutionLog());
 
         return new ScrollView { Content = layout };
     }
@@ -663,11 +674,18 @@ public partial class MainPage : ContentPage
     {
         var template = environment.Template;
         if (environment.CanCreateProjects)
-            return $"{template.PackageId} is ready. Installed: {template.Version}. Latest: {template.LatestVersion}.";
+        {
+            if (environment.TemplateRequiresUpdate)
+                return $"{template.PackageId} is installed and usable. Suggested update: installed {template.Version}; latest {template.LatestVersion}.";
+
+            return template.HasLatestVersion
+                ? $"{template.PackageId} is ready. Installed: {template.Version}. Latest: {template.LatestVersion}."
+                : $"{template.PackageId} is installed and usable. Studio could not verify the latest NuGet version.";
+        }
 
         if (environment.TemplateRequiresUpdate)
             return template.HasLatestVersion
-                ? $"{template.PackageId} must be updated. Installed: {template.Version}. Latest: {template.LatestVersion}."
+                ? $"{template.PackageId} can be updated. Installed: {template.Version}. Latest: {template.LatestVersion}."
                 : $"{template.PackageId} is installed ({template.Version}), but Studio could not verify the latest NuGet version.";
 
         return $"{template.PackageId} is missing or .NET template discovery failed.";
@@ -822,9 +840,36 @@ public partial class MainPage : ContentPage
         overlay.Add(modalFrame);
         if (viewModel.IsBusy)
             overlay.Add(BuildBusyDialog());
+        else if (viewModel.IsCommandOutputOpen)
+            overlay.Add(BuildCommandOutputDialog());
 
         modalHost.Content = overlay;
         modalHost.IsVisible = true;
+    }
+
+    private void RenderBusyOverlay()
+    {
+        var overlay = CreateOverlay();
+        overlay.Add(BuildBusyDialog());
+        modalHost.Content = overlay;
+        modalHost.IsVisible = true;
+    }
+
+    private void RenderCommandOutputOverlay()
+    {
+        var overlay = CreateOverlay();
+        overlay.Add(BuildCommandOutputDialog());
+        modalHost.Content = overlay;
+        modalHost.IsVisible = true;
+    }
+
+    private static Grid CreateOverlay()
+    {
+        return new Grid
+        {
+            BackgroundColor = Color.FromRgba(2, 12, 10, 0.56),
+            Padding = new Thickness(36)
+        };
     }
 
     private View BuildBusyDialog()
@@ -853,14 +898,14 @@ public partial class MainPage : ContentPage
         var copy = new VerticalStackLayout { Spacing = 4 };
         copy.Add(new Label
         {
-            Text = "Creating project",
+            Text = viewModel.BusyTitle,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
             TextColor = Ink
         });
         copy.Add(new Label
         {
-            Text = "Studio is running the template commands. This can take a moment.",
+            Text = viewModel.BusyMessage,
             TextColor = Muted,
             LineBreakMode = LineBreakMode.WordWrap
         });
@@ -883,6 +928,88 @@ public partial class MainPage : ContentPage
                 Opacity = 0.28f
             },
             Content = content
+        };
+    }
+
+    private View BuildCommandOutputDialog()
+    {
+        var dialog = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star },
+                new RowDefinition { Height = GridLength.Auto }
+            },
+            RowSpacing = 16,
+            Padding = new Thickness(24),
+            BackgroundColor = Color.FromArgb("#FBFDFC")
+        };
+
+        var header = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+        };
+        var copy = new VerticalStackLayout { Spacing = 3 };
+        copy.Add(new Label
+        {
+            Text = "Command output",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        copy.Add(new Label
+        {
+            Text = "Full console output from the last Studio operation.",
+            TextColor = Muted
+        });
+        header.Add(copy, 0, 0);
+        header.Add(CreateButton("Close", () =>
+        {
+            viewModel.CloseCommandOutput();
+            Render();
+        }, secondary: true), 1, 0);
+        dialog.Add(header, 0, 0);
+
+        dialog.Add(new ScrollView
+        {
+            Content = CreateExecutionLog(fullOutput: true)
+        }, 0, 1);
+
+        var footer = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            HorizontalOptions = LayoutOptions.End
+        };
+        footer.Add(CreateButton("Done", () =>
+        {
+            viewModel.CloseCommandOutput();
+            Render();
+        }));
+        dialog.Add(footer, 0, 2);
+
+        return new Border
+        {
+            WidthRequest = 860,
+            HeightRequest = 600,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Color.FromArgb("#FBFDFC"),
+            Stroke = Color.FromArgb("#89AA99"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(18) },
+            Shadow = new Shadow
+            {
+                Brush = Brush.Black,
+                Offset = new Point(0, 18),
+                Radius = 42,
+                Opacity = 0.34f
+            },
+            Content = dialog
         };
     }
 
@@ -1199,6 +1326,8 @@ public partial class MainPage : ContentPage
 
             await action();
         };
+        button.Pressed += (_, _) => button.Opacity = 0.72;
+        button.Released += (_, _) => button.Opacity = 1;
 
         return button;
     }
@@ -1235,7 +1364,7 @@ public partial class MainPage : ContentPage
         };
     }
 
-    private View CreateExecutionLog()
+    private View CreateExecutionLog(bool fullOutput = false)
     {
         if (viewModel.Commands.Count == 0)
             return new Label { Text = "No commands executed yet.", TextColor = Muted };
@@ -1243,7 +1372,8 @@ public partial class MainPage : ContentPage
         var layout = new VerticalStackLayout { Spacing = 10 };
         foreach (CommandExecutionResult command in viewModel.Commands)
         {
-            var output = string.Join(Environment.NewLine, command.Output.TakeLast(8).Select(line => line.Text));
+            var lines = fullOutput ? command.Output : command.Output.TakeLast(8);
+            var output = string.Join(Environment.NewLine, lines.Select(line => line.Text));
             layout.Add(CreateBorder(new Label
             {
                 Text = $"{command.Command.DisplayText}{Environment.NewLine}Exit code: {command.ExitCode}{Environment.NewLine}{output}",
