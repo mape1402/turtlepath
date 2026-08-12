@@ -2,6 +2,14 @@
 
 All notable changes to TurtlePath will be documented in this file.
 
+## [v1.5.1] - 2026-08-12
+
+### Added
+
+- Added `turtlepath-studio update` to reinstall TurtlePath Studio from the latest published Studio release.
+- Added desktop shortcut creation for `TurtlePath Studio` during Studio installation.
+- Added Studio tool usage documentation to the README.
+
 ## [v1.5.0] - 2026-08-12
 
 ### Added
