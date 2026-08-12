@@ -34,7 +34,7 @@ static void PrintHelp()
           turtlepath-studio install [options]
 
         Options:
-          --version <tag>     GitHub release tag to download. Default: studio-v1.0.0
+          --version <tag>     GitHub release tag to download. Default: latest Studio release
           --repo <owner/name> GitHub repository. Default: mape1402/turtlepath
           --asset <name>      Release asset name. Default: TurtlePath.Studio.win-x64.zip
           --output <path>     Install directory. Default: %LOCALAPPDATA%\TurtlePath\Studio
@@ -147,7 +147,7 @@ internal sealed class StudioInstaller
         var release = await GetReleaseAsync(httpClient, options.Repository, options.ReleaseTag);
         var asset = release.Assets.FirstOrDefault(item => string.Equals(item.Name, options.AssetName, StringComparison.OrdinalIgnoreCase));
         if (asset is null)
-            throw new InvalidOperationException($"Release '{options.ReleaseTag}' does not contain asset '{options.AssetName}'.");
+            throw new InvalidOperationException($"Release '{release.TagName}' does not contain asset '{options.AssetName}'.");
 
         var archivePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}-{options.AssetName}");
         try
@@ -166,6 +166,7 @@ internal sealed class StudioInstaller
             throw new InvalidOperationException($"Studio was extracted, but '{StudioToolDefaults.ExecutableName}' was not found in {options.OutputDirectory}.");
 
         Console.WriteLine($"TurtlePath Studio installed at: {options.OutputDirectory}");
+        Console.WriteLine($"Version: {release.TagName}");
         Console.WriteLine($"Executable: {executablePath}");
 
         if (options.Launch)
@@ -177,19 +178,63 @@ internal sealed class StudioInstaller
         string repository,
         string releaseTag)
     {
-        var requestUri = releaseTag.Equals("latest", StringComparison.OrdinalIgnoreCase)
-            ? $"https://api.github.com/repos/{repository}/releases/latest"
-            : $"https://api.github.com/repos/{repository}/releases/tags/{Uri.EscapeDataString(releaseTag)}";
+        return releaseTag.Equals(StudioToolDefaults.LatestReleaseTag, StringComparison.OrdinalIgnoreCase)
+            ? await GetLatestStudioReleaseAsync(httpClient, repository)
+            : await GetReleaseByTagAsync(httpClient, repository, releaseTag);
+    }
 
+    private static async Task<GitHubRelease> GetReleaseByTagAsync(
+        HttpClient httpClient,
+        string repository,
+        string releaseTag)
+    {
+        var requestUri = $"https://api.github.com/repos/{repository}/releases/tags/{Uri.EscapeDataString(releaseTag)}";
         using var response = await httpClient.GetAsync(requestUri);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"Could not resolve Studio release '{releaseTag}' from {repository}. GitHub returned {(int)response.StatusCode}.");
 
+        return await ReadReleaseAsync(await response.Content.ReadAsStreamAsync());
+    }
+
+    private static async Task<GitHubRelease> GetLatestStudioReleaseAsync(
+        HttpClient httpClient,
+        string repository)
+    {
+        var requestUri = $"https://api.github.com/repos/{repository}/releases?per_page=100";
+        using var response = await httpClient.GetAsync(requestUri);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Could not resolve the latest Studio release from {repository}. GitHub returned {(int)response.StatusCode}.");
+
         await using var stream = await response.Content.ReadAsStreamAsync();
         using var document = await JsonDocument.ParseAsync(stream);
+        foreach (var releaseElement in document.RootElement.EnumerateArray())
+        {
+            var tagName = releaseElement.GetProperty("tag_name").GetString() ?? string.Empty;
+            var isDraft = releaseElement.TryGetProperty("draft", out var draftElement) && draftElement.GetBoolean();
+            var isPrerelease = releaseElement.TryGetProperty("prerelease", out var prereleaseElement) && prereleaseElement.GetBoolean();
 
+            if (!isDraft
+                && !isPrerelease
+                && tagName.StartsWith(StudioToolDefaults.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return ReadRelease(releaseElement);
+            }
+        }
+
+        throw new InvalidOperationException($"No published Studio release was found in {repository}.");
+    }
+
+    private static async Task<GitHubRelease> ReadReleaseAsync(Stream stream)
+    {
+        using var document = await JsonDocument.ParseAsync(stream);
+        return ReadRelease(document.RootElement);
+    }
+
+    private static GitHubRelease ReadRelease(JsonElement releaseElement)
+    {
+        var tagName = releaseElement.GetProperty("tag_name").GetString() ?? string.Empty;
         var assets = new List<GitHubReleaseAsset>();
-        if (document.RootElement.TryGetProperty("assets", out var assetsElement))
+        if (releaseElement.TryGetProperty("assets", out var assetsElement))
         {
             foreach (var assetElement in assetsElement.EnumerateArray())
             {
@@ -200,7 +245,7 @@ internal sealed class StudioInstaller
             }
         }
 
-        return new GitHubRelease(assets);
+        return new GitHubRelease(tagName, assets);
     }
 
     private static async Task DownloadAsync(
@@ -218,7 +263,7 @@ internal sealed class StudioInstaller
     }
 }
 
-internal sealed record GitHubRelease(IReadOnlyList<GitHubReleaseAsset> Assets);
+internal sealed record GitHubRelease(string TagName, IReadOnlyList<GitHubReleaseAsset> Assets);
 
 internal sealed record GitHubReleaseAsset(string Name, string DownloadUrl);
 
@@ -226,7 +271,11 @@ internal static class StudioToolDefaults
 {
     public const string Repository = "mape1402/turtlepath";
 
-    public const string ReleaseTag = "studio-v1.0.0";
+    public const string LatestReleaseTag = "latest";
+
+    public const string ReleaseTag = LatestReleaseTag;
+
+    public const string ReleaseTagPrefix = "studio-v";
 
     public const string AssetName = "TurtlePath.Studio.win-x64.zip";
 
