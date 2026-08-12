@@ -7,6 +7,9 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'app/**'
+      - 'templates/**'
+      - 'demos/**'
       - 'tests/**'
       - 'benchmarks/**'
       - 'samples/**'
@@ -23,6 +26,9 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'app/**'
+      - 'templates/**'
+      - 'demos/**'
       - 'tests/**'
       - 'benchmarks/**'
       - 'samples/**'

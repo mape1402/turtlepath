@@ -9,7 +9,7 @@ The current host is Windows-only and uses MAUI Blazor Hybrid. The core Studio wo
 Use the Windows folder publish profile:
 
 ```powershell
-dotnet publish apps/TurtlePath.Studio.App/TurtlePath.Studio.App.csproj `
+dotnet publish app/TurtlePath.Studio.App/TurtlePath.Studio.App.csproj `
   -f net10.0-windows10.0.19041.0 `
   -p:PublishProfile=win-x64-folder
 ```
