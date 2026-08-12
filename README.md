@@ -630,46 +630,76 @@ public sealed class CommerceEventMappingProfile : OctoMapProfile
 
 `TurtlePath.ExceptionHandling` keeps exception rules transport-neutral. Applications map exceptions once into an `ExceptionDescriptor`; target adapters decide how to project that descriptor to HTTP, consumers, workers, or jobs.
 
-Use profiles when the exception catalog starts growing:
+Use profiles when the exception catalog starts growing. Core profiles describe the exception once in a transport-neutral way:
 
 ```csharp
-public sealed class CommerceExceptionHandlingProfile : ExceptionHandlingProfile
+public static class CommerceExceptionKinds
+{
+    public static readonly ExceptionKind SubscriptionExpired = new("subscription_expired");
+}
+
+public sealed class SubscriptionExpiredException : Exception
+{
+    public SubscriptionExpiredException(string customerId)
+        : base($"Customer '{customerId}' has an expired subscription.")
+    {
+        CustomerId = customerId;
+    }
+
+    public string CustomerId { get; }
+}
+
+public sealed class CommerceExceptionProfile : ExceptionHandlingProfile
 {
     public override void Configure(ExceptionHandlingOptionsBuilder builder)
     {
-        builder.For<ValidationException>(
-            _ => ExceptionKind.Validation,
-            _ => "validation",
-            ex => ex.Errors);
-
-        builder.For<PaymentDeclinedException>(
-            new ExceptionKind("payment_declined"),
-            ex => ex.Message);
+        builder.For<SubscriptionExpiredException>(
+            CommerceExceptionKinds.SubscriptionExpired,
+            exception => $"Subscription expired for customer '{exception.CustomerId}'.");
     }
 }
 ```
 
-Register the profile and adapters from the composition root:
+Target profiles decide how each host type reacts to the descriptor:
 
 ```csharp
-services.AddExceptionHandlingProfile<CommerceExceptionHandlingProfile>();
-
-services.AddTurtlePathAspNetCoreExceptionHandling(builder =>
+public sealed class CommerceHttpExceptionProfile : HttpExceptionHandlingProfile
 {
-    builder.Map(new ExceptionKind("payment_declined"), StatusCodes.Status402PaymentRequired);
-});
+    public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+    {
+        builder.Map(CommerceExceptionKinds.SubscriptionExpired, StatusCodes.Status403Forbidden);
+    }
+}
 
-services.AddTurtlePathConsumerExceptionHandling(builder =>
+public sealed class CommerceConsumerExceptionProfile : ConsumerExceptionHandlingProfile
 {
-    builder.RethrowWhen((descriptor, _) => descriptor.Kind != ExceptionKind.Validation);
-});
+    public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen((descriptor, _) =>
+            descriptor.Kind != CommerceExceptionKinds.SubscriptionExpired);
+    }
+}
 
-services.AddTurtlePathWorkerExceptionHandling(builder =>
+public sealed class CommerceBackgroundExceptionProfile : BackgroundExceptionHandlingProfile
 {
-    builder.RethrowWhen(descriptor => descriptor.Kind == ExceptionKind.Transient);
-    builder.Return(descriptor => $"handled:{descriptor.Code}");
-});
+    public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen(descriptor =>
+            descriptor.Kind == ExceptionKind.Transient);
+    }
+}
 ```
+
+Applications can register profiles explicitly:
+
+```csharp
+services.AddExceptionHandlingProfiles(typeof(CommerceExceptionProfile).Assembly);
+services.AddHttpExceptionHandlingProfiles(typeof(CommerceHttpExceptionProfile).Assembly);
+services.AddConsumerExceptionHandlingProfiles(typeof(CommerceConsumerExceptionProfile).Assembly);
+services.AddBackgroundExceptionHandlingProfiles(typeof(CommerceBackgroundExceptionProfile).Assembly);
+```
+
+Projects generated from `TurtlePath.Template` discover exception handling profiles automatically from the Business and API assemblies. Put service-specific profiles next to the feature that owns the exception, and do not call the TurtlePath exception adapter registrations again from the custom container.
 
 ASP.NET Core can use the packaged MVC filter:
 

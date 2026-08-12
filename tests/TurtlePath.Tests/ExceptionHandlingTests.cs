@@ -97,6 +97,61 @@ public sealed class ExceptionHandlingTests
     }
 
     [Fact]
+    public void Services_register_http_exception_handling_profiles_from_assemblies()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePathAspNetCoreExceptionHandling()
+            .AddHttpExceptionHandlingProfiles(typeof(ExceptionHandlingTests).Assembly);
+
+        using var provider = services.BuildServiceProvider();
+        var mapper = provider.GetRequiredService<IHttpExceptionStatusCodeMapper>();
+
+        Assert.Equal(
+            StatusCodes.Status403Forbidden,
+            mapper.Map(new ExceptionDescriptor { Kind = ProfileMappedExceptionKind }));
+    }
+
+    [Fact]
+    public void Services_register_consumer_exception_handling_profiles_from_assemblies()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddLogging()
+            .AddTurtlePathConsumerExceptionHandling()
+            .AddConsumerExceptionHandlingProfiles(typeof(ExceptionHandlingTests).Assembly);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<ConsumerExceptionHandlingOptions>>().Value;
+
+        Assert.False(options.ShouldRethrow(
+            new ExceptionDescriptor { Kind = ProfileMappedExceptionKind },
+            new ConsumerExceptionContext()));
+        Assert.True(options.ShouldRethrow(
+            new ExceptionDescriptor { Kind = ExceptionKind.Failure },
+            new ConsumerExceptionContext()));
+    }
+
+    [Fact]
+    public void Services_register_background_exception_handling_profiles_from_assemblies()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddLogging()
+            .AddTurtlePathWorkerExceptionHandling()
+            .AddBackgroundExceptionHandlingProfiles(typeof(ExceptionHandlingTests).Assembly);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<BackgroundExceptionHandlingOptions>>().Value;
+
+        Assert.False(options.ShouldRethrow(new ExceptionDescriptor { Kind = ProfileMappedExceptionKind }));
+        Assert.True(options.ShouldRethrow(new ExceptionDescriptor { Kind = ExceptionKind.Failure }));
+    }
+
+    [Fact]
     public void Problem_details_factory_projects_descriptor()
     {
         var factory = new ProblemDetailsExceptionResponseFactory(Options.Create(new ApiBehaviorOptions()));
@@ -256,6 +311,30 @@ public sealed class ExceptionHandlingTests
                 _ => ProfileMappedExceptionKind,
                 _ => "profile_mapped",
                 exception => [ exception.Message ]);
+        }
+    }
+
+    private sealed class SampleHttpExceptionHandlingProfile : HttpExceptionHandlingProfile
+    {
+        public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+        {
+            builder.Map(ProfileMappedExceptionKind, StatusCodes.Status403Forbidden);
+        }
+    }
+
+    private sealed class SampleConsumerExceptionHandlingProfile : ConsumerExceptionHandlingProfile
+    {
+        public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+        {
+            builder.RethrowWhen((descriptor, _) => descriptor.Kind != ProfileMappedExceptionKind);
+        }
+    }
+
+    private sealed class SampleBackgroundExceptionHandlingProfile : BackgroundExceptionHandlingProfile
+    {
+        public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+        {
+            builder.RethrowWhen(descriptor => descriptor.Kind != ProfileMappedExceptionKind);
         }
     }
 }

@@ -2858,64 +2858,146 @@ services.AddTurtlePathWorkerExceptionHandling();">Copy</button></div><pre><code 
 services.AddTurtlePathAspNetCoreExceptionHandling();
 services.AddTurtlePathConsumerExceptionHandling();
 services.AddTurtlePathWorkerExceptionHandling();</code></pre></div>
-<p>Add service-specific mappings in <code>AddExceptionHandlingDefaults</code>:</p>
-<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="services.AddExceptionHandlingDefaults(builder =&gt;
-{
-    builder.For&lt;InvoiceAlreadyCanceledException&gt;(
-        ExceptionKind.Conflict,
-        exception =&gt; $&quot;Invoice '{exception.InvoiceId}' is already canceled.&quot;);
+<p>Do not register the TurtlePath exception adapters again from <code>CustomContainer</code>. The template already calls the core, HTTP, consumer, and worker exception handling registrations once.</p>
+<p>Service-specific exceptions are added with profiles. The template discovers exception profiles automatically from the Business and API assemblies, so a generated service only needs to add profile classes.</p>
+<p>Use a core profile to describe the exception once:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.ExceptionHandling;
 
-    builder.For&lt;SatUnavailableException&gt;(
-        _ =&gt; ExceptionKind.Transient,
-        exception =&gt; &quot;sat_unavailable&quot;,
-        exception =&gt; new[] { exception.Message },
-        exception =&gt; new Dictionary&lt;string, object&gt;
-        {
-            [&quot;provider&quot;] = &quot;SAT&quot;,
-            [&quot;retryable&quot;] = true
-        });
-});">Copy</button></div><pre><code class="language-csharp">services.AddExceptionHandlingDefaults(builder =&gt;
-{
-    builder.For&lt;InvoiceAlreadyCanceledException&gt;(
-        ExceptionKind.Conflict,
-        exception =&gt; $"Invoice '{exception.InvoiceId}' is already canceled.");
+namespace Billing.Service.Business.Subscriptions.Exceptions;
 
-    builder.For&lt;SatUnavailableException&gt;(
-        _ =&gt; ExceptionKind.Transient,
-        exception =&gt; "sat_unavailable",
-        exception =&gt; new[] { exception.Message },
-        exception =&gt; new Dictionary&lt;string, object&gt;
-        {
-            ["provider"] = "SAT",
-            ["retryable"] = true
-        });
-});</code></pre></div>
-<p>HTTP uses <code>ProblemDetails</code> through <code>GlobalExceptionFilter</code>. Consumers use <code>IConsumerExceptionBoundary</code>. Jobs use <code>IBackgroundExceptionBoundary</code> through the TurtlePath job executor.</p>
-<p>Use domain-specific exceptions when the caller should receive a clear failure:</p>
-<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="public sealed class InvoiceAlreadyCanceledException : Exception
+public static class SubscriptionExceptionKinds
 {
-    public InvoiceAlreadyCanceledException(CId invoiceId)
-        : base($&quot;Invoice '{invoiceId}' is already canceled.&quot;)
+    public static readonly ExceptionKind SubscriptionExpired = new(&quot;subscription_expired&quot;);
+}
+
+public sealed class SubscriptionExpiredException : Exception
+{
+    public SubscriptionExpiredException(string customerId)
+        : base($&quot;Customer '{customerId}' has an expired subscription.&quot;)
     {
-        InvoiceId = invoiceId;
+        CustomerId = customerId;
     }
 
-    public CId InvoiceId { get; }
-}">Copy</button></div><pre><code class="language-csharp">public sealed class InvoiceAlreadyCanceledException : Exception
+    public string CustomerId { get; }
+}
+
+public sealed class SubscriptionExceptionProfile : ExceptionHandlingProfile
 {
-    public InvoiceAlreadyCanceledException(CId invoiceId)
-        : base($"Invoice '{invoiceId}' is already canceled.")
+    public override void Configure(ExceptionHandlingOptionsBuilder builder)
     {
-        InvoiceId = invoiceId;
+        builder.For&lt;SubscriptionExpiredException&gt;(
+            SubscriptionExceptionKinds.SubscriptionExpired,
+            exception =&gt; $&quot;Subscription expired for customer '{exception.CustomerId}'.&quot;);
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.ExceptionHandling;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public static class SubscriptionExceptionKinds
+{
+    public static readonly ExceptionKind SubscriptionExpired = new("subscription_expired");
+}
+
+public sealed class SubscriptionExpiredException : Exception
+{
+    public SubscriptionExpiredException(string customerId)
+        : base($"Customer '{customerId}' has an expired subscription.")
+    {
+        CustomerId = customerId;
     }
 
-    public CId InvoiceId { get; }
+    public string CustomerId { get; }
+}
+
+public sealed class SubscriptionExceptionProfile : ExceptionHandlingProfile
+{
+    public override void Configure(ExceptionHandlingOptionsBuilder builder)
+    {
+        builder.For&lt;SubscriptionExpiredException&gt;(
+            SubscriptionExceptionKinds.SubscriptionExpired,
+            exception =&gt; $"Subscription expired for customer '{exception.CustomerId}'.");
+    }
 }</code></pre></div>
-<p>Then throw it from a hook or handler:</p>
-<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="if (context.Entity.Status == InvoiceStatus.Canceled)
-    throw new InvoiceAlreadyCanceledException(context.Entity.Id);">Copy</button></div><pre><code class="language-csharp">if (context.Entity.Status == InvoiceStatus.Canceled)
-    throw new InvoiceAlreadyCanceledException(context.Entity.Id);</code></pre></div>
-<h2 id="18-jobs">18. Jobs</h2>
+<p>Use an HTTP profile when the API should return a specific HTTP status:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using Microsoft.AspNetCore.Http;
+using TurtlePath.ExceptionHandling.AspNetCore;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionHttpExceptionProfile : HttpExceptionHandlingProfile
+{
+    public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+    {
+        builder.Map(SubscriptionExceptionKinds.SubscriptionExpired, StatusCodes.Status403Forbidden);
+    }
+}">Copy</button></div><pre><code class="language-csharp">using Microsoft.AspNetCore.Http;
+using TurtlePath.ExceptionHandling.AspNetCore;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionHttpExceptionProfile : HttpExceptionHandlingProfile
+{
+    public override void Configure(HttpExceptionHandlingOptionsBuilder builder)
+    {
+        builder.Map(SubscriptionExceptionKinds.SubscriptionExpired, StatusCodes.Status403Forbidden);
+    }
+}</code></pre></div>
+<p>Use a consumer profile when message handling should complete, rethrow, retry through the broker, or apply a specific reporting strategy:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.ExceptionHandling.Consumers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionConsumerExceptionProfile : ConsumerExceptionHandlingProfile
+{
+    public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen((descriptor, context) =&gt;
+            descriptor.Kind != SubscriptionExceptionKinds.SubscriptionExpired);
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.ExceptionHandling.Consumers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionConsumerExceptionProfile : ConsumerExceptionHandlingProfile
+{
+    public override void Configure(ConsumerExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen((descriptor, context) =&gt;
+            descriptor.Kind != SubscriptionExceptionKinds.SubscriptionExpired);
+    }
+}</code></pre></div>
+<p>With this profile, <code>SubscriptionExpiredException</code> is handled and completed by the consumer boundary, while other exceptions are rethrown so the broker can apply its normal retry or dead-letter behavior.</p>
+<p>Use a worker profile when jobs or background services should behave differently:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Workers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionWorkerExceptionProfile : BackgroundExceptionHandlingProfile
+{
+    public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen(descriptor =&gt;
+            descriptor.Kind == ExceptionKind.Transient);
+    }
+}">Copy</button></div><pre><code class="language-csharp">using TurtlePath.ExceptionHandling;
+using TurtlePath.ExceptionHandling.Workers;
+
+namespace Billing.Service.Business.Subscriptions.Exceptions;
+
+public sealed class SubscriptionWorkerExceptionProfile : BackgroundExceptionHandlingProfile
+{
+    public override void Configure(BackgroundExceptionHandlingOptionsBuilder builder)
+    {
+        builder.RethrowWhen(descriptor =&gt;
+            descriptor.Kind == ExceptionKind.Transient);
+    }
+}</code></pre></div>
+<p>HTTP uses <code>ProblemDetails</code> through <code>GlobalExceptionFilter</code>. Consumers use <code>IConsumerExceptionBoundary</code>. Jobs use <code>IBackgroundExceptionBoundary</code> through the TurtlePath job executor.</p>
+<p>Then throw the domain-specific exception from a service, hook, automation action, or manual handler:</p>
+<div class="code-card"><div class="code-toolbar"><span>csharp</span><button type="button" class="copy-code" data-code="if (!subscription.IsActive)
+    throw new SubscriptionExpiredException(subscription.CustomerId);">Copy</button></div><pre><code class="language-csharp">if (!subscription.IsActive)
+    throw new SubscriptionExpiredException(subscription.CustomerId);</code></pre></div><h2 id="18-jobs">18. Jobs</h2>
 <p>Use TurtlePath jobs when a workload is not naturally an HTTP endpoint or a message consumer.</p>
 <p>There are two standard shapes:</p>
 <ul>
