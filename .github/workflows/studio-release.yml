@@ -6,14 +6,20 @@ on:
     branches:
       - main
     paths:
-      - 'app/**'
+      - 'app/TurtlePath.Studio.App/**'
+      - 'app/TurtlePath.Studio.Abstractions/**'
+      - 'app/TurtlePath.Studio.Application/**'
+      - 'app/TurtlePath.Studio.Infrastructure/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
   push:
     branches:
       - main
     paths:
-      - 'app/**'
+      - 'app/TurtlePath.Studio.App/**'
+      - 'app/TurtlePath.Studio.Abstractions/**'
+      - 'app/TurtlePath.Studio.Application/**'
+      - 'app/TurtlePath.Studio.Infrastructure/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
 
