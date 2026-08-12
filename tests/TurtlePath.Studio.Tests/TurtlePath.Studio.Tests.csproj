@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TurtlePath.Studio.Application\TurtlePath.Studio.Application.csproj" />
-    <ProjectReference Include="..\..\src\TurtlePath.Studio.Infrastructure\TurtlePath.Studio.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\app\TurtlePath.Studio.Application\TurtlePath.Studio.Application.csproj" />
+    <ProjectReference Include="..\..\app\TurtlePath.Studio.Infrastructure\TurtlePath.Studio.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
