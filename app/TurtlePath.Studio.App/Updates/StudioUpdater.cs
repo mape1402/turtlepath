@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Maui.ApplicationModel;
@@ -165,16 +166,36 @@ public sealed class StudioUpdater : IStudioUpdater
 
     public static string GetCurrentVersion()
     {
+        var assembly = typeof(StudioUpdater).Assembly;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+            return NormalizeSemVer(informationalVersion);
+
+        var assemblyVersion = assembly.GetName().Version?.ToString();
+        if (!string.IsNullOrWhiteSpace(assemblyVersion))
+            return NormalizeSemVer(assemblyVersion);
+
         return NormalizeSemVer(AppInfo.Current.VersionString);
     }
 
     public static string NormalizeSemVer(string version)
     {
-        if (Version.TryParse(version, out var parsed))
+        var normalized = version.Trim();
+        if (normalized.StartsWith('v'))
+            normalized = normalized[1..];
+
+        var metadataIndex = normalized.IndexOf('+', StringComparison.Ordinal);
+        if (metadataIndex >= 0)
+            normalized = normalized[..metadataIndex];
+
+        var prereleaseIndex = normalized.IndexOf('-', StringComparison.Ordinal);
+        if (prereleaseIndex >= 0)
+            normalized = normalized[..prereleaseIndex];
+
+        if (Version.TryParse(normalized, out var parsed))
             return $"{parsed.Major}.{parsed.Minor}.{Math.Max(parsed.Build, 0)}";
 
-        var normalized = version.Trim();
-        return normalized.StartsWith('v') ? normalized[1..] : normalized;
+        return normalized;
     }
 
     private static int CompareVersions(string left, string right)
