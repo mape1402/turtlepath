@@ -884,4 +884,12 @@ Public documentation lives under `docs`:
 - `docs/TESTING_GUIDE.md` covers unit and integration testing helpers.
 - `docs/RELEASE.md` covers the release checklist.
 
+## Release Tracks
+
+TurtlePath has separate release tracks so package notes do not get mixed:
+
+- Runtime libraries use `.release`, `CHANGELOG.md`, and `build-and-release.yml`.
+- The service template uses `.template.release`, `TEMPLATE_CHANGELOG.md`, and `template-release.yml`.
+- TurtlePath Studio uses `.studio.release`, `STUDIO_CHANGELOG.md`, and `studio-release.yml`.
+
 
