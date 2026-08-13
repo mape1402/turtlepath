@@ -1,4 +1,9 @@
 <Project>
+  <PropertyGroup>
+    <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.4.1</TurtlePathVersion>
+  </PropertyGroup>
+
 	<ItemGroup>
     <PackageReference Update="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Update="Scalar.AspNetCore" Version="2.16.18" />
@@ -22,25 +27,25 @@
     <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10"/>
 	<PackageReference Update="Asp.Versioning.Mvc" Version="10.2.1" />
 	<PackageReference Update="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
-    <PackageReference Update="TurtlePath" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Abstractions" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Analyzers" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Automations" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Crabalidator" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.DataScorpio" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Domain" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.EntityFrameworkCore" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.EventSourcing" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.Consumers" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.ExceptionHandling" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.AspNetCore" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.ExceptionHandling.Workers" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Jobs" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.OctoMap" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Spider" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Testing" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="1.4.1" />
-    <PackageReference Update="TurtlePath.Testing.Integration" Version="1.4.1" />
+    <PackageReference Update="TurtlePath" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Abstractions" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Analyzers" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Automations" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Crabalidator" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.DataScorpio" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Domain" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.EntityFrameworkCore" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.EventSourcing" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.Consumers" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.ExceptionHandling" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.AspNetCore" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.ExceptionHandling.Workers" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Jobs" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.OctoMap" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Spider" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Testing" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Testing.Integration" Version="$(TurtlePathVersion)" />
   </ItemGroup>
 
 </Project>
