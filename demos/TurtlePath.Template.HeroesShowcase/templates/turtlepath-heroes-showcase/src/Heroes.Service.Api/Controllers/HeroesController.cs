@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Heroes.Models.Requests;
+﻿using Heroes.Service.Business.Heroes.Models.Requests;
 using Heroes.Service.Business.Heroes.Models.Responses;
 using Heroes.Service.Business.Heroes.Queries;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +38,13 @@ public sealed class HeroesController : BaseController
     [HttpPost("{id}/deactivate")]
     public Task Deactivate([FromRoute] CId id, CancellationToken cancellationToken)
         => Spider.DefaultSend(new DeactivateHeroRequest { Id = id }, cancellationToken);
+
+    /// <summary>
+    /// Gets an operations report using a custom ADO.NET read model service behind a query handler.
+    /// </summary>
+    [HttpGet("operations-report")]
+    public Task<HeroOperationsReportResponse> GetOperationsReport([FromQuery] CId? teamId, CancellationToken cancellationToken)
+        => Spider.DefaultSend<GetHeroOperationsReportQuery, HeroOperationsReportResponse>(new GetHeroOperationsReportQuery { TeamId = teamId }, cancellationToken);
 
     /// <summary>
     /// Gets one hero by id.

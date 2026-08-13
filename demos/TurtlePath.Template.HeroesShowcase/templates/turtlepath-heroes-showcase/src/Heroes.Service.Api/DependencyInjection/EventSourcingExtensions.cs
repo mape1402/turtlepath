@@ -1,4 +1,4 @@
-using Heroes.Service.Persistence;
+﻿using Heroes.Service.Persistence;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection

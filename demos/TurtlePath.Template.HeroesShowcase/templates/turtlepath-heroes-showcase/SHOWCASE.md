@@ -1,4 +1,4 @@
-# Heroes Showcase
+﻿# Heroes Showcase
 
 This project is a complete TurtlePath template demo. It intentionally uses a comic-book domain so each framework feature can be shown without business noise.
 
@@ -8,7 +8,8 @@ This project is a complete TurtlePath template demo. It intentionally uses a com
 - A legacy entity, `LegacyCaseFile`, configured with an integer-backed `CId` through `HeroesIdentifierProfile`.
 - Entity Framework Core with SQLite and clean `AppDbContext`; entity shape lives in `Configurations`.
 - TurtlePath Automations for CRUD happy paths where handlers do not need custom code.
-- Custom command handlers for incident assignment and resolution, including a handler that does not inherit from TurtlePath handler bases.
+- Custom command handlers for incident assignment and resolution, including handlers that do not inherit from TurtlePath handler bases.
+- Feature services that encapsulate EF, background work, and ADO.NET read models instead of leaking those tools into controllers, handlers or jobs.
 - A custom paged query handler that inherits from TurtlePath and overrides the query path.
 - OctoMap profiles for command-to-entity and entity-to-response projections.
 - Crabalidator validators for create, update, patch and assignment commands.
@@ -16,7 +17,7 @@ This project is a complete TurtlePath template demo. It intentionally uses a com
 - Spider controllers that call `Spider.DefaultSend(...)` instead of using `IMediator` directly.
 - Cross-cutting hooks for auditing queries and saved commands.
 - Feature-specific hooks for normalization and incident defaults.
-- Feature services under `Business/Services`, including audit, incident assignment and threat scoring.
+- Feature services under `Business/Services`, including audit, incident workflows, background backlog work, team reputation, ADO.NET reporting and threat scoring.
 - TurtlePath Jobs for both one-shot workloads and recurring background jobs.
 - Template testing examples for handler unit tests, Pelican integration, SQLite and DataScorpio.
 
@@ -159,7 +160,19 @@ src/Heroes.Service.Business/Incidents/Handlers/AssignIncidentCommandHandler.cs
 src/Heroes.Service.Business/Incidents/Handlers/ResolveIncidentCommandHandler.cs
 ```
 
-Those handlers do not inherit from TurtlePath bases because the flow coordinates domain rules through `IIncidentAssignmentService`, maps responses manually through `IMapperAdapter`, and writes through EF directly.
+Those handlers do not inherit from TurtlePath bases because the flow coordinates a custom workflow. They still stay thin: persistence and rule orchestration live behind `IIncidentWorkflowService`, while the handler only invokes the use case, adds audit context and maps the response.
+
+The demo also includes a custom read model handler:
+
+```text
+src/Heroes.Service.Business/Heroes/Queries/GetHeroOperationsReportQueryHandler.cs
+src/Heroes.Service.Business/Heroes/Services/OperationsReport/IHeroOperationsReportService.cs
+src/Heroes.Service.Business/Heroes/Services/OperationsReport/HeroOperationsReportService.cs
+src/Heroes.Service.Persistence/Repositories/Heroes/IHeroOperationsReadRepository.cs
+src/Heroes.Service.Persistence/Repositories/Heroes/AdoHeroOperationsReadRepository.cs
+```
+
+This shows a clean escape hatch for ADO.NET or Dapper-style reads. The handler remains a normal Pelican request handler, Business owns the feature service, and the storage-specific SQL is isolated in Persistence.
 
 ## Requests And Responses
 
@@ -292,12 +305,24 @@ Use hooks when the same handler path is still correct, but one stage needs exten
 
 ## Services
 
-Shared services live under `Business/Services`:
+Feature services live inside their owning feature:
+
+```text
+Heroes/Services/OperationsReport
+Incidents/Services/Assignment
+Incidents/Services/Backlog
+Incidents/Services/ThreatScoring
+Incidents/Services/Workflow
+Teams/Services/Reputation
+Jobs/Services/Universe
+```
+
+Use `Services/<Capability>` so the interface, implementation and supporting classes for one dependency are easy to extract later.
+
+Only cross-cutting services live under `Business/Services`:
 
 ```text
 Services/Audit
-Services/Incident
-Services/ThreatScoring
 ```
 
 The template keeps custom dependency registration in:
@@ -307,6 +332,10 @@ src/Heroes.Service.Api/DependencyInjection/CustomContainerExtensions.cs
 ```
 
 That extension is chained after defaults, so project dependencies do not pollute template defaults.
+
+Handlers and jobs should depend on feature services when the workflow needs custom persistence, external SDKs, ADO.NET, Dapper, blob storage or vendor APIs. That keeps the handler shape consistent and makes extreme customization easier to test.
+
+Repository contracts and implementations that are storage-specific live in `Persistence/Repositories`. Business should not reference Persistence, and Persistence should not reference Business.
 
 ## Jobs
 
@@ -318,11 +347,11 @@ src/Heroes.Service.Business/Jobs/AutoAssignOpenIncidentsJob.cs
 src/Heroes.Service.Business/Jobs/RecalculateTeamReputationJob.cs
 ```
 
-`SeedHeroesUniverseJob` is a one-shot job. It seeds demo data and is suitable for a Kubernetes CronJob or a local bootstrap command.
+`SeedHeroesUniverseJob` is a one-shot job. It delegates seeding to `IHeroesUniverseSeeder`, which keeps EF access out of the job and makes the job a small orchestration boundary.
 
-`AutoAssignOpenIncidentsJob` is a recurring cron-style job. It periodically finds reported incidents and assigns the best available hero.
+`AutoAssignOpenIncidentsJob` is a recurring cron-style job. It delegates the backlog workflow to `IIncidentBacklogService`, which can use EF today and be replaced by another implementation later.
 
-`RecalculateTeamReputationJob` is another recurring job. It recalculates team reputation from current hero and villain state.
+`RecalculateTeamReputationJob` is another recurring job. It delegates calculations to `ITeamReputationService`, avoiding direct `IDbContext` usage inside the job class.
 
 The registration shows multiple jobs in the same host:
 
@@ -347,6 +376,13 @@ Start here:
 tests/Heroes.Service.Tests/TurtlePathTestingExamplesTests.cs
 tests/Heroes.Service.Tests/TemplateCompositionTests.cs
 tests/Heroes.Service.Tests/TransactionExecutionBoundaryTests.cs
+tests/Heroes.Service.Tests/HeroOperationsReadModelTests.cs
+```
+
+For a guided index of the specific scenarios implemented in this demo, read:
+
+```text
+HOW_TO_USE_CASES.md
 ```
 
 ## Suggested Walkthrough

@@ -1,4 +1,4 @@
-using Heroes.Service.Domain;
+﻿using Heroes.Service.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

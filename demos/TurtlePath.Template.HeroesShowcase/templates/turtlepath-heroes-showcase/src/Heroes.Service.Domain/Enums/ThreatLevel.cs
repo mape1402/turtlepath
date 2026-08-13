@@ -1,4 +1,4 @@
-namespace Heroes.Service.Domain.Enums;
+﻿namespace Heroes.Service.Domain.Enums;
 
 /// <summary>
 /// Defines the severity used by incident assignment and villain filtering.

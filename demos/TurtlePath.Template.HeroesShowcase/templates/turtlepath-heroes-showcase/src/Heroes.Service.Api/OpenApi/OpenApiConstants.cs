@@ -1,4 +1,4 @@
-namespace Heroes.Service.Api.OpenApi
+﻿namespace Heroes.Service.Api.OpenApi
 {
     /// <summary>
     /// Constants used by the OpenAPI documentation setup.

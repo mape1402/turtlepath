@@ -1,4 +1,4 @@
-namespace Heroes.Service.Domain.Enums;
+﻿namespace Heroes.Service.Domain.Enums;
 
 /// <summary>
 /// Defines the incident lifecycle used by automations, custom handlers and cron jobs.

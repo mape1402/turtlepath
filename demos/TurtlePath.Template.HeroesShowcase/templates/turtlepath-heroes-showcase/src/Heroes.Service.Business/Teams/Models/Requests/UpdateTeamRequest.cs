@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Teams.Models.Responses;
+﻿using Heroes.Service.Business.Teams.Models.Responses;
 using Pelican.Mediator;
 using TurtlePath.Models.Requests;
 

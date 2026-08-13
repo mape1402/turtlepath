@@ -1,4 +1,4 @@
-using Crabalidator.DependencyInjection;
+﻿using Crabalidator.DependencyInjection;
 using Heroes.Service.Business;
 using Heroes.Service.Domain.Identifier;
 using Heroes.Service.Persistence;

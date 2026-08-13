@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Jobs;
+﻿using Heroes.Service.Business.Jobs;
 using Heroes.Service.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;

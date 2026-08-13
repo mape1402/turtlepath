@@ -1,8 +1,8 @@
-using Heroes.Service.Domain;
+﻿using Heroes.Service.Domain;
 using TurtlePath.Domain.Identifier;
 using IncidentEntity = Heroes.Service.Domain.Incident;
 
-namespace Heroes.Service.Business.Services.Incident;
+namespace Heroes.Service.Business.Incidents.Services.Assignment;
 
 /// <summary>
 /// Owns incident assignment rules that are shared by handlers and jobs.

@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Skills.Models.Requests;
+﻿using Heroes.Service.Business.Skills.Models.Requests;
 using Heroes.Service.Domain;
 using Heroes.Service.Domain.Enums;
 using TurtlePath.Hooks;

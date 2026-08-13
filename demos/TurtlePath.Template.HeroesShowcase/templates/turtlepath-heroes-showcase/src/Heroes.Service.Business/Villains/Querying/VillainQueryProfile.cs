@@ -1,4 +1,4 @@
-using DataScorpio.Profiles;
+﻿using DataScorpio.Profiles;
 using DataScorpio.Querying;
 using Heroes.Service.Domain;
 using Heroes.Service.Domain.Enums;

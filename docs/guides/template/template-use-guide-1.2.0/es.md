@@ -1,4 +1,4 @@
-# Guia De Uso De TurtlePath Template
+﻿# Guia De Uso De TurtlePath Template
 
 Esta guia explica como crear y crecer un servicio generado con `TurtlePath.Template`. Esta pensada para el dev que acaba de crear un proyecto y necesita saber donde va cada clase, que defaults ya vienen configurados, y cuando usar automations, handlers, hooks, jobs, consumers y exception handling.
 
@@ -292,11 +292,11 @@ Services/
 
 Esta estructura deja limpio el camino para extraer servicios a librerias compartidas si despues se vuelven reutilizables.
 
-Las dependencias custom se registran en `Api/DependencyInjection/CustomContainerExtensions.cs`. Mantén los defaults enfocados en configuracion base del framework y encadena las dependencias propias desde el custom container.
+Las dependencias custom se registran en `Api/DependencyInjection/CustomContainerExtensions.cs`. MantÃ©n los defaults enfocados en configuracion base del framework y encadena las dependencias propias desde el custom container.
 
 `Domain` nace limpio a proposito. Coloca ahi entidades, value objects, enums y contratos de dominio propios del servicio usando la estructura que realmente necesite el servicio. Los identificadores de TurtlePath vienen desde los paquetes de TurtlePath, no desde carpetas generadas por el template.
 
-`Persistence` contiene la integracion con base de datos. Mantén `AppDbContext` limpio y no agregues propiedades `DbSet<TEntity>` solo para exponer tablas. Cuando agregues entidades, crea mappings como `IEntityTypeConfiguration<TEntity>` dentro de una carpeta `Configurations/`. Asi el DbContext se queda enfocado en convenciones de TurtlePath y las configuraciones definen tablas, llaves, indices, relaciones y conversiones de base de datos.
+`Persistence` contiene la integracion con base de datos. MantÃ©n `AppDbContext` limpio y no agregues propiedades `DbSet<TEntity>` solo para exponer tablas. Cuando agregues entidades, crea mappings como `IEntityTypeConfiguration<TEntity>` dentro de una carpeta `Configurations/`. Asi el DbContext se queda enfocado en convenciones de TurtlePath y las configuraciones definen tablas, llaves, indices, relaciones y conversiones de base de datos.
 
 ## 4. Convenciones De Nomenclatura
 
@@ -506,14 +506,14 @@ public static IServiceCollection AddDefaults(
         // Habilita esto solo cuando el servicio use Pigeon y tenga configuracion del broker.
         // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
-        .AddCustomContainer();
+        .AddCustomContainer(configuration);
 }
 ```
 
 `AddCustomContainer` es el punto obligatorio para inyeccion de dependencias custom. Va al final para que puedas registrar dependencias del servicio sin tocar los defaults del template:
 
 ```csharp
-internal static IServiceCollection AddCustomContainer(this IServiceCollection services)
+internal static IServiceCollection AddCustomContainer(this IServiceCollection services, IConfiguration configuration)
 {
     services.AddScoped<ICustomerNumberService, CustomerNumberService>();
     services.AddScoped<Services.Audit.IAuditService, Services.Audit.AuditService>();
@@ -526,7 +526,7 @@ No metas dependencias de negocio en `AddDefaults`, `AddApplicationDefaults`, el 
 
 ### Application Defaults
 
-`AddApplicationDefaults` registra Pelican, Crabalidator, OctoMap, TurtlePath, DataScorpio, CId y EF Core:
+`AddApplicationDefaults` registra Pelican, Crabalidator, OctoMap, hooks de TurtlePath, automations, perfiles de DataScorpio, CId default, perfiles de CId y EF Core:
 
 ```csharp
 services.AddPelican(typeof(Constants).Assembly);
@@ -543,6 +543,7 @@ services.AddScoped<IMapperAdapter, OctoMapAdapter>();
 services.AddScoped<IValidatorAdapter, CrabalidatorAdapter>();
 
 services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
@@ -561,10 +562,85 @@ services.AddTurtlePath(typeof(Constants).Assembly)
             : CId.From(Ulid.Parse(value));
         config.ParseFunction = value => CId.From(Ulid.Parse(value));
     })
+    .UseCIdProfiles(typeof(DomainConstants).Assembly)
     .UseEntityFrameworkCore<AppDbContext>();
 ```
 
 Para proyectos nuevos, lo sano es usar un solo tipo de `CId` en todas las entidades. El default del template es `CId` envolviendo `Ulid` en C# y persistido como `string`.
+
+### Profiles Custom De CId Para Entidades Legacy
+
+No cambies el `UseCId<Ulid, string>()` default solo porque una tabla legacy usa otra llave. MantÃ©n el default para el modelo sano, y agrega definiciones de CId por entidad usando un profile.
+
+Usa esto cuando el codigo publico debe seguir viendo `CId`, pero una entidad especifica esta respaldada por otro tipo CLR/base de datos, por ejemplo una PK vieja tipo `int`:
+
+```csharp
+using TurtlePath.Domain.Identifier;
+
+namespace Billing.Service.Domain.Identifier;
+
+public sealed class BillingIdentifierProfile : CIdProfile
+{
+    public override void Configure(CIdProfileBuilder builder)
+    {
+        builder.UseCIdFor<LegacyInvoice, int, int>(config =>
+        {
+            config.DefaultFactory = () => CId.From(0);
+            config.ConvertToDb = id => id.Cast<int>();
+            config.ConvertFromDb = value => CId.From(value);
+            config.JsonConverter = value => CId.From(int.Parse(value));
+            config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value)
+                ? null
+                : CId.From(int.Parse(value));
+            config.ParseFunction = value => CId.From(int.Parse(value));
+            config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
+        });
+    }
+}
+```
+
+Despues registra los profiles despues de la configuracion default de CId:
+
+```csharp
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseCId<Ulid, string>(config =>
+    {
+        config.DefaultFactory = () => CId.From(Ulid.NewUlid());
+        config.ConvertToDb = id => id.ToString();
+        config.ConvertFromDb = value => CId.From(Ulid.Parse(value));
+        config.JsonConverter = value => string.IsNullOrEmpty(value)
+            ? CId.From(Ulid.Empty)
+            : CId.From(Ulid.Parse(value));
+        config.NullableJsonConverter = value => string.IsNullOrEmpty(value)
+            ? null
+            : CId.From(Ulid.Parse(value));
+        config.ParseFunction = value => CId.From(Ulid.Parse(value));
+    })
+    .UseCIdProfiles(typeof(BillingIdentifierProfile).Assembly)
+    .UseEntityFrameworkCore<AppDbContext>();
+```
+
+Ubicacion recomendada:
+
+```text
+Domain/
+  Identifier/
+    BillingIdentifierProfile.cs
+```
+
+Los parametros genericos significan:
+
+- `TEntity`: la entidad que necesita el override, por ejemplo `LegacyInvoice`.
+- `TTargetType`: el valor CLR envuelto por `CId` en el codigo de aplicacion, por ejemplo `int`, `Guid` o `Ulid`.
+- `TDbType`: el valor que EF guarda en base de datos, por ejemplo `int` o `string`.
+
+Eso significa que `UseCIdFor<LegacyInvoice, int, int>()` es un `int` dentro de `CId`, guardado como `int` en base de datos. `UseCIdFor<ImportedOrder, Ulid, string>()` es un `Ulid` dentro de `CId`, guardado como `string`.
+
+Si la entidad legacy no usa `CId` y expone un `int` directo, usa los handlers y automations genericos de TurtlePath para `IEntity<TKey>` en lugar de forzar CId en ese modelo.
 
 ## 6. Crear Un Feature De Inicio A Fin
 
@@ -1752,7 +1828,7 @@ El template incluye `TurtlePath.EventSourcing` y `Krackend.EventSourcing.EntityF
 
 Para habilitarlo:
 
-1. Crea uno o mas perfiles `IEventSourcingProfile` dentro del feature dueño de los eventos.
+1. Crea uno o mas perfiles `IEventSourcingProfile` dentro del feature dueÃ±o de los eventos.
 2. Agrega los payloads de evento junto al perfil, normalmente en `Business/<Feature>/EventSourcing`.
 3. Descomenta `.UseEventSourcingProfiles(typeof(Constants).Assembly)` en `AddApplicationDefaults`.
 4. Descomenta `.AddEventSourcingDefaults()` en `AddDefaults`.
@@ -1762,6 +1838,7 @@ Registro preparado de TurtlePath:
 
 ```csharp
 services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
@@ -1770,6 +1847,7 @@ services.AddTurtlePath(typeof(Constants).Assembly)
     {
         config.DefaultFactory = () => CId.From(Ulid.NewUlid());
     })
+    .UseCIdProfiles(typeof(DomainConstants).Assembly)
     .UseEntityFrameworkCore<AppDbContext>();
 ```
 
@@ -1837,7 +1915,7 @@ No actives Event Sourcing solo para notificar a otro servicio. Para mensajes de 
 
 ### Estructura De Carpetas
 
-Coloca los archivos de event sourcing dentro del feature dueño de los eventos:
+Coloca los archivos de event sourcing dentro del feature dueÃ±o de los eventos:
 
 ```text
 Business/
@@ -1862,7 +1940,7 @@ El profile describe cuando se agregan eventos. Los records de eventos describen 
 
 Para habilitarlo:
 
-1. Crea uno o mas perfiles `IEventSourcingProfile` dentro del feature dueño de los eventos.
+1. Crea uno o mas perfiles `IEventSourcingProfile` dentro del feature dueÃ±o de los eventos.
 2. Agrega los payloads de evento junto al perfil, normalmente en `Business/<Feature>/EventSourcing`.
 3. Agrega mappings de OctoMap para cualquier proyeccion source-to-event.
 4. Descomenta `.UseEventSourcingProfiles(typeof(Constants).Assembly)` en `AddApplicationDefaults`.
@@ -1895,7 +1973,7 @@ public sealed record InvoiceCanceled(
     DateTimeOffset OccurredAt);
 ```
 
-Cuando el evento necesita datos del command y de la entidad guardada, crea un source model pequeño:
+Cuando el evento necesita datos del command y de la entidad guardada, crea un source model pequeÃ±o:
 
 ```csharp
 namespace Billing.Service.Business.Invoices.EventSourcing;
@@ -2229,7 +2307,7 @@ public sealed class CloseExpiredInvoicesJob : TurtlePathJob
 }
 ```
 
-Mantén las clases de job delgadas. El camino recomendado es `Job -> Service` porque un proceso calendarizado normalmente orquesta trabajo de fondo de forma directa. Usa `Mediator.Send(...)` solo cuando el job reutiliza intencionalmente un request/handler existente que tambien se usa desde HTTP o consumers. No crees un handler solo para que el job lo llame; eso solo agrega boilerplate.
+MantÃ©n las clases de job delgadas. El camino recomendado es `Job -> Service` porque un proceso calendarizado normalmente orquesta trabajo de fondo de forma directa. Usa `Mediator.Send(...)` solo cuando el job reutiliza intencionalmente un request/handler existente que tambien se usa desde HTTP o consumers. No crees un handler solo para que el job lo llame; eso solo agrega boilerplate.
 
 ### One-Shot Para Kubernetes CronJob
 
@@ -2381,7 +2459,7 @@ El template trae una base de testing para que las pruebas de features no empiece
 
 Usa esta division:
 
-- unit tests para handlers manuales, hooks y servicios pequeños
+- unit tests para handlers manuales, hooks y servicios pequeÃ±os
 - integration tests para automations porque los handlers se generan
 - integration tests con Spider cuando las transacciones o execution boundaries son parte del contrato del caso de uso
 - integration tests con SQLite para configuracion EF, conversiones de CId, traduccion de queries y filtros de DataScorpio

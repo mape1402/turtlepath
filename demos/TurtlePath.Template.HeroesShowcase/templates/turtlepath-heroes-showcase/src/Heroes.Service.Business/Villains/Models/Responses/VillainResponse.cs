@@ -1,4 +1,4 @@
-using Heroes.Service.Domain.Enums;
+﻿using Heroes.Service.Domain.Enums;
 using TurtlePath.Models.Responses;
 
 namespace Heroes.Service.Business.Villains.Models.Responses;

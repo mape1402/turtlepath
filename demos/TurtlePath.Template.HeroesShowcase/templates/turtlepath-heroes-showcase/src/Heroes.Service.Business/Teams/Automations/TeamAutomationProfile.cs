@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Teams.Models.Requests;
+﻿using Heroes.Service.Business.Teams.Models.Requests;
 using Heroes.Service.Business.Teams.Models.Responses;
 using Heroes.Service.Business.Teams.Queries;
 using Heroes.Service.Domain;

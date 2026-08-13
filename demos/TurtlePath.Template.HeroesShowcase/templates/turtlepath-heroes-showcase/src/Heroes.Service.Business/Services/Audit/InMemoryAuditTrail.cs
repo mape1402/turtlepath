@@ -1,4 +1,4 @@
-namespace Heroes.Service.Business.Services.Audit;
+﻿namespace Heroes.Service.Business.Services.Audit;
 
 /// <summary>
 /// Simple in-memory audit trail used by the demo to make hook and job behavior visible.

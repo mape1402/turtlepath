@@ -1,10 +1,5 @@
-using Heroes.Service.Business.Services.Audit;
-using Heroes.Service.Business.Services.Incident;
-using Heroes.Service.Domain.Enums;
-using Microsoft.EntityFrameworkCore;
-using TurtlePath.EntityFrameworkCore;
+﻿using Heroes.Service.Business.Incidents.Services.Backlog;
 using TurtlePath.Jobs;
-using IncidentEntity = Heroes.Service.Domain.Incident;
 
 namespace Heroes.Service.Business.Jobs;
 
@@ -13,36 +8,19 @@ namespace Heroes.Service.Business.Jobs;
 /// </summary>
 public sealed class AutoAssignOpenIncidentsJob : TurtlePathJob
 {
-    private readonly IDbContext _dbContext;
-    private readonly IIncidentAssignmentService _assignmentService;
-    private readonly IAuditTrail _auditTrail;
+    private readonly IIncidentBacklogService _incidentBacklogService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AutoAssignOpenIncidentsJob"/> class.
     /// </summary>
-    public AutoAssignOpenIncidentsJob(IDbContext _dbContext, IIncidentAssignmentService _assignmentService, IAuditTrail _auditTrail)
+    public AutoAssignOpenIncidentsJob(IIncidentBacklogService incidentBacklogService)
     {
-        this._dbContext = _dbContext;
-        this._assignmentService = _assignmentService;
-        this._auditTrail = _auditTrail;
+        _incidentBacklogService = incidentBacklogService;
     }
 
     /// <inheritdoc />
     public override async Task ExecuteAsync(TurtlePathJobContext context, CancellationToken cancellationToken)
     {
-        var incidents = await _dbContext.Set<IncidentEntity>()
-            .Where(incident => incident.Status == IncidentStatus.Reported)
-            .OrderByDescending(incident => incident.ThreatLevel)
-            .Take(10)
-            .ToListAsync(cancellationToken);
-
-        foreach (var incident in incidents)
-        {
-            var hero = await _assignmentService.SelectBestHeroAsync(incident, cancellationToken);
-            await _assignmentService.AssignAsync(incident, hero.Id, cancellationToken);
-            _auditTrail.Add($"Auto-assigned incident '{incident.Title}' to '{hero.Alias}'.");
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _incidentBacklogService.AutoAssignReportedIncidentsAsync(10, cancellationToken);
     }
 }

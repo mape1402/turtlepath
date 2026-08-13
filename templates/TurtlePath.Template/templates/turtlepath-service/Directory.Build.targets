@@ -23,6 +23,7 @@
     <PackageReference Update="TurtlePath" Version="1.4.1" />
     <PackageReference Update="TurtlePath.Abstractions" Version="1.4.1" />
     <PackageReference Update="TurtlePath.Analyzers" Version="1.4.1" />
+    <PackageReference Update="TurtlePath.Automations" Version="1.4.1" />
     <PackageReference Update="TurtlePath.Crabalidator" Version="1.4.1" />
     <PackageReference Update="TurtlePath.DataScorpio" Version="1.4.1" />
     <PackageReference Update="TurtlePath.Domain" Version="1.4.1" />

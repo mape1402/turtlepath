@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Jobs;
+﻿using Heroes.Service.Business.Jobs;
 using Heroes.Service.Business.Services.Audit;
 using Heroes.Service.Domain;
 using Heroes.Service.Domain.Enums;

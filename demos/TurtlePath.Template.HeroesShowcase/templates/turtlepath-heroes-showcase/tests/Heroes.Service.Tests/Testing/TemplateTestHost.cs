@@ -1,4 +1,4 @@
-using DataScorpio.Profiles;
+﻿using DataScorpio.Profiles;
 using Heroes.Service.Business;
 using Heroes.Service.Domain.Identifier;
 using Microsoft.EntityFrameworkCore;

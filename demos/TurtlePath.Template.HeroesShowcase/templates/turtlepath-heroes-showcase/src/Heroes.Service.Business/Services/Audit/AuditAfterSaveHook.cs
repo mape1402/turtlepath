@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Heroes.Models.Requests;
+﻿using Heroes.Service.Business.Heroes.Models.Requests;
 using Heroes.Service.Business.Incidents.Models.Requests;
 using Heroes.Service.Business.Villains.Models.Requests;
 using Heroes.Service.Domain;

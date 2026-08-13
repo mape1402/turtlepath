@@ -1,4 +1,4 @@
-using Heroes.Service.Domain;
+﻿using Heroes.Service.Domain;
 using Heroes.Service.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using TurtlePath.Domain.Identifier;
@@ -6,7 +6,7 @@ using TurtlePath.EntityFrameworkCore;
 using TurtlePath.Exceptions;
 using IncidentEntity = Heroes.Service.Domain.Incident;
 
-namespace Heroes.Service.Business.Services.Incident;
+namespace Heroes.Service.Business.Incidents.Services.Assignment;
 
 /// <summary>
 /// Default incident assignment service used by custom handlers and cron jobs.

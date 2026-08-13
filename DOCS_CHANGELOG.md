@@ -11,3 +11,4 @@ Documentation has its own release marker in `.docs.release` and its own GitHub A
 - Added the central versioned source for the TurtlePath Template use guide.
 - Added automatic guide manifest generation from `.docs.release` and `.template.release`.
 - Added validation so the English and Spanish guides exist before the manifest is accepted.
+- Added guidance for customizing CId with entity-specific profiles when legacy entities use a non-standard identifier backing type.

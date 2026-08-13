@@ -1,13 +1,15 @@
 using Crabalidator.DependencyInjection;
-using TurtlePath.Template.Business;
 using TurtlePath.Template.Persistence;
 using OctoMap;
 using System.Diagnostics.CodeAnalysis;
+using TurtlePath.Automations;
 using TurtlePath.Crabalidator;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.Mapping;
 using TurtlePath.OctoMap;
 using TurtlePath.Validation;
+using BusinessConstants = TurtlePath.Template.Business.Constants;
+using DomainConstants = TurtlePath.Template.Domain.Constants;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -16,24 +18,25 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         internal static IServiceCollection AddApplicationDefaults(this IServiceCollection services)
         {
-            services.AddPelican(typeof(Constants).Assembly);
+            services.AddPelican(typeof(BusinessConstants).Assembly);
 
-            services.AddCrabalidator(typeof(Constants).Assembly);
+            services.AddCrabalidator(typeof(BusinessConstants).Assembly);
 
             services.AddOctoMap(registration =>
             {
                 registration.Options.EnableRuntimeImplicitMaps = true;
                 registration.Options.DuplicateMapPolicy = DuplicateMapPolicy.Throw;
-                registration.AddMaps(typeof(Constants).Assembly);
+                registration.AddMaps(typeof(BusinessConstants).Assembly);
             });
 
             services.AddScoped<IMapperAdapter, OctoMapAdapter>();
             services.AddScoped<IValidatorAdapter, CrabalidatorAdapter>();
 
-            services.AddTurtlePath(typeof(Constants).Assembly)
+            services.AddTurtlePath(typeof(BusinessConstants).Assembly)
+                .UseAutomations(typeof(BusinessConstants).Assembly)
                 .UseOctoMap()
                 .UseCrabalidator()
-                .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+                .UseDataScorpio(profiles => profiles.FromAssembly(typeof(BusinessConstants).Assembly))
                 // Event sourcing is ready but intentionally opt-in because it creates an append-only event store.
                 // Add IEventSourcingProfile implementations in Business and uncomment this line when the service needs event streams.
                 // .UseEventSourcingProfiles(typeof(Constants).Assembly)
@@ -46,6 +49,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     config.NullableJsonConverter = value => string.IsNullOrEmpty(value) ? null : CId.From(Ulid.Parse(value));
                     config.ParseFunction = value => CId.From(Ulid.Parse(value));
                 })
+                .UseCIdProfiles(typeof(DomainConstants).Assembly)
                 .UseEntityFrameworkCore<AppDbContext>();
 
             return services;

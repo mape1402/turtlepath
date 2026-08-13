@@ -1,4 +1,4 @@
-using Serilog;
+﻿using Serilog;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -28,7 +28,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 // Uncomment this together with .UseEventSourcingProfiles(...) in AddApplicationDefaults.
                 // .AddEventSourcingDefaults()
                 .AddPipelineDefaults(configuration)
-                .AddCustomContainer();
+                .AddCustomContainer(configuration);
         }
 
         /// <summary>

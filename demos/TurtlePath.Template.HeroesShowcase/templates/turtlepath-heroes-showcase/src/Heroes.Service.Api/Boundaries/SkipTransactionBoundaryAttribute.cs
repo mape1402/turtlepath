@@ -1,4 +1,4 @@
-namespace Heroes.Service.Api.Boundaries
+﻿namespace Heroes.Service.Api.Boundaries
 {
     /// <summary>
     /// Marks a Spider request type that should not run inside the transaction boundary.
