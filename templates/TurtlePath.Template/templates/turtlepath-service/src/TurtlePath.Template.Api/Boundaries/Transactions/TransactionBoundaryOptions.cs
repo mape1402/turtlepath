@@ -1,7 +1,7 @@
 using System.Transactions;
 using System.Reflection;
 
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Configures the Spider transaction boundary.

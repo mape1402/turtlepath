@@ -1,7 +1,7 @@
 ﻿using Spider.Pipelines.Boundaries;
 using System.Transactions;
 
-namespace Heroes.Service.Api.Boundaries
+namespace Heroes.Service.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Wraps Spider pipeline executions in an ambient transaction.

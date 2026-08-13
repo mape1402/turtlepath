@@ -1,7 +1,7 @@
 using Spider.Pipelines.Boundaries;
 using System.Transactions;
 
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Wraps Spider pipeline executions in an ambient transaction.

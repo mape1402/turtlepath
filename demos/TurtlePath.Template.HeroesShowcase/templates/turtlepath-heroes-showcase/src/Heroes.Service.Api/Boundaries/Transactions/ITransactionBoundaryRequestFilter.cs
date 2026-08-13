@@ -1,4 +1,4 @@
-namespace TurtlePath.Template.Api.Boundaries
+﻿namespace Heroes.Service.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Determines whether a request type should run inside the transaction boundary.

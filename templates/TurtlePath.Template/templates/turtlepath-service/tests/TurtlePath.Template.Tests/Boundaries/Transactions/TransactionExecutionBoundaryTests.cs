@@ -1,4 +1,4 @@
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Spider.Pipelines.Boundaries;

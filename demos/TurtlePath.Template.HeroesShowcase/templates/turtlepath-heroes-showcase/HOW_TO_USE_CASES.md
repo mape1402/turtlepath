@@ -1,4 +1,4 @@
-﻿# Heroes Showcase How To Index
+# Heroes Showcase How To Index
 
 This document maps each important customization scenario in the Heroes demo to the code that implements it. Read it as a practical guide for moving from the happy path to deeper custom behavior without breaking the template structure.
 
@@ -198,6 +198,6 @@ Implemented examples:
 - `tests/Heroes.Service.Tests/JobsBusinessTests.cs`
 - `tests/Heroes.Service.Tests/HeroOperationsReadModelTests.cs`
 - `tests/Heroes.Service.Tests/SpiderPelicanBridgeTests.cs`
-- `tests/Heroes.Service.Tests/TransactionExecutionBoundaryTests.cs`
+- `tests/Heroes.Service.Tests/Boundaries/Transactions/TransactionExecutionBoundaryTests.cs`
 
 The tests use the real dependency graph, SQLite, Pelican, Spider bridge helpers and TurtlePath testing support so users can copy the same testing shape into their generated service.

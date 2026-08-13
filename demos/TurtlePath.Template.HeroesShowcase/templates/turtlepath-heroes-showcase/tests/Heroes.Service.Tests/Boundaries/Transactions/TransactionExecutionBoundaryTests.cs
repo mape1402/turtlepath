@@ -1,4 +1,4 @@
-﻿using Heroes.Service.Api.Boundaries;
+﻿using Heroes.Service.Api.Boundaries.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Spider.Pipelines.Boundaries;

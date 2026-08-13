@@ -1,4 +1,4 @@
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Configures transaction boundary behavior without changing template defaults.

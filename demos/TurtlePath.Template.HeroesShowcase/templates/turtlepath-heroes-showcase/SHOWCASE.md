@@ -1,4 +1,4 @@
-﻿# Heroes Showcase
+# Heroes Showcase
 
 This project is a complete TurtlePath template demo. It intentionally uses a comic-book domain so each framework feature can be shown without business noise.
 
@@ -375,7 +375,7 @@ Start here:
 ```text
 tests/Heroes.Service.Tests/TurtlePathTestingExamplesTests.cs
 tests/Heroes.Service.Tests/TemplateCompositionTests.cs
-tests/Heroes.Service.Tests/TransactionExecutionBoundaryTests.cs
+tests/Heroes.Service.Tests/Boundaries/Transactions/TransactionExecutionBoundaryTests.cs
 tests/Heroes.Service.Tests/HeroOperationsReadModelTests.cs
 ```
 

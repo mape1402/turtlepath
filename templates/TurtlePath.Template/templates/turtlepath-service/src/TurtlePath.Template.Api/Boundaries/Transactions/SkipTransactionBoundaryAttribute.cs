@@ -1,4 +1,4 @@
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Marks a Spider request type that should not run inside the transaction boundary.
