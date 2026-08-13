@@ -1,5 +1,6 @@
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
+using TurtlePath.Studio.App.Guides;
 using TurtlePath.Studio.App.ViewModels;
 using TurtlePath.Studio.Application.Environment;
 using Microsoft.Maui.Controls.Shapes;
@@ -525,6 +526,18 @@ public partial class MainPage : ContentPage
 
     private View BuildGuides()
     {
+        var layout = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            },
+            RowSpacing = 14
+        };
+
+        layout.Add(BuildGuideToolbar(), 0, 0);
+
         var container = new Grid
         {
             BackgroundColor = Colors.White
@@ -550,12 +563,108 @@ public partial class MainPage : ContentPage
 
         _ = LoadGuideAsync(webView, loader);
 
-        return new Border
+        layout.Add(new Border
         {
             Stroke = Line,
             StrokeThickness = 1,
             BackgroundColor = Colors.White,
             Content = container
+        }, 0, 1);
+
+        return layout;
+    }
+
+    private View BuildGuideToolbar()
+    {
+        var panel = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 14,
+            Padding = new Thickness(18),
+            BackgroundColor = Colors.White
+        };
+
+        var controls = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var guidePicker = CreateSelect("Template version", 300);
+        foreach (var option in viewModel.TemplateGuideOptions)
+            guidePicker.Items.Add(StudioViewModel.FormatGuideOption(option));
+
+        guidePicker.SelectedIndex = viewModel.SelectedTemplateGuideOption is null
+            ? -1
+            : Math.Max(0, viewModel.TemplateGuideOptions.ToList().FindIndex(option =>
+                option.TemplateVersion == viewModel.SelectedTemplateGuideOption.TemplateVersion));
+        guidePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            if (guidePicker.SelectedIndex < 0 || guidePicker.SelectedIndex >= viewModel.TemplateGuideOptions.Count)
+                return;
+
+            await viewModel.SelectTemplateGuideAsync(viewModel.TemplateGuideOptions[guidePicker.SelectedIndex]);
+            Render();
+        };
+
+        var culturePicker = CreateSelect("Language", 150);
+
+        var cultures = viewModel.SelectedGuide?.Cultures ?? [];
+        foreach (var culture in cultures)
+            culturePicker.Items.Add(culture.Title);
+
+        culturePicker.SelectedIndex = viewModel.SelectedGuideCulture is null
+            ? -1
+            : Math.Max(0, cultures.ToList().FindIndex(culture => culture.Code == viewModel.SelectedGuideCulture.Code));
+        culturePicker.SelectedIndexChanged += async (_, _) =>
+        {
+            if (culturePicker.SelectedIndex < 0 || culturePicker.SelectedIndex >= cultures.Count)
+                return;
+
+            await viewModel.SelectGuideCultureAsync(cultures[culturePicker.SelectedIndex]);
+            Render();
+        };
+
+        var selectedGuideText = viewModel.SelectedTemplateGuideText;
+        var selectedCultureText = viewModel.SelectedGuideCulture?.Title ?? "Select";
+
+        controls.Add(CreateSelectShell("Template version", guidePicker, 300, selectedGuideText));
+        controls.Add(CreateSelectShell("Language", culturePicker, 150, selectedCultureText));
+
+        var status = new VerticalStackLayout
+        {
+            Spacing = 2,
+            VerticalOptions = LayoutOptions.Center
+        };
+        status.Add(new Label
+        {
+            Text = viewModel.CurrentGuide is null
+                ? "Documentation"
+                : $"{viewModel.SelectedDocumentationGuideText} {viewModel.CurrentGuide.Culture.Title}",
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        status.Add(new Label
+        {
+            Text = viewModel.GuideStatus,
+            TextColor = Muted,
+            FontSize = 12,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        panel.Add(status, 0, 0);
+        panel.Add(controls, 1, 0);
+
+        return new Border
+        {
+            Stroke = Line,
+            StrokeThickness = 1,
+            BackgroundColor = Colors.White,
+            Content = panel
         };
     }
 
@@ -592,15 +701,19 @@ public partial class MainPage : ContentPage
         return loader;
     }
 
-    private static async Task LoadGuideAsync(WebView webView, View loader)
+    private async Task LoadGuideAsync(WebView webView, View loader)
     {
         try
         {
-            await using var stream = await Microsoft.Maui.Storage.FileSystem.OpenAppPackageFileAsync("Docs/usage-guide.html");
-            using var reader = new StreamReader(stream);
+            if (viewModel.CurrentGuide is null)
+            {
+                await viewModel.LoadGuidesAsync();
+                MainThread.BeginInvokeOnMainThread(Render);
+            }
+
             webView.Source = new HtmlWebViewSource
             {
-                Html = await reader.ReadToEndAsync()
+                Html = viewModel.CurrentGuide?.Html ?? "<!doctype html><html><body><h1>Guide unavailable</h1></body></html>"
             };
         }
         catch (Exception exception)
@@ -630,6 +743,7 @@ public partial class MainPage : ContentPage
         layout.Add(CreateMessage());
 
         layout.Add(CreateDocSection("Local status", BuildEnvironmentStatusText()));
+        layout.Add(BuildDocumentationEnvironmentSection());
 
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Check environment", async () =>
@@ -657,6 +771,68 @@ public partial class MainPage : ContentPage
         layout.Add(BuildDefaultSettings());
 
         return new ScrollView { Content = layout };
+    }
+
+    private View BuildDocumentationEnvironmentSection()
+    {
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            ColumnSpacing = 16
+        };
+
+        var content = new VerticalStackLayout { Spacing = 8 };
+        content.Add(new Label
+        {
+            Text = "Documentation",
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        content.Add(new Label
+        {
+            Text = BuildDocumentationEnvironmentText(),
+            FontSize = 15,
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var actions = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            VerticalOptions = LayoutOptions.Center
+        };
+        actions.Add(CreateButton("Sync documentation", async () =>
+        {
+            var sync = viewModel.SyncGuideDocumentationAsync();
+            Render();
+            await sync;
+            Render();
+        }, secondary: true));
+        actions.Add(CreateButton("Open guides", () => Navigate(StudioSection.Guides), secondary: true));
+
+        grid.Add(content, 0, 0);
+        grid.Add(actions, 1, 0);
+
+        return CreateBorder(grid);
+    }
+
+    private string BuildDocumentationEnvironmentText()
+    {
+        if (viewModel.CurrentGuide is null)
+            return "Studio will load the best matching guide for the installed template version. You can sync the guide here when internet access is available.";
+
+        var source = viewModel.CurrentGuide.IsEmbeddedFallback
+            ? "embedded fallback"
+            : viewModel.CurrentGuide.LoadedFromCache
+                ? "local cache"
+                : "GitHub";
+
+        return $"Current guide: {viewModel.SelectedDocumentationGuideText} Language: {viewModel.CurrentGuide.Culture.Title}. Source: {source}.";
     }
 
     private static string FormatVersion(string version) => string.IsNullOrWhiteSpace(version) ? string.Empty : $" ({version})";
@@ -1406,6 +1582,99 @@ public partial class MainPage : ContentPage
             BackgroundColor = Color.FromArgb("#F7FAF6"),
             HeightRequest = 48
         };
+    }
+
+    private static Picker CreateSelect(string title, double width)
+    {
+        return new Picker
+        {
+            Title = title,
+            WidthRequest = width,
+            HeightRequest = 48,
+            Margin = new Thickness(0),
+            BackgroundColor = Colors.Transparent,
+            TextColor = Ink,
+            TitleColor = Muted,
+            Opacity = 0.01
+        };
+    }
+
+    private static View CreateSelectShell(string label, Picker picker, double width, string selectedText)
+    {
+        var shell = new Grid
+        {
+            WidthRequest = width,
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            },
+            RowSpacing = 5
+        };
+
+        shell.Add(new Label
+        {
+            Text = label,
+            FontSize = 11,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Muted
+        }, 0, 0);
+
+        var visibleField = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Star },
+                new ColumnDefinition { Width = GridLength.Auto }
+            },
+            Padding = new Thickness(12, 0),
+            HeightRequest = 48,
+            BackgroundColor = Color.FromArgb("#F7FAF6"),
+            InputTransparent = true
+        };
+
+        visibleField.Add(new Label
+        {
+            Text = selectedText,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink,
+            LineBreakMode = LineBreakMode.TailTruncation,
+            VerticalOptions = LayoutOptions.Center
+        }, 0, 0);
+        visibleField.Add(new Label
+        {
+            Text = "\uE70D",
+            FontFamily = IconFont,
+            FontSize = 14,
+            TextColor = Primary,
+            VerticalOptions = LayoutOptions.Center,
+            InputTransparent = true
+        }, 1, 0);
+
+        var field = new Grid
+        {
+            HeightRequest = 48,
+            BackgroundColor = Color.FromArgb("#F7FAF6")
+        };
+        field.Add(visibleField);
+        field.Add(picker);
+
+        var border = new Border
+        {
+            Stroke = Color.FromArgb("#BFD2C8"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(9) },
+            BackgroundColor = Color.FromArgb("#F7FAF6"),
+            Content = field
+        };
+        border.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(() => picker.Focus())
+        });
+
+        shell.Add(border, 0, 1);
+
+        return shell;
     }
 
     private Button CreateButton(string text, Action action, bool secondary = false, bool disabled = false)

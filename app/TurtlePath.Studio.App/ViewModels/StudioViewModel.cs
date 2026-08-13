@@ -2,6 +2,7 @@ using Microsoft.Maui.ApplicationModel;
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
 using TurtlePath.Studio.Abstractions.Validation;
+using TurtlePath.Studio.App.Guides;
 using TurtlePath.Studio.Abstractions.Workspace;
 using TurtlePath.Studio.App.Settings;
 using TurtlePath.Studio.Application.Defaults;
@@ -17,6 +18,7 @@ public sealed class StudioViewModel
     private readonly CreateTurtlePathProjectUseCase createProject;
     private readonly IStudioWorkspaceService workspace;
     private readonly IStudioSettingsStore settingsStore;
+    private readonly IStudioGuideProvider guideProvider;
 
     public StudioSection Section { get; private set; } = StudioSection.Home;
     public bool SidebarCollapsed { get; private set; }
@@ -51,6 +53,20 @@ public sealed class StudioViewModel
     public bool MessageIsError { get; private set; }
     public bool MessageIsWarning { get; private set; }
     public IReadOnlyList<CommandExecutionResult> Commands { get; private set; } = [];
+    public IReadOnlyList<StudioGuideOption> GuideOptions { get; private set; } = [];
+    public IReadOnlyList<StudioTemplateGuideOption> TemplateGuideOptions { get; private set; } = [];
+    public StudioTemplateGuideOption? SelectedTemplateGuideOption { get; private set; }
+    public StudioGuideOption? SelectedGuide { get; private set; }
+    public StudioGuideCulture? SelectedGuideCulture { get; private set; }
+    public StudioGuideDocument? CurrentGuide { get; private set; }
+    public string GuideStatus { get; private set; } = "Guide not loaded yet.";
+    public string SelectedTemplateGuideText => SelectedTemplateGuideOption is null
+        ? "Select template version"
+        : $"Template {SelectedTemplateGuideOption.TemplateVersion}";
+
+    public string SelectedDocumentationGuideText => SelectedTemplateGuideOption is null
+        ? "Documentation not loaded yet."
+        : $"Guide docs {SelectedTemplateGuideOption.Guide.DocumentationVersion} for template {SelectedTemplateGuideOption.TemplateVersion}.";
     public string PageTitle => Section switch
     {
         StudioSection.Home => "Build TurtlePath projects faster",
@@ -121,13 +137,15 @@ public sealed class StudioViewModel
         InstallTemplateUseCase installTemplate,
         CreateTurtlePathProjectUseCase createProject,
         IStudioWorkspaceService workspace,
-        IStudioSettingsStore settingsStore)
+        IStudioSettingsStore settingsStore,
+        IStudioGuideProvider guideProvider)
     {
         this.inspectEnvironment = inspectEnvironment;
         this.installTemplate = installTemplate;
         this.createProject = createProject;
         this.workspace = workspace;
         this.settingsStore = settingsStore;
+        this.guideProvider = guideProvider;
 
         var settings = settingsStore.Load();
         ApplySettings(settings);
@@ -204,6 +222,189 @@ public sealed class StudioViewModel
     }
 
     public void CloseCommandOutput() => IsCommandOutputOpen = false;
+
+    public async Task LoadGuidesAsync(bool forceRefresh = false)
+    {
+        var templateVersion = Environment?.Template.Version;
+        if (string.IsNullOrWhiteSpace(templateVersion))
+        {
+            var selectedTemplate = await inspectEnvironment.ExecuteAsync(TurtlePathStudioDefaults.TemplatePackageId);
+            Environment = selectedTemplate;
+            templateVersion = selectedTemplate.Template.Version;
+        }
+
+        GuideOptions = await guideProvider.GetGuidesAsync(
+            TurtlePathStudioDefaults.TemplatePackageId,
+            string.Empty);
+        TemplateGuideOptions = BuildTemplateGuideOptions(GuideOptions, templateVersion);
+
+        if (TemplateGuideOptions.Count == 0)
+        {
+            GuideStatus = "No versioned guides match the installed template. Using embedded fallback.";
+            return;
+        }
+
+        SelectedTemplateGuideOption = SelectTemplateGuideOption(templateVersion);
+        var selectedGuide = SelectedTemplateGuideOption.Guide;
+        SelectedGuide = selectedGuide;
+        SelectedGuideCulture ??= selectedGuide.Cultures.FirstOrDefault(culture => string.Equals(culture.Code, "en", StringComparison.OrdinalIgnoreCase))
+            ?? selectedGuide.Cultures.FirstOrDefault();
+
+        if (SelectedGuideCulture is null)
+        {
+            GuideStatus = "Selected guide has no available cultures.";
+            return;
+        }
+
+        CurrentGuide = await guideProvider.GetGuideAsync(selectedGuide, SelectedGuideCulture, forceRefresh);
+        GuideStatus = CurrentGuide.Status;
+    }
+
+    public async Task SelectTemplateGuideAsync(StudioTemplateGuideOption option)
+    {
+        SelectedTemplateGuideOption = option;
+        SelectedGuide = option.Guide;
+        SelectedGuideCulture = option.Guide.Cultures.FirstOrDefault(culture => string.Equals(culture.Code, SelectedGuideCulture?.Code, StringComparison.OrdinalIgnoreCase))
+            ?? option.Guide.Cultures.FirstOrDefault();
+
+        await LoadGuidesAsync();
+    }
+
+    public async Task SelectGuideCultureAsync(StudioGuideCulture culture)
+    {
+        SelectedGuideCulture = culture;
+
+        await LoadGuidesAsync();
+    }
+
+    public static string FormatGuideOption(StudioTemplateGuideOption option)
+    {
+        return $"Template {option.TemplateVersion} - guide docs {option.Guide.DocumentationVersion}";
+    }
+
+    public static string FormatTemplateRange(string range)
+    {
+        if (string.IsNullOrWhiteSpace(range))
+            return "All template versions";
+
+        var normalized = range.Trim();
+        if (normalized.StartsWith('[') && normalized.EndsWith(')'))
+        {
+            var parts = normalized[1..^1].Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length == 2)
+                return $"Template {parts[0]} - before {parts[1]}";
+        }
+
+        if (normalized.StartsWith('[') && normalized.EndsWith(']'))
+        {
+            var parts = normalized[1..^1].Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length == 2)
+                return $"Template {parts[0]} - {parts[1]}";
+        }
+
+        return $"Template {normalized}";
+    }
+
+    private IReadOnlyList<StudioTemplateGuideOption> BuildTemplateGuideOptions(
+        IReadOnlyList<StudioGuideOption> guides,
+        string installedTemplateVersion)
+    {
+        var options = guides
+            .SelectMany(guide => guide.SupportedTemplateVersions.Select(version => new StudioTemplateGuideOption(version, guide)))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(installedTemplateVersion) &&
+            !options.Any(option => string.Equals(option.TemplateVersion, installedTemplateVersion, StringComparison.OrdinalIgnoreCase)))
+        {
+            var guide = guides.FirstOrDefault(candidate => IsVersionInRange(candidate.SupportedTemplateVersionRange, installedTemplateVersion));
+            if (guide is not null)
+                options.Add(new StudioTemplateGuideOption(installedTemplateVersion, guide));
+        }
+
+        return options
+            .DistinctBy(option => option.TemplateVersion)
+            .OrderByDescending(option => Version.TryParse(option.TemplateVersion, out var parsed) ? parsed : new Version(0, 0))
+            .ToArray();
+    }
+
+    private StudioTemplateGuideOption SelectTemplateGuideOption(string installedTemplateVersion)
+    {
+        if (SelectedTemplateGuideOption is not null &&
+            TemplateGuideOptions.Any(option => option.TemplateVersion == SelectedTemplateGuideOption.TemplateVersion))
+        {
+            return TemplateGuideOptions.First(option => option.TemplateVersion == SelectedTemplateGuideOption.TemplateVersion);
+        }
+
+        if (!string.IsNullOrWhiteSpace(installedTemplateVersion))
+        {
+            var installed = TemplateGuideOptions.FirstOrDefault(option =>
+                string.Equals(option.TemplateVersion, installedTemplateVersion, StringComparison.OrdinalIgnoreCase));
+            if (installed is not null)
+                return installed;
+        }
+
+        return TemplateGuideOptions[0];
+    }
+
+    private static bool IsVersionInRange(string range, string version)
+    {
+        if (string.IsNullOrWhiteSpace(version) || !Version.TryParse(NormalizeVersion(version), out var parsed))
+            return true;
+
+        if (string.IsNullOrWhiteSpace(range) || range.Length < 5)
+            return true;
+
+        var includeMin = range[0] == '[';
+        var includeMax = range[^1] == ']';
+        var parts = range[1..^1].Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length != 2)
+            return true;
+
+        return IsLowerBoundValid(parsed, parts[0], includeMin) &&
+               IsUpperBoundValid(parsed, parts[1], includeMax);
+    }
+
+    private static bool IsLowerBoundValid(Version version, string minimum, bool inclusive)
+    {
+        if (string.IsNullOrWhiteSpace(minimum) || !Version.TryParse(NormalizeVersion(minimum), out var parsed))
+            return true;
+
+        var comparison = version.CompareTo(parsed);
+        return inclusive ? comparison >= 0 : comparison > 0;
+    }
+
+    private static bool IsUpperBoundValid(Version version, string maximum, bool inclusive)
+    {
+        if (string.IsNullOrWhiteSpace(maximum) || !Version.TryParse(NormalizeVersion(maximum), out var parsed))
+            return true;
+
+        var comparison = version.CompareTo(parsed);
+        return inclusive ? comparison <= 0 : comparison < 0;
+    }
+
+    private static string NormalizeVersion(string version)
+    {
+        var normalized = version.Trim();
+        if (normalized.StartsWith('v'))
+            normalized = normalized[1..];
+
+        var metadataIndex = normalized.IndexOf('+', StringComparison.Ordinal);
+        return metadataIndex >= 0 ? normalized[..metadataIndex] : normalized;
+    }
+
+    public Task SyncGuideDocumentationAsync()
+    {
+        return RunAsync("Syncing documentation", "Studio is downloading the latest available guide content for the selected documentation version.", async () =>
+        {
+            await LoadGuidesAsync(forceRefresh: true);
+
+            Message = CurrentGuide?.LoadedFromCache == false && CurrentGuide.IsEmbeddedFallback == false
+                ? "Documentation synced from GitHub."
+                : "Documentation is available locally. GitHub could not be reached, so Studio kept the local guide.";
+            MessageIsError = false;
+            MessageIsWarning = CurrentGuide?.LoadedFromCache != false || CurrentGuide.IsEmbeddedFallback;
+        });
+    }
 
     public void FinishWizard()
     {
