@@ -636,6 +636,9 @@ public partial class MainPage : ContentPage
             Render();
             await check;
             Render();
+
+            if (viewModel.ShouldPromptTemplateUpdate)
+                await PromptTemplateUpdateAsync();
         }, secondary: true));
         actions.Add(CreateButton(viewModel.TemplateActionText, async () =>
         {
@@ -645,8 +648,8 @@ public partial class MainPage : ContentPage
             Render();
         }));
         actions.Add(CreateButton("Open templates", () => Navigate(StudioSection.Templates), secondary: true));
-        if (viewModel.Commands.Count > 0)
-            actions.Add(CreateButton("View command output", () =>
+        if (viewModel.Commands.Count > 0 && viewModel.IsCommandOutputOpen)
+            actions.Add(CreateButton("View update output", () =>
             {
                 viewModel.OpenCommandOutput();
                 Render();
@@ -1332,19 +1335,46 @@ public partial class MainPage : ContentPage
         return button;
     }
 
-    private View CreateMessage() => CreateMessage(viewModel.Message, viewModel.MessageIsError);
+    private async Task PromptTemplateUpdateAsync()
+    {
+        var shouldUpdate = await DisplayAlertAsync(
+            "Template update recommended",
+            $"A newer template version is available.{Environment.NewLine}{Environment.NewLine}{viewModel.TemplateUpdatePromptMessage}{Environment.NewLine}{Environment.NewLine}Do you want Studio to update it now?",
+            "Update now",
+            "Not now");
 
-    private static View CreateMessage(string text, bool error)
+        if (!shouldUpdate)
+            return;
+
+        var install = viewModel.InstallTemplateAsync();
+        Render();
+        await install;
+        Render();
+    }
+
+    private View CreateMessage() => CreateMessage(viewModel.Message, viewModel.MessageIsError, viewModel.MessageIsWarning);
+
+    private static View CreateMessage(string text, bool error) => CreateMessage(text, error, warning: false);
+
+    private static View CreateMessage(string text, bool error, bool warning)
     {
         return new Border
         {
             Padding = new Thickness(14, 10),
             StrokeThickness = 0,
-            BackgroundColor = error ? Color.FromArgb("#F9DFDC") : Color.FromArgb("#DDF4D7"),
+            BackgroundColor = error
+                ? Color.FromArgb("#F9DFDC")
+                : warning
+                    ? Color.FromArgb("#FFF0C2")
+                    : Color.FromArgb("#DDF4D7"),
             Content = new Label
             {
                 Text = text,
-                TextColor = error ? Color.FromArgb("#8B241A") : Color.FromArgb("#124A1E"),
+                TextColor = error
+                    ? Color.FromArgb("#8B241A")
+                    : warning
+                        ? Color.FromArgb("#6D4A00")
+                        : Color.FromArgb("#124A1E"),
                 FontAttributes = FontAttributes.Bold,
                 LineBreakMode = LineBreakMode.WordWrap
             }
