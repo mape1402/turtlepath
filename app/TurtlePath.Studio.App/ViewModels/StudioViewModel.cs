@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Maui.ApplicationModel;
 using TurtlePath.Studio.Abstractions.Commands;
 using TurtlePath.Studio.Abstractions.Projects;
@@ -14,6 +15,15 @@ namespace TurtlePath.Studio.App.ViewModels;
 
 public sealed class StudioViewModel
 {
+    private const string CacheDirectoryName = "TurtlePath";
+    private const string StudioDirectoryName = "Studio";
+    private const string TemplateEnvironmentCacheFileName = "template-environment-cache.json";
+
+    private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
+    };
+
     private readonly InspectStudioEnvironmentUseCase inspectEnvironment;
     private readonly InstallTemplateUseCase installTemplate;
     private readonly CreateTurtlePathProjectUseCase createProject;
@@ -52,6 +62,7 @@ public sealed class StudioViewModel
     public bool IsWizardOpen { get; private set; }
     public bool IsTemplateUpdatePromptOpen { get; private set; }
     public bool IsCommandOutputOpen { get; private set; }
+    public bool IsStatusMessageOpen { get; private set; }
     public bool IsCreated { get; private set; }
     public string? CreatedDirectory { get; private set; }
     public string Message { get; private set; } = "Ready.";
@@ -166,6 +177,10 @@ public sealed class StudioViewModel
         BuildAfterCreation = settings.BuildAfterCreation;
         TestAfterCreation = settings.TestAfterCreation;
         HideGuideAfterCreation = settings.HideGuideAfterCreation;
+
+        TemplateEnvironments = LoadCachedTemplateEnvironments();
+        Environment = TemplateEnvironments.FirstOrDefault(environment =>
+            environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
     }
 
     public void ToggleSidebar() => SidebarCollapsed = !SidebarCollapsed;
@@ -226,6 +241,8 @@ public sealed class StudioViewModel
 
     public void CloseTemplateUpdatePrompt() => IsTemplateUpdatePromptOpen = false;
 
+    public void CloseStatusMessage() => IsStatusMessageOpen = false;
+
     public void OpenCommandOutput()
     {
         if (Commands.Count > 0)
@@ -239,9 +256,10 @@ public sealed class StudioViewModel
         var templateVersion = Environment?.Template.Version;
         if (string.IsNullOrWhiteSpace(templateVersion))
         {
-            var selectedTemplate = await inspectEnvironment.ExecuteAsync(TurtlePathStudioDefaults.TemplatePackageId);
-            Environment = selectedTemplate;
-            templateVersion = selectedTemplate.Template.Version;
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+            templateVersion = Environment?.Template.Version ?? string.Empty;
         }
 
         GuideOptions = await guideProvider.GetGuidesAsync(
@@ -271,21 +289,37 @@ public sealed class StudioViewModel
         GuideStatus = CurrentGuide.Status;
     }
 
-    public async Task SelectTemplateGuideAsync(StudioTemplateGuideOption option)
+    public Task SelectTemplateGuideAsync(StudioTemplateGuideOption option)
     {
+        var previousGuideId = CurrentGuide?.Guide.Id;
+        var previousCultureCode = CurrentGuide?.Culture.Code;
+
         SelectedTemplateGuideOption = option;
         SelectedGuide = option.Guide;
         SelectedGuideCulture = option.Guide.Cultures.FirstOrDefault(culture => string.Equals(culture.Code, SelectedGuideCulture?.Code, StringComparison.OrdinalIgnoreCase))
             ?? option.Guide.Cultures.FirstOrDefault();
 
-        await LoadGuidesAsync();
+        if (CurrentGuide is null ||
+            !string.Equals(previousGuideId, SelectedGuide.Id, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(previousCultureCode, SelectedGuideCulture?.Code, StringComparison.OrdinalIgnoreCase))
+        {
+            CurrentGuide = null;
+            GuideStatus = "Loading selected guide...";
+        }
+
+        return Task.CompletedTask;
     }
 
-    public async Task SelectGuideCultureAsync(StudioGuideCulture culture)
+    public Task SelectGuideCultureAsync(StudioGuideCulture culture)
     {
-        SelectedGuideCulture = culture;
+        if (string.Equals(SelectedGuideCulture?.Code, culture.Code, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
 
-        await LoadGuidesAsync();
+        SelectedGuideCulture = culture;
+        CurrentGuide = null;
+        GuideStatus = "Loading selected guide...";
+
+        return Task.CompletedTask;
     }
 
     public static string FormatGuideOption(StudioTemplateGuideOption option)
@@ -414,6 +448,7 @@ public sealed class StudioViewModel
                 : "Documentation is available locally. GitHub could not be reached, so Studio kept the local guide.";
             MessageIsError = false;
             MessageIsWarning = CurrentGuide?.LoadedFromCache != false || CurrentGuide.IsEmbeddedFallback;
+            IsStatusMessageOpen = true;
         });
     }
 
@@ -467,7 +502,7 @@ public sealed class StudioViewModel
         {
             Commands = [];
             IsCommandOutputOpen = false;
-            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync(forceRefresh: true);
             Environment = TemplateEnvironments.FirstOrDefault(environment =>
                 environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
 
@@ -476,6 +511,7 @@ public sealed class StudioViewModel
                 Message = "One or more templates are missing. Install templates before creating projects.";
                 MessageIsError = true;
                 MessageIsWarning = false;
+                IsStatusMessageOpen = true;
                 return;
             }
 
@@ -491,6 +527,7 @@ public sealed class StudioViewModel
             Message = "Environment ready.";
             MessageIsError = false;
             MessageIsWarning = false;
+            IsStatusMessageOpen = true;
         });
     }
 
@@ -498,12 +535,28 @@ public sealed class StudioViewModel
     {
         return RunAsync("Installing templates", "Studio is installing or updating the TurtlePath template packages.", async () =>
         {
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+
+            if (TemplateEnvironments.Count > 0 &&
+                TemplateEnvironments.All(environment => environment.Template.IsInstalled) &&
+                TemplateEnvironments.All(environment => !environment.TemplateRequiresUpdate))
+            {
+                Commands = [];
+                Message = "All TurtlePath templates are up to date. No update is needed.";
+                MessageIsError = false;
+                MessageIsWarning = false;
+                IsStatusMessageOpen = true;
+                return;
+            }
+
             var commands = new List<CommandExecutionResult>();
             foreach (var packageId in TurtlePathStudioDefaults.TemplatePackageIds)
                 commands.Add(await installTemplate.ExecuteAsync(packageId, forceUpdate: true));
 
             Commands = commands;
-            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync(forceRefresh: true);
             Environment = TemplateEnvironments.FirstOrDefault(environment =>
                 environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
 
@@ -574,13 +627,13 @@ public sealed class StudioViewModel
 
         await RunAsync("Creating project", "Studio is running the template and optional validation commands.", async () =>
         {
-            var selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+            var selectedTemplate = await GetTemplateEnvironmentAsync(SelectedTemplatePackageId);
             if (!selectedTemplate.CanCreateProjects)
             {
                 var install = await installTemplate.ExecuteAsync(SelectedTemplatePackageId, forceUpdate: true);
                 Commands = [install];
 
-                selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+                selectedTemplate = await GetTemplateEnvironmentAsync(SelectedTemplatePackageId, forceRefresh: true);
                 if (!install.Succeeded || !selectedTemplate.CanCreateProjects)
                 {
                     Message = $"{SelectedTemplatePackageId} must be installed before creating projects.";
@@ -634,7 +687,7 @@ public sealed class StudioViewModel
         var canCreate = true;
         await RunAsync("Checking template version", "Studio is checking the installed template before creating the project.", async () =>
         {
-            var selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+            var selectedTemplate = await GetTemplateEnvironmentAsync(SelectedTemplatePackageId);
             if (SelectedTemplatePackageId == TurtlePathStudioDefaults.TemplatePackageId)
                 Environment = selectedTemplate;
 
@@ -677,13 +730,38 @@ public sealed class StudioViewModel
         }
     }
 
-    private async Task<IReadOnlyList<StudioEnvironmentReport>> InspectTemplateEnvironmentsAsync()
+    private async Task<IReadOnlyList<StudioEnvironmentReport>> InspectTemplateEnvironmentsAsync(bool forceRefresh = false)
     {
+        if (!forceRefresh)
+        {
+            var cached = LoadCachedTemplateEnvironments();
+            if (cached.Count > 0)
+                return cached;
+        }
+
         var environments = new List<StudioEnvironmentReport>();
         foreach (var packageId in TurtlePathStudioDefaults.TemplatePackageIds)
             environments.Add(await inspectEnvironment.ExecuteAsync(packageId));
 
+        SaveCachedTemplateEnvironments(environments);
         return environments;
+    }
+
+    private async Task<StudioEnvironmentReport> GetTemplateEnvironmentAsync(
+        string packageId,
+        bool forceRefresh = false)
+    {
+        var environments = await InspectTemplateEnvironmentsAsync(forceRefresh);
+        var environment = environments.FirstOrDefault(candidate =>
+            candidate.Template.PackageId == packageId);
+
+        if (environment is not null)
+            return environment;
+
+        environment = await inspectEnvironment.ExecuteAsync(packageId);
+        TemplateEnvironments = UpdateTemplateEnvironment(environment);
+        SaveCachedTemplateEnvironments(TemplateEnvironments);
+        return environment;
     }
 
     private IReadOnlyList<StudioEnvironmentReport> UpdateTemplateEnvironment(StudioEnvironmentReport selectedTemplate)
@@ -696,6 +774,53 @@ public sealed class StudioViewModel
                 ? selectedTemplate
                 : environment)
             .ToArray();
+    }
+
+    private static IReadOnlyList<StudioEnvironmentReport> LoadCachedTemplateEnvironments()
+    {
+        var path = GetTemplateEnvironmentCachePath();
+        if (!File.Exists(path))
+            return [];
+
+        try
+        {
+            var cache = JsonSerializer.Deserialize<CachedTemplateEnvironment>(
+                File.ReadAllText(path),
+                CacheJsonOptions);
+
+            if (cache is null)
+                return [];
+
+            return cache.Environments;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static void SaveCachedTemplateEnvironments(IReadOnlyList<StudioEnvironmentReport> environments)
+    {
+        try
+        {
+            var path = GetTemplateEnvironmentCachePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var cache = new CachedTemplateEnvironment(DateTimeOffset.UtcNow, environments.ToArray());
+            File.WriteAllText(path, JsonSerializer.Serialize(cache, CacheJsonOptions));
+        }
+        catch
+        {
+            // Cache is an optimization only. The Studio can always inspect the environment again.
+        }
+    }
+
+    private static string GetTemplateEnvironmentCachePath()
+    {
+        return Path.Combine(
+            global::System.Environment.GetFolderPath(global::System.Environment.SpecialFolder.LocalApplicationData),
+            CacheDirectoryName,
+            StudioDirectoryName,
+            TemplateEnvironmentCacheFileName);
     }
 
     private bool ValidateInput()
@@ -738,6 +863,7 @@ public sealed class StudioViewModel
         Message = text;
         MessageIsError = true;
         MessageIsWarning = false;
+        IsStatusMessageOpen = true;
     }
 
     public Task CheckStudioUpdateAsync()
@@ -746,8 +872,9 @@ public sealed class StudioViewModel
         {
             StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
             Message = StudioUpdate.Message;
-            MessageIsError = false;
-            MessageIsWarning = StudioUpdate.IsAvailable;
+            MessageIsError = !StudioUpdate.Succeeded;
+            MessageIsWarning = StudioUpdate.Succeeded && StudioUpdate.IsAvailable;
+            IsStatusMessageOpen = true;
         });
     }
 
@@ -769,6 +896,43 @@ public sealed class StudioViewModel
         }
     }
 
+    public async Task CheckTemplateUpdatesQuietlyAsync()
+    {
+        try
+        {
+            TemplateEnvironments = LoadCachedTemplateEnvironments();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+
+            if (ShouldPromptTemplateUpdate)
+            {
+                Message = "Template update recommended. You can create projects now, but a newer template version is available.";
+                MessageIsError = false;
+                MessageIsWarning = true;
+                IsTemplateUpdatePromptOpen = true;
+                return;
+            }
+
+            TemplateEnvironments = await InspectTemplateEnvironmentsAsync(forceRefresh: true);
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+
+            if (!ShouldPromptTemplateUpdate)
+                return;
+
+            Message = "Template update recommended. You can create projects now, but a newer template version is available.";
+            MessageIsError = false;
+            MessageIsWarning = true;
+            IsTemplateUpdatePromptOpen = true;
+        }
+        catch
+        {
+            TemplateEnvironments = LoadCachedTemplateEnvironments();
+            Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+        }
+    }
+
     public Task InstallStudioUpdateAsync()
     {
         return RunAsync("Installing Studio update", "Studio is downloading and preparing the update. The app will restart when the updater takes over.", async () =>
@@ -778,9 +942,12 @@ public sealed class StudioViewModel
 
             if (!StudioUpdate.IsAvailable)
             {
-                Message = StudioUpdate.Message;
-                MessageIsError = false;
+                Message = StudioUpdate.Succeeded
+                    ? "TurtlePath Studio is up to date. No update is needed."
+                    : StudioUpdate.Message;
+                MessageIsError = !StudioUpdate.Succeeded;
                 MessageIsWarning = false;
+                IsStatusMessageOpen = true;
                 return;
             }
 
@@ -797,6 +964,7 @@ public sealed class StudioViewModel
         Message = "Studio update source restored.";
         MessageIsError = false;
         MessageIsWarning = false;
+        IsStatusMessageOpen = true;
     }
 
     private void ClearMessage()
@@ -825,4 +993,8 @@ public sealed class StudioViewModel
             ? $"{environment.Template.PackageId} has a newer version available. Installed: {environment.Template.Version}; latest: {environment.Template.LatestVersion}."
             : $"{environment.Template.PackageId} is installed, but Studio could not verify the latest NuGet version.";
     }
+
+    private sealed record CachedTemplateEnvironment(
+        DateTimeOffset CachedAt,
+        StudioEnvironmentReport[] Environments);
 }

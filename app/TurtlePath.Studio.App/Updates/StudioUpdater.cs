@@ -257,8 +257,37 @@ public sealed class StudioUpdater : IStudioUpdater
         CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-        var command = "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri $args[0] -OutFile $args[1] -UseBasicParsing";
-        var result = await RunPowerShellAsync(command, uri.AbsoluteUri, outputPath, cancellationToken);
+        var scriptPath = Path.Combine(
+            FileSystem.CacheDirectory,
+            "studio-update-scripts",
+            $"{Guid.NewGuid():N}.ps1");
+        Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)!);
+
+        await File.WriteAllTextAsync(
+            scriptPath,
+            """
+            param(
+                [Parameter(Mandatory = $true)]
+                [string] $DownloadUri,
+
+                [Parameter(Mandatory = $true)]
+                [string] $OutputPath
+            )
+
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $DownloadUri -OutFile $OutputPath -UseBasicParsing
+            """,
+            cancellationToken);
+
+        PowerShellResult result;
+        try
+        {
+            result = await RunPowerShellAsync(scriptPath, uri.AbsoluteUri, outputPath, cancellationToken);
+        }
+        finally
+        {
+            TryDelete(scriptPath);
+        }
 
         if (result.ExitCode != 0)
             throw new InvalidOperationException($"PowerShell download failed. {result.Error.Trim()}");
@@ -268,7 +297,7 @@ public sealed class StudioUpdater : IStudioUpdater
     }
 
     private static async Task<PowerShellResult> RunPowerShellAsync(
-        string command,
+        string scriptPath,
         string uri,
         string outputPath,
         CancellationToken cancellationToken)
@@ -286,8 +315,8 @@ public sealed class StudioUpdater : IStudioUpdater
         startInfo.ArgumentList.Add("-NoProfile");
         startInfo.ArgumentList.Add("-ExecutionPolicy");
         startInfo.ArgumentList.Add("Bypass");
-        startInfo.ArgumentList.Add("-Command");
-        startInfo.ArgumentList.Add(command);
+        startInfo.ArgumentList.Add("-File");
+        startInfo.ArgumentList.Add(scriptPath);
         startInfo.ArgumentList.Add(uri);
         startInfo.ArgumentList.Add(outputPath);
 
