@@ -6,7 +6,7 @@ namespace TurtlePath.Studio.App.Guides;
 
 public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuideProvider
 {
-    private const string CacheVersion = "v7";
+    private const string CacheVersion = "v8";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -118,23 +118,9 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         }
         catch
         {
-            if (string.Equals(culture.Code, "en", StringComparison.OrdinalIgnoreCase))
-            {
-                await using var stream = await FileSystem.OpenAppPackageFileAsync("Docs/usage-guide.html");
-                using var reader = new StreamReader(stream);
-
-                return new StudioGuideDocument(
-                    guide,
-                    culture,
-                    await reader.ReadToEndAsync(cancellationToken),
-                    "Using embedded fallback documentation because GitHub and cache are unavailable.",
-                    LoadedFromCache: false,
-                    IsEmbeddedFallback: true);
-            }
-
             var html = SimpleMarkdownRenderer.Render(
-                "# Guia no disponible\n\nNo hay cache local para esta guia y GitHub no esta disponible. Usa la guia embebida en ingles o conecta Studio a internet para descargar la version en espanol.",
-                "Guia no disponible");
+                "# Guide unavailable\n\nThere is no local embedded copy for this guide and GitHub is not reachable. Check the configured documentation manifest or update TurtlePath Studio.",
+                "Guide unavailable");
 
             return new StudioGuideDocument(
                 guide,
