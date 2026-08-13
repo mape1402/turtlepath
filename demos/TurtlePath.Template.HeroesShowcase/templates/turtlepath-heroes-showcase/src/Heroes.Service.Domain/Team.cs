@@ -1,4 +1,4 @@
-using TurtlePath.Domain.Contracts;
+﻿using TurtlePath.Domain.Contracts;
 
 namespace Heroes.Service.Domain;
 

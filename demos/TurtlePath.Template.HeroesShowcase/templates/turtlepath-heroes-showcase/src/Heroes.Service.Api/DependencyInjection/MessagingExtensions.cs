@@ -1,4 +1,4 @@
-using Heroes.Service.Persistence;
+﻿using Heroes.Service.Persistence;
 using Pigeon.Messaging.Azure.ServiceBus;
 using Pigeon.Messaging.Outbox;
 using Pigeon.Messaging.Producing;

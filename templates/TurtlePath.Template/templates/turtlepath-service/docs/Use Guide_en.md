@@ -1,4 +1,4 @@
-# TurtlePath Template Use Guide
+﻿# TurtlePath Template Use Guide
 
 This guide explains how to create and grow a service generated with `TurtlePath.Template`. It is written for the developer who just created a project and needs to know where code goes, which defaults are already wired, and when to use automations, handlers, hooks, jobs, consumers, and exception handling.
 
@@ -506,14 +506,14 @@ public static IServiceCollection AddDefaults(
         // Enable this only when the service needs Pigeon and has broker settings.
         // .AddMessagingDefaults(configuration)
         .AddPipelineDefaults(configuration)
-        .AddCustomContainer();
+        .AddCustomContainer(configuration);
 }
 ```
 
 `AddCustomContainer` is intentionally last. Put service-specific dependencies there so template defaults stay stable:
 
 ```csharp
-internal static IServiceCollection AddCustomContainer(this IServiceCollection services)
+internal static IServiceCollection AddCustomContainer(this IServiceCollection services, IConfiguration configuration)
 {
     services.AddScoped<ICustomerNumberService, CustomerNumberService>();
     services.AddScoped<Services.Audit.IAuditService, Services.Audit.AuditService>();
@@ -526,7 +526,7 @@ Use `AddCustomContainer` as the mandatory place for custom dependency injection 
 
 ### Application Defaults
 
-`AddApplicationDefaults` registers Pelican, Crabalidator, OctoMap, TurtlePath, DataScorpio, CId configuration, and EF Core adapters:
+`AddApplicationDefaults` registers Pelican, Crabalidator, OctoMap, TurtlePath hooks, automations, DataScorpio profiles, CId defaults, CId profiles, and EF Core adapters:
 
 ```csharp
 services.AddPelican(typeof(Constants).Assembly);
@@ -543,6 +543,7 @@ services.AddScoped<IMapperAdapter, OctoMapAdapter>();
 services.AddScoped<IValidatorAdapter, CrabalidatorAdapter>();
 
 services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
@@ -561,10 +562,85 @@ services.AddTurtlePath(typeof(Constants).Assembly)
             : CId.From(Ulid.Parse(value));
         config.ParseFunction = value => CId.From(Ulid.Parse(value));
     })
+    .UseCIdProfiles(typeof(DomainConstants).Assembly)
     .UseEntityFrameworkCore<AppDbContext>();
 ```
 
 For new services, keep one consistent CId target type. The template default is `CId` wrapping `Ulid` in C# and storing it as `string` in the database.
+
+### Custom CId Profiles For Legacy Entities
+
+Do not change the default `UseCId<Ulid, string>()` just because one legacy table uses a different key. Keep the default for the healthy model, and add entity-specific CId definitions through a profile.
+
+Use this when the public code should still see `CId`, but a specific entity is backed by another CLR/database type, for example an old `int` primary key:
+
+```csharp
+using TurtlePath.Domain.Identifier;
+
+namespace Billing.Service.Domain.Identifier;
+
+public sealed class BillingIdentifierProfile : CIdProfile
+{
+    public override void Configure(CIdProfileBuilder builder)
+    {
+        builder.UseCIdFor<LegacyInvoice, int, int>(config =>
+        {
+            config.DefaultFactory = () => CId.From(0);
+            config.ConvertToDb = id => id.Cast<int>();
+            config.ConvertFromDb = value => CId.From(value);
+            config.JsonConverter = value => CId.From(int.Parse(value));
+            config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value)
+                ? null
+                : CId.From(int.Parse(value));
+            config.ParseFunction = value => CId.From(int.Parse(value));
+            config.ToByteArrayFunction = value => BitConverter.GetBytes(value);
+        });
+    }
+}
+```
+
+Then register profiles after the default CId configuration:
+
+```csharp
+services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
+    .UseOctoMap()
+    .UseCrabalidator()
+    .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
+    .UseCId<Ulid, string>(config =>
+    {
+        config.DefaultFactory = () => CId.From(Ulid.NewUlid());
+        config.ConvertToDb = id => id.ToString();
+        config.ConvertFromDb = value => CId.From(Ulid.Parse(value));
+        config.JsonConverter = value => string.IsNullOrEmpty(value)
+            ? CId.From(Ulid.Empty)
+            : CId.From(Ulid.Parse(value));
+        config.NullableJsonConverter = value => string.IsNullOrEmpty(value)
+            ? null
+            : CId.From(Ulid.Parse(value));
+        config.ParseFunction = value => CId.From(Ulid.Parse(value));
+    })
+    .UseCIdProfiles(typeof(BillingIdentifierProfile).Assembly)
+    .UseEntityFrameworkCore<AppDbContext>();
+```
+
+Recommended placement:
+
+```text
+Domain/
+  Identifier/
+    BillingIdentifierProfile.cs
+```
+
+The generic parameters mean:
+
+- `TEntity`: the entity that needs the override, for example `LegacyInvoice`.
+- `TTargetType`: the CLR value wrapped by `CId` in application code, for example `int`, `Guid`, or `Ulid`.
+- `TDbType`: the value EF stores in the database, for example `int` or `string`.
+
+That means `UseCIdFor<LegacyInvoice, int, int>()` is an `int` inside `CId`, stored as `int` in the database. `UseCIdFor<ImportedOrder, Ulid, string>()` is a `Ulid` inside `CId`, stored as `string`.
+
+If the legacy entity does not use `CId` at all and exposes a plain `int`, use the generic TurtlePath handlers and automations for `IEntity<TKey>` instead of forcing CId into that model.
 
 ## 6. Build One Feature From Start To Finish
 
@@ -2016,6 +2092,7 @@ Prepared TurtlePath registration:
 
 ```csharp
 services.AddTurtlePath(typeof(Constants).Assembly)
+    .UseAutomations(typeof(Constants).Assembly)
     .UseOctoMap()
     .UseCrabalidator()
     .UseDataScorpio(profiles => profiles.FromAssembly(typeof(Constants).Assembly))
@@ -2024,6 +2101,7 @@ services.AddTurtlePath(typeof(Constants).Assembly)
     {
         config.DefaultFactory = () => CId.From(Ulid.NewUlid());
     })
+    .UseCIdProfiles(typeof(DomainConstants).Assembly)
     .UseEntityFrameworkCore<AppDbContext>();
 ```
 
@@ -2051,7 +2129,7 @@ return services
     .AddApplicationDefaults()
     .AddEventSourcingDefaults()
     .AddPipelineDefaults(configuration)
-    .AddCustomContainer();
+    .AddCustomContainer(configuration);
 ```
 
 ### Create The Profile

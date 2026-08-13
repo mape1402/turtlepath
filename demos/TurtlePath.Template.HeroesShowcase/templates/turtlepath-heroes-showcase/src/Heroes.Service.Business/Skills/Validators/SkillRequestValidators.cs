@@ -1,4 +1,4 @@
-using Crabalidator;
+﻿using Crabalidator;
 using Heroes.Service.Business.Skills.Models.Requests;
 
 namespace Heroes.Service.Business.Skills.Validators;

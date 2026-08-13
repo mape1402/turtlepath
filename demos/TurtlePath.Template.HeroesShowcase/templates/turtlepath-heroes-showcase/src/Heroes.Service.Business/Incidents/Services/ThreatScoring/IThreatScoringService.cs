@@ -1,6 +1,6 @@
-using Heroes.Service.Domain.Enums;
+﻿using Heroes.Service.Domain.Enums;
 
-namespace Heroes.Service.Business.Services.ThreatScoring;
+namespace Heroes.Service.Business.Incidents.Services.ThreatScoring;
 
 /// <summary>
 /// Converts incident context into a normalized threat score.

@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Jobs;
+﻿using Heroes.Service.Business.Jobs;
 using Heroes.Service.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;

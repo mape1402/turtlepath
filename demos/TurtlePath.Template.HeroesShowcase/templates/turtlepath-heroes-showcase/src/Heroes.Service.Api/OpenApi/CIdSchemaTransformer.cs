@@ -1,4 +1,4 @@
-namespace Heroes.Service.Api.OpenApi
+﻿namespace Heroes.Service.Api.OpenApi
 {
     using Microsoft.AspNetCore.OpenApi;
     using Microsoft.OpenApi;

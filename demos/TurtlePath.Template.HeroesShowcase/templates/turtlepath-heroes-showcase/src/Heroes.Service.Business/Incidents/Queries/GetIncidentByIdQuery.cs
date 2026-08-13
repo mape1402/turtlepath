@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Incidents.Models.Responses;
+﻿using Heroes.Service.Business.Incidents.Models.Responses;
 using Heroes.Service.Domain;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.Queries;

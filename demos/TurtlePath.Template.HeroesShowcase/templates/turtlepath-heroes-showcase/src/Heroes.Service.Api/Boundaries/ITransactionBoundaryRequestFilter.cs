@@ -1,4 +1,4 @@
-namespace Heroes.Service.Api.Boundaries
+﻿namespace Heroes.Service.Api.Boundaries
 {
     /// <summary>
     /// Determines whether a request type should run inside the transaction boundary.

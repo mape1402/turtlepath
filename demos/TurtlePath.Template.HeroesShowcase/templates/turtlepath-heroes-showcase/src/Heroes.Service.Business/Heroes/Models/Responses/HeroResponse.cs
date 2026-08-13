@@ -1,4 +1,4 @@
-using TurtlePath.Models.Responses;
+﻿using TurtlePath.Models.Responses;
 
 namespace Heroes.Service.Business.Heroes.Models.Responses;
 

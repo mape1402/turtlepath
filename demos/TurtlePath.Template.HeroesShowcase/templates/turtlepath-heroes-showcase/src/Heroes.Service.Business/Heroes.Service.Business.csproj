@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Heroes.Service.Domain\Heroes.Service.Domain.csproj" />
+    <ProjectReference Include="..\Heroes.Service.Persistence\Heroes.Service.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>

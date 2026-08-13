@@ -1,4 +1,4 @@
-using Heroes.Service.Api.Boundaries;
+﻿using Heroes.Service.Api.Boundaries;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection

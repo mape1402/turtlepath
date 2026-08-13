@@ -38,7 +38,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 // Uncomment this line when the service needs consumers, producers, or the EF Core outbox.
                 // .AddMessagingDefaults(configuration)
                 .AddPipelineDefaults(configuration)
-                .AddCustomContainer();
+                .AddCustomContainer(configuration);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddApplicationDefaults()
                 .AddPipelineDefaults(configuration)
                 .AddJobExceptionHandlingDefaults()
-                .AddCustomContainer();
+                .AddCustomContainer(configuration);
 
             services.AddTurtlePathJobs(options =>
             {

@@ -18,6 +18,7 @@
     <PackageReference Include="Krackend.EventSourcing.EntityFrameworkCore" />
     <PackageReference Include="Spider.Pipelines" />
     <PackageReference Include="TurtlePath" />
+    <PackageReference Include="TurtlePath.Automations" />
     <PackageReference Include="TurtlePath.Crabalidator" />
     <PackageReference Include="TurtlePath.DataScorpio" />
     <PackageReference Include="TurtlePath.Domain" />
@@ -34,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TurtlePath.Template.Business\TurtlePath.Template.Business.csproj" />
+    <ProjectReference Include="..\TurtlePath.Template.Domain\TurtlePath.Template.Domain.csproj" />
     <ProjectReference Include="..\TurtlePath.Template.Persistence\TurtlePath.Template.Persistence.csproj" />
   </ItemGroup>
 

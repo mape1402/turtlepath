@@ -1,4 +1,4 @@
-using Heroes.Service.Api.OpenApi;
+﻿using Heroes.Service.Api.OpenApi;
 using Scalar.AspNetCore;
 using System.Diagnostics.CodeAnalysis;
 

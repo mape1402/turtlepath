@@ -1,4 +1,4 @@
-using Heroes.Service.Api.Boundaries;
+﻿using Heroes.Service.Api.Boundaries;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

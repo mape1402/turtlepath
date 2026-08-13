@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Skills.Models.Requests;
+﻿using Heroes.Service.Business.Skills.Models.Requests;
 using Heroes.Service.Business.Skills.Models.Responses;
 using Heroes.Service.Domain;
 using TurtlePath.Automations.Profiles;

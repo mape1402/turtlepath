@@ -1,4 +1,4 @@
-namespace Heroes.Service.Business
+﻿namespace Heroes.Service.Business
 {
     /// <summary>
     /// Provides markers and constants for the business layer.

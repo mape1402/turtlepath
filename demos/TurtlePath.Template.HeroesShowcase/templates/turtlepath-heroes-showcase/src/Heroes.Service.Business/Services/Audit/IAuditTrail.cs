@@ -1,4 +1,4 @@
-namespace Heroes.Service.Business.Services.Audit;
+﻿namespace Heroes.Service.Business.Services.Audit;
 
 /// <summary>
 /// Records demo audit entries produced by hooks, handlers and jobs.

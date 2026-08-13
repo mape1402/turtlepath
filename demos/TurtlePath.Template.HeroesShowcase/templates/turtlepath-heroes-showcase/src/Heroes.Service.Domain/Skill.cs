@@ -1,4 +1,4 @@
-using Heroes.Service.Domain.Enums;
+﻿using Heroes.Service.Domain.Enums;
 using TurtlePath.Domain.Contracts;
 using TurtlePath.Domain.Identifier;
 

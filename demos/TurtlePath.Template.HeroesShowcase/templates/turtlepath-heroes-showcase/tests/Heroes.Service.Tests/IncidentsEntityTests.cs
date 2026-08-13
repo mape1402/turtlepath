@@ -1,4 +1,4 @@
-using Heroes.Service.Business.Incidents.Models.Requests;
+﻿using Heroes.Service.Business.Incidents.Models.Requests;
 using Heroes.Service.Business.Incidents.Models.Responses;
 using Heroes.Service.Business.Incidents.Queries;
 using Heroes.Service.Business.Incidents.Validators;

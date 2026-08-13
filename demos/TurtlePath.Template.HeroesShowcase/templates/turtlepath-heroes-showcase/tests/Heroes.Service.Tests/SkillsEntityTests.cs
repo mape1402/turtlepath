@@ -1,4 +1,4 @@
-using DataScorpio.Profiles;
+﻿using DataScorpio.Profiles;
 using DataScorpio.Testing;
 using Heroes.Service.Business.Skills.Models.Requests;
 using Heroes.Service.Business.Skills.Validators;
