@@ -198,6 +198,8 @@ public partial class MainPage : ContentPage
             RenderWizard();
         else if (viewModel.IsBusy)
             RenderBusyOverlay();
+        else if (viewModel.IsTemplateUpdatePromptOpen)
+            RenderTemplateUpdatePromptOverlay();
         else if (viewModel.IsCommandOutputOpen)
             RenderCommandOutputOverlay();
         else
@@ -636,9 +638,6 @@ public partial class MainPage : ContentPage
             Render();
             await check;
             Render();
-
-            if (viewModel.ShouldPromptTemplateUpdate)
-                await PromptTemplateUpdateAsync();
         }, secondary: true));
         actions.Add(CreateButton(viewModel.TemplateActionText, async () =>
         {
@@ -843,6 +842,8 @@ public partial class MainPage : ContentPage
         overlay.Add(modalFrame);
         if (viewModel.IsBusy)
             overlay.Add(BuildBusyDialog());
+        else if (viewModel.IsTemplateUpdatePromptOpen)
+            overlay.Add(BuildTemplateUpdatePromptDialog());
         else if (viewModel.IsCommandOutputOpen)
             overlay.Add(BuildCommandOutputDialog());
 
@@ -862,6 +863,14 @@ public partial class MainPage : ContentPage
     {
         var overlay = CreateOverlay();
         overlay.Add(BuildCommandOutputDialog());
+        modalHost.Content = overlay;
+        modalHost.IsVisible = true;
+    }
+
+    private void RenderTemplateUpdatePromptOverlay()
+    {
+        var overlay = CreateOverlay();
+        overlay.Add(BuildTemplateUpdatePromptDialog());
         modalHost.Content = overlay;
         modalHost.IsVisible = true;
     }
@@ -1013,6 +1022,99 @@ public partial class MainPage : ContentPage
                 Opacity = 0.34f
             },
             Content = dialog
+        };
+    }
+
+    private View BuildTemplateUpdatePromptDialog()
+    {
+        var layout = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            },
+            RowSpacing = 18,
+            Padding = new Thickness(26),
+            BackgroundColor = Color.FromArgb("#FBFDFC")
+        };
+
+        var copy = new VerticalStackLayout { Spacing = 8 };
+        copy.Add(new Label
+        {
+            Text = "Template update recommended",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        copy.Add(new Label
+        {
+            Text = "The installed template can still create projects, but a newer version is available.",
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        layout.Add(copy, 0, 0);
+
+        layout.Add(CreateMessage(viewModel.TemplateUpdatePromptMessage, error: false, warning: true), 0, 1);
+
+        var actions = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            HorizontalOptions = LayoutOptions.End
+        };
+        actions.Add(CreateButton("Not now", () =>
+        {
+            viewModel.CloseTemplateUpdatePrompt();
+            Render();
+        }, secondary: true));
+        if (viewModel.IsWizardOpen)
+        {
+            actions.Add(CreateButton("Continue anyway", async () =>
+            {
+                viewModel.CloseTemplateUpdatePrompt();
+                var creation = viewModel.CreateProjectAsync();
+                Render();
+                await creation;
+                Render();
+            }, secondary: true));
+        }
+        else
+        {
+            actions.Add(CreateButton("Open templates", () =>
+            {
+                viewModel.CloseTemplateUpdatePrompt();
+                Navigate(StudioSection.Templates);
+            }, secondary: true));
+        }
+
+        actions.Add(CreateButton("Update templates", async () =>
+        {
+            viewModel.CloseTemplateUpdatePrompt();
+            var install = viewModel.InstallTemplateAsync();
+            Render();
+            await install;
+            Render();
+        }));
+        layout.Add(actions, 0, 2);
+
+        return new Border
+        {
+            WidthRequest = 620,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Color.FromArgb("#FBFDFC"),
+            Stroke = Color.FromArgb("#D9B94E"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(18) },
+            Shadow = new Shadow
+            {
+                Brush = Brush.Black,
+                Offset = new Point(0, 18),
+                Radius = 42,
+                Opacity = 0.34f
+            },
+            Content = layout
         };
     }
 
@@ -1214,6 +1316,14 @@ public partial class MainPage : ContentPage
             }),
             WizardStep.Review => CreateButton("Create project", async () =>
             {
+                var preparation = viewModel.PrepareCreateProjectAsync();
+                Render();
+                var canCreate = await preparation;
+                Render();
+
+                if (!canCreate)
+                    return;
+
                 var creation = viewModel.CreateProjectAsync();
                 Render();
                 await creation;
@@ -1333,23 +1443,6 @@ public partial class MainPage : ContentPage
         button.Released += (_, _) => button.Opacity = 1;
 
         return button;
-    }
-
-    private async Task PromptTemplateUpdateAsync()
-    {
-        var shouldUpdate = await DisplayAlertAsync(
-            "Template update recommended",
-            $"A newer template version is available.{Environment.NewLine}{Environment.NewLine}{viewModel.TemplateUpdatePromptMessage}{Environment.NewLine}{Environment.NewLine}Do you want Studio to update it now?",
-            "Update now",
-            "Not now");
-
-        if (!shouldUpdate)
-            return;
-
-        var install = viewModel.InstallTemplateAsync();
-        Render();
-        await install;
-        Render();
     }
 
     private View CreateMessage() => CreateMessage(viewModel.Message, viewModel.MessageIsError, viewModel.MessageIsWarning);

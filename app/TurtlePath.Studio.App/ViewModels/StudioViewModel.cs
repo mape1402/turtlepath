@@ -43,6 +43,7 @@ public sealed class StudioViewModel
     public string BusyTitle { get; private set; } = "Working";
     public string BusyMessage { get; private set; } = "Studio is running a command. This can take a moment.";
     public bool IsWizardOpen { get; private set; }
+    public bool IsTemplateUpdatePromptOpen { get; private set; }
     public bool IsCommandOutputOpen { get; private set; }
     public bool IsCreated { get; private set; }
     public string? CreatedDirectory { get; private set; }
@@ -194,6 +195,8 @@ public sealed class StudioViewModel
 
     public void CloseWizard() => IsWizardOpen = false;
 
+    public void CloseTemplateUpdatePrompt() => IsTemplateUpdatePromptOpen = false;
+
     public void OpenCommandOutput()
     {
         if (Commands.Count > 0)
@@ -269,6 +272,7 @@ public sealed class StudioViewModel
                 Message = "Template update recommended. You can create projects now, but a newer template version is available.";
                 MessageIsError = false;
                 MessageIsWarning = true;
+                IsTemplateUpdatePromptOpen = true;
                 return;
             }
 
@@ -404,6 +408,35 @@ public sealed class StudioViewModel
         });
     }
 
+    public async Task<bool> PrepareCreateProjectAsync()
+    {
+        if (!ValidateInput())
+        {
+            WizardStep = WizardStep.Basics;
+            return false;
+        }
+
+        var canCreate = true;
+        await RunAsync("Checking template version", "Studio is checking the installed template before creating the project.", async () =>
+        {
+            var selectedTemplate = await inspectEnvironment.ExecuteAsync(SelectedTemplatePackageId);
+            if (SelectedTemplatePackageId == TurtlePathStudioDefaults.TemplatePackageId)
+                Environment = selectedTemplate;
+
+            if (!selectedTemplate.TemplateRequiresUpdate)
+                return;
+
+            TemplateEnvironments = UpdateTemplateEnvironment(selectedTemplate);
+            Message = BuildTemplateUpdateSuggestionMessage(selectedTemplate);
+            MessageIsError = false;
+            MessageIsWarning = true;
+            IsTemplateUpdatePromptOpen = true;
+            canCreate = false;
+        });
+
+        return canCreate;
+    }
+
     public async Task OpenCreatedFolderAsync()
     {
         if (!string.IsNullOrWhiteSpace(CreatedDirectory))
@@ -436,6 +469,18 @@ public sealed class StudioViewModel
             environments.Add(await inspectEnvironment.ExecuteAsync(packageId));
 
         return environments;
+    }
+
+    private IReadOnlyList<StudioEnvironmentReport> UpdateTemplateEnvironment(StudioEnvironmentReport selectedTemplate)
+    {
+        if (TemplateEnvironments.Count == 0)
+            return [selectedTemplate];
+
+        return TemplateEnvironments
+            .Select(environment => environment.Template.PackageId == selectedTemplate.Template.PackageId
+                ? selectedTemplate
+                : environment)
+            .ToArray();
     }
 
     private bool ValidateInput()
