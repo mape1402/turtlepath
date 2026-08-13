@@ -4,6 +4,13 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.6.2] - 2026-08-13
+
+### Added
+
+- Added the `--turtlepath-version` template parameter so generated services can select the TurtlePath NuGet package version at creation time.
+- Centralized generated TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
+
 ## [template-v1.6.1] - 2026-08-12
 
 ### Added

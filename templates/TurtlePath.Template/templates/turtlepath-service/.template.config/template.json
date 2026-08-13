@@ -63,6 +63,13 @@
                 }
             ]
         },
+        "turtlepath-version": {
+            "type": "parameter",
+            "datatype": "text",
+            "defaultValue": "1.4.1",
+            "replaces": "TURTLEPATH_VERSION",
+            "description": "Sets the TurtlePath NuGet package version used by the generated project."
+        },
         "JobHost": {
             "type": "computed",
             "value": "(host == \"job\")"

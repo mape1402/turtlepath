@@ -20,6 +20,18 @@ dotnet new turtlepath -n MyService --host api-consumer
 dotnet new turtlepath -n MyJob --host job
 ```
 
+## Select TurtlePath Package Version
+
+By default, the generated project uses the TurtlePath package version tested with this template release.
+
+To generate a project with a specific TurtlePath package version, pass:
+
+```bash
+dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.6.0
+```
+
+The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
+
 ## Validate A Generated Project
 
 ```bash
