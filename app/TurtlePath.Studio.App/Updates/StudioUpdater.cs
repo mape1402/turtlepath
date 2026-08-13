@@ -6,11 +6,12 @@ using Microsoft.Maui.ApplicationModel;
 
 namespace TurtlePath.Studio.App.Updates;
 
-public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
+public sealed class StudioUpdater : IStudioUpdater
 {
     private const string Platform = "win-x64";
     private const string StudioExecutableName = "TurtlePath.Studio.App.exe";
     private const string UpdaterExecutableName = "TurtlePath.Studio.Updater.exe";
+    private const string PowerShellExecutableName = "powershell.exe";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -30,12 +31,12 @@ public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
                 Package: null);
         }
 
-        HttpResponseMessage response;
+        string content;
         try
         {
-            response = await httpClient.GetAsync(uri, cancellationToken);
+            content = await DownloadTextWithPowerShellAsync(uri, cancellationToken);
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or TaskCanceledException)
         {
             return new StudioUpdateCheckResult(
                 IsAvailable: false,
@@ -46,27 +47,14 @@ public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
                 Package: null);
         }
 
-        if (!response.IsSuccessStatusCode)
-        {
-            return new StudioUpdateCheckResult(
-                IsAvailable: false,
-                GetCurrentVersion(),
-                LatestVersion: string.Empty,
-                $"Update manifest could not be downloaded. HTTP {(int)response.StatusCode} {response.ReasonPhrase}.",
-                Manifest: null,
-                Package: null);
-        }
-
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var trimmedContent = content.TrimStart('\uFEFF').TrimStart();
         if (string.IsNullOrWhiteSpace(trimmedContent) || !trimmedContent.StartsWith('{'))
         {
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
             return new StudioUpdateCheckResult(
                 IsAvailable: false,
                 GetCurrentVersion(),
                 LatestVersion: string.Empty,
-                $"Update manifest URL did not return JSON. Content type: {contentType}. Check that the URL points to a public direct-download JSON file.",
+                "Update manifest URL did not return JSON. Check that the URL points to a public direct-download JSON file.",
                 Manifest: null,
                 Package: null);
         }
@@ -148,11 +136,10 @@ public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
         var extractDirectory = Path.Combine(workingDirectory, "extract");
         Directory.CreateDirectory(workingDirectory);
 
-        await using (var stream = await httpClient.GetStreamAsync(update.Package.Url, cancellationToken))
-        await using (var file = File.Create(zipPath))
-        {
-            await stream.CopyToAsync(file, cancellationToken);
-        }
+        if (!Uri.TryCreate(update.Package.Url, UriKind.Absolute, out var packageUri))
+            throw new InvalidOperationException("Studio package URL is not valid.");
+
+        await DownloadFileWithPowerShellAsync(packageUri, zipPath, cancellationToken);
 
         var hash = await ComputeSha256Async(zipPath, cancellationToken);
         if (!string.Equals(hash, update.Package.Sha256, StringComparison.OrdinalIgnoreCase))
@@ -224,4 +211,90 @@ public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
     }
 
     private static string Quote(string value) => $"\"{value}\"";
+
+    private static async Task<string> DownloadTextWithPowerShellAsync(
+        Uri uri,
+        CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(FileSystem.CacheDirectory, "studio-update-manifest", $"{Guid.NewGuid():N}.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        try
+        {
+            await DownloadFileWithPowerShellAsync(uri, path, cancellationToken);
+            return await File.ReadAllTextAsync(path, cancellationToken);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    private static async Task DownloadFileWithPowerShellAsync(
+        Uri uri,
+        string outputPath,
+        CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        var command = "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri $args[0] -OutFile $args[1] -UseBasicParsing";
+        var result = await RunPowerShellAsync(command, uri.AbsoluteUri, outputPath, cancellationToken);
+
+        if (result.ExitCode != 0)
+            throw new InvalidOperationException($"PowerShell download failed. {result.Error.Trim()}");
+
+        if (!File.Exists(outputPath) || new FileInfo(outputPath).Length == 0)
+            throw new InvalidOperationException("PowerShell download completed, but no file was created.");
+    }
+
+    private static async Task<PowerShellResult> RunPowerShellAsync(
+        string command,
+        string uri,
+        string outputPath,
+        CancellationToken cancellationToken)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = PowerShellExecutableName,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("-NoLogo");
+        startInfo.ArgumentList.Add("-NoProfile");
+        startInfo.ArgumentList.Add("-ExecutionPolicy");
+        startInfo.ArgumentList.Add("Bypass");
+        startInfo.ArgumentList.Add("-Command");
+        startInfo.ArgumentList.Add(command);
+        startInfo.ArgumentList.Add(uri);
+        startInfo.ArgumentList.Add(outputPath);
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("PowerShell could not be started.");
+
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+        await process.WaitForExitAsync(cancellationToken);
+        var output = await outputTask;
+        var error = await errorTask;
+
+        return new PowerShellResult(process.ExitCode, output, error);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Best effort cleanup only.
+        }
+    }
+
+    private sealed record PowerShellResult(int ExitCode, string Output, string Error);
 }
