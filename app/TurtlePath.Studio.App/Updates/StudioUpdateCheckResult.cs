@@ -6,4 +6,7 @@ public sealed record StudioUpdateCheckResult(
     string LatestVersion,
     string Message,
     StudioUpdateManifest? Manifest,
-    StudioUpdatePackage? Package);
+    StudioUpdatePackage? Package)
+{
+    public bool Succeeded => Manifest is not null && Package is not null;
+}

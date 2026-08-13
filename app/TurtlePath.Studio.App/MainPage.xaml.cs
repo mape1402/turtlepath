@@ -45,13 +45,14 @@ public partial class MainPage : ContentPage
         Render();
 
         if (viewModel.CheckUpdatesOnStartup)
-            _ = CheckStudioUpdatesOnStartupAsync();
+            _ = CheckUpdatesOnStartupAsync();
     }
 
-    private async Task CheckStudioUpdatesOnStartupAsync()
+    private async Task CheckUpdatesOnStartupAsync()
     {
         await Task.Delay(750);
         await viewModel.CheckStudioUpdateQuietlyAsync();
+        await viewModel.CheckTemplateUpdatesQuietlyAsync();
         MainThread.BeginInvokeOnMainThread(Render);
     }
 
@@ -213,6 +214,8 @@ public partial class MainPage : ContentPage
             RenderTemplateUpdatePromptOverlay();
         else if (viewModel.IsCommandOutputOpen)
             RenderCommandOutputOverlay();
+        else if (viewModel.IsStatusMessageOpen)
+            RenderStatusMessageOverlay();
         else
             modalHost.IsVisible = false;
     }
@@ -750,7 +753,6 @@ public partial class MainPage : ContentPage
     private View BuildEnvironment()
     {
         var layout = new VerticalStackLayout { Spacing = 18 };
-        layout.Add(CreateMessage());
 
         layout.Add(CreateDocSection("Local status", BuildEnvironmentStatusText()));
 
@@ -826,7 +828,7 @@ public partial class MainPage : ContentPage
             Render();
             await install;
             Render();
-        }, disabled: viewModel.StudioUpdate?.IsAvailable != true));
+        }));
         actions.Add(CreateButton("Restore update source", () =>
         {
             viewModel.RestoreDefaultUpdateSource();
@@ -1115,6 +1117,14 @@ public partial class MainPage : ContentPage
         modalHost.IsVisible = true;
     }
 
+    private void RenderStatusMessageOverlay()
+    {
+        var overlay = CreateOverlay();
+        overlay.Add(BuildStatusMessageDialog());
+        modalHost.Content = overlay;
+        modalHost.IsVisible = true;
+    }
+
     private static Grid CreateOverlay()
     {
         return new Grid
@@ -1345,6 +1355,119 @@ public partial class MainPage : ContentPage
             VerticalOptions = LayoutOptions.Center,
             BackgroundColor = Color.FromArgb("#FBFDFC"),
             Stroke = Color.FromArgb("#D9B94E"),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(18) },
+            Shadow = new Shadow
+            {
+                Brush = Brush.Black,
+                Offset = new Point(0, 18),
+                Radius = 42,
+                Opacity = 0.34f
+            },
+            Content = layout
+        };
+    }
+
+    private View BuildStatusMessageDialog()
+    {
+        var accent = viewModel.MessageIsError
+            ? Color.FromArgb("#B42318")
+            : viewModel.MessageIsWarning
+                ? Color.FromArgb("#A16207")
+                : Primary;
+        var heading = viewModel.MessageIsError
+            ? "Action needed"
+            : viewModel.MessageIsWarning
+                ? "Review recommended"
+                : "Everything is ready";
+
+        var layout = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Auto }
+            },
+            RowSpacing = 20,
+            Padding = new Thickness(26),
+            BackgroundColor = Color.FromArgb("#FBFDFC")
+        };
+
+        var header = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = GridLength.Star }
+            },
+            ColumnSpacing = 16
+        };
+
+        header.Add(new Border
+        {
+            WidthRequest = 42,
+            HeightRequest = 42,
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(12) },
+            BackgroundColor = accent,
+            Content = new Label
+            {
+                Text = viewModel.MessageIsError ? "\uE783" : viewModel.MessageIsWarning ? "\uE7BA" : "\uE930",
+                FontFamily = IconFont,
+                FontSize = 18,
+                TextColor = Colors.White,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }
+        }, 0, 0);
+
+        var copy = new VerticalStackLayout { Spacing = 6 };
+        copy.Add(new Label
+        {
+            Text = heading,
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        copy.Add(new Label
+        {
+            Text = viewModel.Message,
+            FontSize = 15,
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+        header.Add(copy, 1, 0);
+        layout.Add(header, 0, 0);
+
+        var actions = new HorizontalStackLayout
+        {
+            Spacing = 10,
+            HorizontalOptions = LayoutOptions.End
+        };
+        if (viewModel.Commands.Count > 0)
+        {
+            actions.Add(CreateButton("View output", () =>
+            {
+                viewModel.CloseStatusMessage();
+                viewModel.OpenCommandOutput();
+                Render();
+            }, secondary: true));
+        }
+
+        actions.Add(CreateButton("Done", () =>
+        {
+            viewModel.CloseStatusMessage();
+            Render();
+        }));
+        layout.Add(actions, 0, 1);
+
+        return new Border
+        {
+            WidthRequest = 560,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = Color.FromArgb("#FBFDFC"),
+            Stroke = accent,
             StrokeThickness = 1,
             StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(18) },
             Shadow = new Shadow

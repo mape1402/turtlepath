@@ -17,11 +17,15 @@
     <ApplicationTitle>TurtlePath Studio</ApplicationTitle>
     <ApplicationIcon>Resources\AppIcon\turtlepath.ico</ApplicationIcon>
     <ApplicationId>com.turtlepath.studio</ApplicationId>
-    <Version>1.0.4</Version>
-    <AssemblyVersion>1.0.4.0</AssemblyVersion>
-    <FileVersion>1.0.4.0</FileVersion>
-    <ApplicationDisplayVersion>1.0.4</ApplicationDisplayVersion>
-    <ApplicationVersion>4</ApplicationVersion>
+    <StudioReleaseMarkerPath>$(MSBuildThisFileDirectory)..\..\.studio.release</StudioReleaseMarkerPath>
+    <StudioReleaseTag Condition="Exists('$(StudioReleaseMarkerPath)')">$([System.IO.File]::ReadAllText('$(StudioReleaseMarkerPath)').Trim())</StudioReleaseTag>
+    <StudioVersion Condition="'$(StudioVersion)' == '' and '$(StudioReleaseTag)' != ''">$([System.String]::Copy('$(StudioReleaseTag)').Replace('studio-v', ''))</StudioVersion>
+    <StudioVersion Condition="'$(StudioVersion)' == ''">1.0.0</StudioVersion>
+    <Version>$(StudioVersion)</Version>
+    <AssemblyVersion>$(StudioVersion).0</AssemblyVersion>
+    <FileVersion>$(StudioVersion).0</FileVersion>
+    <ApplicationDisplayVersion>$(StudioVersion)</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
     <WindowsPackageType>None</WindowsPackageType>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>

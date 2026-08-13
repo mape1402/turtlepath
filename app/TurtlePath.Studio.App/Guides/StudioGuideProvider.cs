@@ -59,6 +59,24 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
                 IsEmbeddedFallback: false);
         }
 
+        if (!forceRefresh)
+        {
+            var embedded = await TryLoadEmbeddedGuideAsync(guide, culture, cancellationToken);
+            if (embedded is not null)
+            {
+                Directory.CreateDirectory(cacheDirectory);
+                await File.WriteAllTextAsync(htmlPath, embedded.Html, cancellationToken);
+                await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(guide, JsonOptions), cancellationToken);
+
+                return embedded with
+                {
+                    Status = $"Using bundled guide docs {guide.DocumentationVersion}; cached locally for the next load.",
+                    LoadedFromCache = true,
+                    IsEmbeddedFallback = false
+                };
+            }
+        }
+
         try
         {
             using var response = await httpClient.GetAsync(culture.SourceUrl, cancellationToken);
@@ -96,7 +114,7 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         }
     }
 
-    private static async Task<StudioGuideDocument> LoadEmbeddedFallbackAsync(
+    private static async Task<StudioGuideDocument?> TryLoadEmbeddedGuideAsync(
         StudioGuideOption guide,
         StudioGuideCulture culture,
         CancellationToken cancellationToken)
@@ -112,24 +130,40 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
                 guide,
                 culture,
                 SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})"),
-                "Using embedded fallback documentation because GitHub and cache are unavailable.",
+                "Using bundled guide documentation.",
                 LoadedFromCache: false,
                 IsEmbeddedFallback: true);
         }
         catch
         {
-            var html = SimpleMarkdownRenderer.Render(
-                "# Guide unavailable\n\nThere is no local embedded copy for this guide and GitHub is not reachable. Check the configured documentation manifest or update TurtlePath Studio.",
-                "Guide unavailable");
-
-            return new StudioGuideDocument(
-                guide,
-                culture,
-                html,
-                "Selected documentation is not cached yet and GitHub is unavailable.",
-                LoadedFromCache: false,
-                IsEmbeddedFallback: true);
+            return null;
         }
+    }
+
+    private static async Task<StudioGuideDocument> LoadEmbeddedFallbackAsync(
+        StudioGuideOption guide,
+        StudioGuideCulture culture,
+        CancellationToken cancellationToken)
+    {
+        var embedded = await TryLoadEmbeddedGuideAsync(guide, culture, cancellationToken);
+        if (embedded is not null)
+            return embedded with
+            {
+                Status = "Using embedded fallback documentation because GitHub and cache are unavailable.",
+                IsEmbeddedFallback = true
+            };
+
+        var html = SimpleMarkdownRenderer.Render(
+            "# Guide unavailable\n\nThere is no local embedded copy for this guide and GitHub is not reachable. Check the configured documentation manifest or update TurtlePath Studio.",
+            "Guide unavailable");
+
+        return new StudioGuideDocument(
+            guide,
+            culture,
+            html,
+            "Selected documentation is not cached yet and GitHub is unavailable.",
+            LoadedFromCache: false,
+            IsEmbeddedFallback: true);
     }
 
     private async Task<IReadOnlyList<StudioGuideOption>> LoadManifestAsync(CancellationToken cancellationToken)
