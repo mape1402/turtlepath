@@ -4,11 +4,11 @@ using Spider.Pipelines.Core;
 
 namespace TurtlePath.Template.Api.Controllers
 {
-    [Route("[controller]")]
-    [ApiController]
     /// <summary>
     /// Provides a base API controller with access to the mediator.
     /// </summary>
+    [Route("[controller]")]
+    [ApiController]
     public class BaseController : ControllerBase
     {
         private IMediator _mediator;

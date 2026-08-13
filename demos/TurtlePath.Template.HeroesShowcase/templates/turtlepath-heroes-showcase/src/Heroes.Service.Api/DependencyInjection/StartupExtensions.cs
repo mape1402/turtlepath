@@ -3,10 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    [ExcludeFromCodeCoverage]
     /// <summary>
     /// Provides startup service configuration extensions.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public static class StartupExtensions
     {
         /// <summary>
