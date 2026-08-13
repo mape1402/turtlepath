@@ -48,6 +48,7 @@ public sealed class StudioViewModel
     public string? CreatedDirectory { get; private set; }
     public string Message { get; private set; } = "Ready.";
     public bool MessageIsError { get; private set; }
+    public bool MessageIsWarning { get; private set; }
     public IReadOnlyList<CommandExecutionResult> Commands { get; private set; } = [];
     public string PageTitle => Section switch
     {
@@ -71,10 +72,10 @@ public sealed class StudioViewModel
 
     public string EnvironmentText => TemplateEnvironments.Count == 0
         ? SidebarCollapsed ? "?" : "Environment: not checked"
-        : TemplatesCanCreateProjects
-            ? SidebarCollapsed ? "OK" : "Environment: ready"
-            : TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
-                ? SidebarCollapsed ? "!" : "Environment: update required"
+        : TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
+            ? SidebarCollapsed ? "!" : "Environment: update available"
+            : TemplatesCanCreateProjects
+                ? SidebarCollapsed ? "OK" : "Environment: ready"
                 : SidebarCollapsed ? "!" : "Environment: needs attention";
 
     public string SelectedTemplateName { get; private set; } = "API / Consumer";
@@ -87,12 +88,32 @@ public sealed class StudioViewModel
 
     public string TemplateActionText => TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
         ? "Update templates"
-        : "Install templates";
+        : TemplateEnvironments.Count > 0 && TemplateEnvironments.All(environment => environment.Template.IsInstalled)
+            ? "Repair templates"
+            : "Install templates";
 
     public bool TemplateIsCurrent => TemplatesCanCreateProjects && !TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate);
 
     public bool TemplatesCanCreateProjects => TemplateEnvironments.Count > 0
         && TemplateEnvironments.All(environment => environment.CanCreateProjects);
+
+    public bool ShouldPromptTemplateUpdate => TemplatesCanCreateProjects
+        && TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate);
+
+    public string TemplateUpdatePromptMessage
+    {
+        get
+        {
+            var updates = TemplateEnvironments
+                .Where(environment => environment.TemplateRequiresUpdate)
+                .Select(environment => $"{environment.Template.PackageId}: installed {environment.Template.Version}, latest {environment.Template.LatestVersion}")
+                .ToArray();
+
+            return updates.Length == 0
+                ? "A newer template version is available."
+                : string.Join(global::System.Environment.NewLine, updates);
+        }
+    }
 
     public StudioViewModel(
         InspectStudioEnvironmentUseCase inspectEnvironment,
@@ -229,14 +250,31 @@ public sealed class StudioViewModel
     {
         return RunAsync("Checking environment", "Studio is checking .NET and installed TurtlePath templates.", async () =>
         {
+            Commands = [];
+            IsCommandOutputOpen = false;
             TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
             Environment = TemplateEnvironments.FirstOrDefault(environment =>
                 environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
 
-            Message = TemplatesCanCreateProjects
-                ? "Environment ready."
-                : "One or more templates need attention. Use the actions below to repair them.";
-            MessageIsError = !TemplatesCanCreateProjects;
+            if (!TemplatesCanCreateProjects)
+            {
+                Message = "One or more templates are missing. Install templates before creating projects.";
+                MessageIsError = true;
+                MessageIsWarning = false;
+                return;
+            }
+
+            if (ShouldPromptTemplateUpdate)
+            {
+                Message = "Template update recommended. You can create projects now, but a newer template version is available.";
+                MessageIsError = false;
+                MessageIsWarning = true;
+                return;
+            }
+
+            Message = "Environment ready.";
+            MessageIsError = false;
+            MessageIsWarning = false;
         });
     }
 
@@ -257,6 +295,7 @@ public sealed class StudioViewModel
                 ? "Templates installed. Environment was checked again."
                 : "Template installation failed. Check the command output.";
             MessageIsError = !commands.All(command => command.Succeeded);
+            MessageIsWarning = false;
             IsCommandOutputOpen = true;
 
             if (TemplatesCanCreateProjects)
@@ -290,6 +329,7 @@ public sealed class StudioViewModel
         ApplySettings(settings);
         Message = "Default values saved.";
         MessageIsError = false;
+        MessageIsWarning = false;
     }
 
     public void ResetDefaults()
@@ -298,6 +338,7 @@ public sealed class StudioViewModel
         ApplySettings(settingsStore.Load());
         Message = "Default values restored.";
         MessageIsError = false;
+        MessageIsWarning = false;
     }
 
     public async Task CreateProjectAsync()
@@ -337,6 +378,7 @@ public sealed class StudioViewModel
             {
                 Message = BuildTemplateUpdateSuggestionMessage(selectedTemplate);
                 MessageIsError = false;
+                MessageIsWarning = true;
             }
 
             var result = await createProject.ExecuteAsync(new CreateProjectRequest(
@@ -358,7 +400,7 @@ public sealed class StudioViewModel
                     : "Project created successfully."
                 : "Project creation finished with errors. Check the execution log.";
             MessageIsError = !result.Succeeded;
-            IsCommandOutputOpen = true;
+            MessageIsWarning = result.Succeeded && selectedTemplate.TemplateRequiresUpdate;
         });
     }
 
@@ -435,12 +477,14 @@ public sealed class StudioViewModel
     {
         Message = text;
         MessageIsError = true;
+        MessageIsWarning = false;
     }
 
     private void ClearMessage()
     {
         Message = "Ready.";
         MessageIsError = false;
+        MessageIsWarning = false;
     }
 
     private void ApplySettings(StudioSettings settings)
