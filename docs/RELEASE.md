@@ -49,6 +49,16 @@ Use this track for `templates/TurtlePath.Template`.
 
 The `Template Release` workflow validates the generated template solution, stamps `turtlepath.template.json` with `X.Y.Z`, packs only `TurtlePath.Template`, creates the `template-vX.Y.Z` GitHub release, and publishes the template package through NuGet trusted publishing.
 
+## Versioned Documentation
+
+Use this track for files under `docs/guides/template`.
+
+1. Update `DOCS_CHANGELOG.md` with a `## [docs-vX.Y.Z]` section when the guide content changes.
+2. Update `.docs.release` with `docs-vX.Y.Z` when the guide content needs a new documentation version.
+3. Run `eng/Update-TemplateGuideManifest.ps1` locally, or let the `Documentation Release` workflow update the manifest on `main`.
+
+The `Documentation Release` workflow regenerates `docs/guides/template/guide-manifest.json` from `.docs.release` and `.template.release`. When a new template version can keep using the same guide, the workflow adds that template version to the current guide instead of forcing a new guide version.
+
 ## Studio
 
 Use this track for the desktop Studio app.

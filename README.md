@@ -890,6 +890,7 @@ TurtlePath has separate release tracks so package notes do not get mixed:
 
 - Runtime libraries use `.release`, `CHANGELOG.md`, and `build-and-release.yml`.
 - The service template uses `.template.release`, `TEMPLATE_CHANGELOG.md`, and `template-release.yml`.
+- Versioned documentation uses `.docs.release`, `DOCS_CHANGELOG.md`, and `docs-release.yml`.
 - TurtlePath Studio uses `.studio.release`, `STUDIO_CHANGELOG.md`, and `studio-release.yml`.
 
 
