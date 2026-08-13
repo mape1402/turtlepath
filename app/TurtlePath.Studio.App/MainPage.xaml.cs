@@ -43,6 +43,16 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         BuildShell();
         Render();
+
+        if (viewModel.CheckUpdatesOnStartup)
+            _ = CheckStudioUpdatesOnStartupAsync();
+    }
+
+    private async Task CheckStudioUpdatesOnStartupAsync()
+    {
+        await Task.Delay(750);
+        await viewModel.CheckStudioUpdateQuietlyAsync();
+        MainThread.BeginInvokeOnMainThread(Render);
     }
 
     private void BuildShell()
@@ -743,7 +753,6 @@ public partial class MainPage : ContentPage
         layout.Add(CreateMessage());
 
         layout.Add(CreateDocSection("Local status", BuildEnvironmentStatusText()));
-        layout.Add(BuildDocumentationEnvironmentSection());
 
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Check environment", async () =>
@@ -768,9 +777,64 @@ public partial class MainPage : ContentPage
                 Render();
             }, secondary: true));
         layout.Add(actions);
+        layout.Add(BuildStudioUpdatesSection());
+        layout.Add(BuildDocumentationEnvironmentSection());
         layout.Add(BuildDefaultSettings());
 
         return new ScrollView { Content = layout };
+    }
+
+    private View BuildStudioUpdatesSection()
+    {
+        var layout = new VerticalStackLayout { Spacing = 16 };
+        layout.Add(new Label
+        {
+            Text = "Studio updates",
+            FontSize = 22,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Ink
+        });
+        layout.Add(new Label
+        {
+            Text = $"Current Studio version: {viewModel.StudioVersion}. {viewModel.StudioUpdateText}",
+            FontSize = 15,
+            TextColor = viewModel.StudioUpdate?.IsAvailable == true ? Color.FromArgb("#6D4A00") : Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
+
+        var manifestUrl = CreateEntry(viewModel.UpdateManifestUrl, "https://example.com/studio.manifest.json");
+        manifestUrl.TextChanged += (_, args) => viewModel.UpdateManifestUrl = args.NewTextValue;
+        layout.Add(CreateField("Update manifest URL", manifestUrl));
+
+        var channel = CreateEntry(viewModel.UpdateChannel, "stable");
+        channel.TextChanged += (_, args) => viewModel.UpdateChannel = args.NewTextValue;
+        layout.Add(CreateField("Update channel", channel));
+
+        layout.Add(CreateSwitchRow("Check updates on startup", "Studio can notify you when the configured manifest publishes a newer version.", viewModel.CheckUpdatesOnStartup, value => viewModel.CheckUpdatesOnStartup = value));
+
+        var actions = new HorizontalStackLayout { Spacing = 10 };
+        actions.Add(CreateButton("Check Studio update", async () =>
+        {
+            var check = viewModel.CheckStudioUpdateAsync();
+            Render();
+            await check;
+            Render();
+        }, secondary: true));
+        actions.Add(CreateButton("Install update", async () =>
+        {
+            var install = viewModel.InstallStudioUpdateAsync();
+            Render();
+            await install;
+            Render();
+        }, disabled: viewModel.StudioUpdate?.IsAvailable != true));
+        actions.Add(CreateButton("Restore update source", () =>
+        {
+            viewModel.RestoreDefaultUpdateSource();
+            Render();
+        }, secondary: true));
+        layout.Add(actions);
+
+        return CreateBorder(layout);
     }
 
     private View BuildDocumentationEnvironmentSection()

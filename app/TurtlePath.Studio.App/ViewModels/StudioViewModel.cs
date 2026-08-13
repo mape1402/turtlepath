@@ -5,6 +5,7 @@ using TurtlePath.Studio.Abstractions.Validation;
 using TurtlePath.Studio.App.Guides;
 using TurtlePath.Studio.Abstractions.Workspace;
 using TurtlePath.Studio.App.Settings;
+using TurtlePath.Studio.App.Updates;
 using TurtlePath.Studio.Application.Defaults;
 using TurtlePath.Studio.Application.Environment;
 using TurtlePath.Studio.Application.UseCases;
@@ -19,6 +20,7 @@ public sealed class StudioViewModel
     private readonly IStudioWorkspaceService workspace;
     private readonly IStudioSettingsStore settingsStore;
     private readonly IStudioGuideProvider guideProvider;
+    private readonly IStudioUpdater studioUpdater;
 
     public StudioSection Section { get; private set; } = StudioSection.Home;
     public bool SidebarCollapsed { get; private set; }
@@ -41,6 +43,9 @@ public sealed class StudioViewModel
     public bool DefaultBuildAfterCreation { get; set; }
     public bool DefaultTestAfterCreation { get; set; }
     public bool DefaultHideGuideAfterCreation { get; set; }
+    public string UpdateManifestUrl { get; set; } = string.Empty;
+    public string UpdateChannel { get; set; } = string.Empty;
+    public bool CheckUpdatesOnStartup { get; set; }
     public bool IsBusy { get; private set; }
     public string BusyTitle { get; private set; } = "Working";
     public string BusyMessage { get; private set; } = "Studio is running a command. This can take a moment.";
@@ -53,6 +58,7 @@ public sealed class StudioViewModel
     public bool MessageIsError { get; private set; }
     public bool MessageIsWarning { get; private set; }
     public IReadOnlyList<CommandExecutionResult> Commands { get; private set; } = [];
+    public StudioUpdateCheckResult? StudioUpdate { get; private set; }
     public IReadOnlyList<StudioGuideOption> GuideOptions { get; private set; } = [];
     public IReadOnlyList<StudioTemplateGuideOption> TemplateGuideOptions { get; private set; } = [];
     public StudioTemplateGuideOption? SelectedTemplateGuideOption { get; private set; }
@@ -101,7 +107,10 @@ public sealed class StudioViewModel
         ? "Complete the project name and destination folder"
         : Path.Combine(OutputRoot, ProjectName);
 
-    public string StudioVersion => $"v{AppInfo.Current.VersionString}";
+    public string StudioVersion => $"v{StudioUpdater.GetCurrentVersion()}";
+    public string StudioUpdateText => StudioUpdate is null
+        ? "Studio updates have not been checked yet."
+        : StudioUpdate.Message;
 
     public string TemplateActionText => TemplateEnvironments.Any(environment => environment.TemplateRequiresUpdate)
         ? "Update templates"
@@ -138,7 +147,8 @@ public sealed class StudioViewModel
         CreateTurtlePathProjectUseCase createProject,
         IStudioWorkspaceService workspace,
         IStudioSettingsStore settingsStore,
-        IStudioGuideProvider guideProvider)
+        IStudioGuideProvider guideProvider,
+        IStudioUpdater studioUpdater)
     {
         this.inspectEnvironment = inspectEnvironment;
         this.installTemplate = installTemplate;
@@ -146,6 +156,7 @@ public sealed class StudioViewModel
         this.workspace = workspace;
         this.settingsStore = settingsStore;
         this.guideProvider = guideProvider;
+        this.studioUpdater = studioUpdater;
 
         var settings = settingsStore.Load();
         ApplySettings(settings);
@@ -528,7 +539,10 @@ public sealed class StudioViewModel
             DefaultRestoreAfterCreation,
             DefaultBuildAfterCreation,
             DefaultTestAfterCreation,
-            DefaultHideGuideAfterCreation);
+            DefaultHideGuideAfterCreation,
+            UpdateManifestUrl.Trim(),
+            UpdateChannel.Trim(),
+            CheckUpdatesOnStartup);
 
         settingsStore.Save(settings);
         ApplySettings(settings);
@@ -726,6 +740,65 @@ public sealed class StudioViewModel
         MessageIsWarning = false;
     }
 
+    public Task CheckStudioUpdateAsync()
+    {
+        return RunAsync("Checking Studio updates", "Studio is checking the configured update manifest.", async () =>
+        {
+            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+            Message = StudioUpdate.Message;
+            MessageIsError = false;
+            MessageIsWarning = StudioUpdate.IsAvailable;
+        });
+    }
+
+    public async Task CheckStudioUpdateQuietlyAsync()
+    {
+        try
+        {
+            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+            if (!StudioUpdate.IsAvailable)
+                return;
+
+            Message = StudioUpdate.Message;
+            MessageIsError = false;
+            MessageIsWarning = true;
+        }
+        catch
+        {
+            StudioUpdate = null;
+        }
+    }
+
+    public Task InstallStudioUpdateAsync()
+    {
+        return RunAsync("Installing Studio update", "Studio is downloading and preparing the update. The app will restart when the updater takes over.", async () =>
+        {
+            if (StudioUpdate is null || !StudioUpdate.IsAvailable)
+                StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+
+            if (!StudioUpdate.IsAvailable)
+            {
+                Message = StudioUpdate.Message;
+                MessageIsError = false;
+                MessageIsWarning = false;
+                return;
+            }
+
+            await studioUpdater.StartUpdateAsync(StudioUpdate);
+        });
+    }
+
+    public void RestoreDefaultUpdateSource()
+    {
+        UpdateManifestUrl = PreferencesStudioSettingsStore.DefaultUpdateManifestUrl;
+        UpdateChannel = PreferencesStudioSettingsStore.DefaultUpdateChannel;
+        CheckUpdatesOnStartup = true;
+        StudioUpdate = null;
+        Message = "Studio update source restored.";
+        MessageIsError = false;
+        MessageIsWarning = false;
+    }
+
     private void ClearMessage()
     {
         Message = "Ready.";
@@ -741,6 +814,9 @@ public sealed class StudioViewModel
         DefaultBuildAfterCreation = settings.BuildAfterCreation;
         DefaultTestAfterCreation = settings.TestAfterCreation;
         DefaultHideGuideAfterCreation = settings.HideGuideAfterCreation;
+        UpdateManifestUrl = settings.UpdateManifestUrl;
+        UpdateChannel = settings.UpdateChannel;
+        CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
     }
 
     private static string BuildTemplateUpdateSuggestionMessage(StudioEnvironmentReport environment)

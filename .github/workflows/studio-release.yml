@@ -10,8 +10,10 @@ on:
       - 'app/TurtlePath.Studio.Abstractions/**'
       - 'app/TurtlePath.Studio.Application/**'
       - 'app/TurtlePath.Studio.Infrastructure/**'
+      - 'app/TurtlePath.Studio.Updater/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
+      - 'STUDIO_CHANGELOG.md'
   push:
     branches:
       - main
@@ -20,8 +22,10 @@ on:
       - 'app/TurtlePath.Studio.Abstractions/**'
       - 'app/TurtlePath.Studio.Application/**'
       - 'app/TurtlePath.Studio.Infrastructure/**'
+      - 'app/TurtlePath.Studio.Updater/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
+      - 'STUDIO_CHANGELOG.md'
 
 env:
   CONFIGURATION: Release
@@ -30,7 +34,9 @@ env:
   RELEASE_NOTES_PATH: studio_release_notes.txt
   RELEASE_TAG_PATTERN: ^studio-v[0-9]+\.[0-9]+\.[0-9]+$
   STUDIO_ASSET_NAME: TurtlePath.Studio.win-x64.zip
+  STUDIO_MANIFEST_NAME: studio.manifest.json
   STUDIO_PROJECT: app/TurtlePath.Studio.App/TurtlePath.Studio.App.csproj
+  STUDIO_UPDATER_PROJECT: app/TurtlePath.Studio.Updater/TurtlePath.Studio.Updater.csproj
   STUDIO_TARGET_FRAMEWORK: net10.0-windows10.0.19041.0
   STUDIO_RUNTIME: win-x64
 
@@ -55,7 +61,9 @@ jobs:
         run: dotnet workload restore "${{ env.STUDIO_PROJECT }}"
 
       - name: Restore Studio
-        run: dotnet restore "${{ env.STUDIO_PROJECT }}"
+        run: |
+          dotnet restore "${{ env.STUDIO_PROJECT }}"
+          dotnet restore "${{ env.STUDIO_UPDATER_PROJECT }}"
 
       - name: Build Studio
         run: >
@@ -63,6 +71,12 @@ jobs:
           --no-restore
           --configuration "${{ env.CONFIGURATION }}"
           --framework "${{ env.STUDIO_TARGET_FRAMEWORK }}"
+
+      - name: Build Studio updater
+        run: >
+          dotnet build "${{ env.STUDIO_UPDATER_PROJECT }}"
+          --no-restore
+          --configuration "${{ env.CONFIGURATION }}"
 
       - name: Resolve Studio release marker
         id: release
@@ -118,7 +132,20 @@ jobs:
             --self-contained true `
             -p:WindowsPackageType=None `
             -p:WindowsAppSDKSelfContained=true `
+            -p:ApplicationDisplayVersion="${{ steps.release.outputs.version }}" `
+            -p:Version="${{ steps.release.outputs.version }}" `
+            -p:AssemblyVersion="${{ steps.release.outputs.version }}.0" `
+            -p:FileVersion="${{ steps.release.outputs.version }}.0" `
             -p:PublishDir="$publishDirectory/"
+
+          $updaterDirectory = Join-Path $publishDirectory "updater"
+          New-Item -ItemType Directory -Force $updaterDirectory | Out-Null
+          dotnet publish "${{ env.STUDIO_UPDATER_PROJECT }}" `
+            --configuration "${{ env.CONFIGURATION }}" `
+            --self-contained true `
+            --runtime "${{ env.STUDIO_RUNTIME }}" `
+            -p:PublishSingleFile=true `
+            -p:PublishDir="$updaterDirectory/"
 
           $assetPath = Join-Path $env:RUNNER_TEMP "${{ env.STUDIO_ASSET_NAME }}"
           if (Test-Path $assetPath) {
@@ -126,7 +153,27 @@ jobs:
           }
 
           Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $assetPath -Force
+          $hash = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $assetSize = (Get-Item $assetPath).Length
+          $manifestPath = Join-Path $env:RUNNER_TEMP "${{ env.STUDIO_MANIFEST_NAME }}"
+          $manifest = [ordered]@{
+            channel = "stable"
+            latestVersion = "${{ steps.release.outputs.version }}"
+            minimumSupportedVersion = "1.0.0"
+            releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/${{ steps.release.outputs.tag }}"
+            packages = @(
+              [ordered]@{
+                platform = "${{ env.STUDIO_RUNTIME }}"
+                url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.release.outputs.tag }}/${{ env.STUDIO_ASSET_NAME }}"
+                sha256 = $hash
+                size = $assetSize
+              }
+            )
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $manifestPath -Encoding utf8
+
           "asset_path=$assetPath" >> $env:GITHUB_OUTPUT
+          "manifest_path=$manifestPath" >> $env:GITHUB_OUTPUT
         id: publish
 
       - name: Prepare Studio release notes
@@ -138,6 +185,10 @@ jobs:
 
           Asset:
           - ${{ env.STUDIO_ASSET_NAME }}
+          - ${{ env.STUDIO_MANIFEST_NAME }}
+
+          Changelog:
+          - https://github.com/${{ github.repository }}/blob/main/STUDIO_CHANGELOG.md
 
           Usage:
           1. Download the zip.
@@ -179,6 +230,8 @@ jobs:
           body_path: ${{ env.RELEASE_NOTES_PATH }}
           draft: false
           prerelease: false
-          files: ${{ steps.publish.outputs.asset_path }}
+          files: |
+            ${{ steps.publish.outputs.asset_path }}
+            ${{ steps.publish.outputs.manifest_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

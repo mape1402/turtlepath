@@ -180,6 +180,29 @@ jobs:
             exit 1
           fi
 
+      - name: Stamp template version
+        if: steps.release.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TEMPLATE_INFO_PATH="templates/TurtlePath.Template/templates/turtlepath-service/turtlepath.template.json"
+          if [[ ! -f "$TEMPLATE_INFO_PATH" ]]; then
+            echo "$TEMPLATE_INFO_PATH was not found."
+            exit 1
+          fi
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("templates/TurtlePath.Template/templates/turtlepath-service/turtlepath.template.json")
+          version = "${{ steps.release.outputs.version }}"
+          document = json.loads(path.read_text(encoding="utf-8"))
+          document["version"] = version
+          path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+          PY
+
       - name: Pack NuGet packages
         if: steps.release.outputs.should_release == 'true'
         run: >
