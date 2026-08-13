@@ -45,17 +45,6 @@ function ConvertFrom-Marker {
     return $version
 }
 
-function Get-NextMinorUpperBound {
-    param([string[]]$Versions)
-
-    $parsedVersions = $Versions |
-        ForEach-Object { [System.Version]::Parse($_) } |
-        Sort-Object Major, Minor, Build
-
-    $highest = $parsedVersions[-1]
-    return "$($highest.Major).$($highest.Minor + 1).0"
-}
-
 $docsMarker = Read-SingleLine -Path $DocsReleaseFile -Name "Docs release"
 $docsVersion = ConvertFrom-Marker -Marker $docsMarker -Prefix "docs-v" -Name "Docs release"
 
@@ -94,8 +83,8 @@ $supportedVersions = $supportedVersions |
     Sort-Object { [System.Version]::Parse($_) } -Unique
 
 $minimumVersion = $supportedVersions[0]
-$upperBound = Get-NextMinorUpperBound -Versions $supportedVersions
-$range = "[$minimumVersion,$upperBound)"
+$maximumVersion = $supportedVersions[-1]
+$range = if ($minimumVersion -eq $maximumVersion) { "[$minimumVersion]" } else { "[$minimumVersion,$maximumVersion]" }
 $rawBase = $RepositoryRawBase.TrimEnd("/")
 $sourceRef = "docs-v$docsVersion"
 

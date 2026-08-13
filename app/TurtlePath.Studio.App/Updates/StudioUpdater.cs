@@ -30,8 +30,63 @@ public sealed class StudioUpdater(HttpClient httpClient) : IStudioUpdater
                 Package: null);
         }
 
-        await using var stream = await httpClient.GetStreamAsync(uri, cancellationToken);
-        var manifest = await JsonSerializer.DeserializeAsync<StudioUpdateManifest>(stream, JsonOptions, cancellationToken);
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.GetAsync(uri, cancellationToken);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        {
+            return new StudioUpdateCheckResult(
+                IsAvailable: false,
+                GetCurrentVersion(),
+                LatestVersion: string.Empty,
+                $"Update manifest could not be downloaded. {exception.Message}",
+                Manifest: null,
+                Package: null);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return new StudioUpdateCheckResult(
+                IsAvailable: false,
+                GetCurrentVersion(),
+                LatestVersion: string.Empty,
+                $"Update manifest could not be downloaded. HTTP {(int)response.StatusCode} {response.ReasonPhrase}.",
+                Manifest: null,
+                Package: null);
+        }
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var trimmedContent = content.TrimStart('\uFEFF').TrimStart();
+        if (string.IsNullOrWhiteSpace(trimmedContent) || !trimmedContent.StartsWith('{'))
+        {
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
+            return new StudioUpdateCheckResult(
+                IsAvailable: false,
+                GetCurrentVersion(),
+                LatestVersion: string.Empty,
+                $"Update manifest URL did not return JSON. Content type: {contentType}. Check that the URL points to a public direct-download JSON file.",
+                Manifest: null,
+                Package: null);
+        }
+
+        StudioUpdateManifest? manifest;
+        try
+        {
+            manifest = JsonSerializer.Deserialize<StudioUpdateManifest>(trimmedContent, JsonOptions);
+        }
+        catch (JsonException exception)
+        {
+            return new StudioUpdateCheckResult(
+                IsAvailable: false,
+                GetCurrentVersion(),
+                LatestVersion: string.Empty,
+                $"Update manifest JSON is invalid. {exception.Message}",
+                Manifest: null,
+                Package: null);
+        }
+
         if (manifest is null)
         {
             return new StudioUpdateCheckResult(

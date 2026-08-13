@@ -35,6 +35,7 @@ env:
   RELEASE_TAG_PATTERN: ^studio-v[0-9]+\.[0-9]+\.[0-9]+$
   STUDIO_ASSET_NAME: TurtlePath.Studio.win-x64.zip
   STUDIO_MANIFEST_NAME: studio.manifest.json
+  STUDIO_LATEST_TAG: studio-latest
   STUDIO_PROJECT: app/TurtlePath.Studio.App/TurtlePath.Studio.App.csproj
   STUDIO_UPDATER_PROJECT: app/TurtlePath.Studio.Updater/TurtlePath.Studio.Updater.csproj
   STUDIO_TARGET_FRAMEWORK: net10.0-windows10.0.19041.0
@@ -230,6 +231,37 @@ jobs:
           body_path: ${{ env.RELEASE_NOTES_PATH }}
           draft: false
           prerelease: false
+          files: |
+            ${{ steps.publish.outputs.asset_path }}
+            ${{ steps.publish.outputs.manifest_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update Studio latest tag
+        if: steps.release.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${{ env.STUDIO_LATEST_TAG }}"
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag --force "$TAG" "$HEAD_SHA"
+          git push --force origin "refs/tags/$TAG"
+
+      - name: Create GitHub Studio latest release
+        if: steps.release.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.STUDIO_LATEST_TAG }}
+          name: TurtlePath Studio Latest
+          body_path: ${{ env.RELEASE_NOTES_PATH }}
+          draft: false
+          prerelease: false
+          make_latest: false
+          overwrite_files: true
           files: |
             ${{ steps.publish.outputs.asset_path }}
             ${{ steps.publish.outputs.manifest_path }}

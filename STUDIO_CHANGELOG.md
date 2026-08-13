@@ -1,5 +1,13 @@
 # TurtlePath Studio Changelog
 
+## 1.0.4
+
+### Fixed
+
+- Changed the default Studio update manifest URL to a stable `studio-latest` release instead of GitHub's repository-wide `latest` release.
+- Improved update manifest validation messages when a configured URL returns HTML or another non-JSON response.
+- Updated the Studio release workflow to publish and refresh the stable `studio-latest` release assets.
+
 ## 1.0.3
 
 ### Added
