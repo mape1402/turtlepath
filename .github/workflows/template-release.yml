@@ -1,4 +1,4 @@
-name: Build and Release
+name: Template Release
 
 on:
   workflow_dispatch:
@@ -6,45 +6,37 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'benchmarks/**'
-      - 'samples/**'
-      - '.github/workflows/build-and-release.yml'
-      - '.release'
-      - 'CHANGELOG.md'
-      - 'README.md'
-      - 'assets/**'
-      - 'Directory.Build.props'
+      - 'templates/TurtlePath.Template/**'
+      - '.github/workflows/template-release.yml'
+      - '.template.release'
+      - 'TEMPLATE_CHANGELOG.md'
   push:
     branches:
       - main
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'benchmarks/**'
-      - 'samples/**'
-      - '.github/workflows/build-and-release.yml'
-      - '.release'
-      - 'CHANGELOG.md'
-      - 'README.md'
-      - 'assets/**'
-      - 'Directory.Build.props'
+      - 'templates/TurtlePath.Template/**'
+      - '.github/workflows/template-release.yml'
+      - '.template.release'
+      - 'TEMPLATE_CHANGELOG.md'
 
 env:
-  CHANGELOG_PATH: CHANGELOG.md
+  CHANGELOG_PATH: TEMPLATE_CHANGELOG.md
   CONFIGURATION: Release
+  DOTNET_VERSION: 10.0.x
   NUGET_OUTPUT: ./nupkgs
   NUGET_SOURCE: https://api.nuget.org/v3/index.json
   NUGET_USER: ${{ vars.NUGET_USER }}
-  RELEASE_BRANCH_PREFIX: releases/
-  RELEASE_MARKER_PATH: .release
-  RELEASE_NOTES_PATH: release_notes.txt
-  RELEASE_BRANCH_PATTERN: ^releases/v[0-9]+\.[0-9]+\.[0-9]+$
-  RELEASE_TAG_PATTERN: ^v[0-9]+\.[0-9]+\.[0-9]+$
+  RELEASE_BRANCH_PREFIX: template-releases/
+  RELEASE_MARKER_PATH: .template.release
+  RELEASE_NOTES_PATH: template_release_notes.txt
+  RELEASE_BRANCH_PATTERN: ^template-releases/template-v[0-9]+\.[0-9]+\.[0-9]+$
+  RELEASE_TAG_PATTERN: ^template-v[0-9]+\.[0-9]+\.[0-9]+$
+  TEMPLATE_PROJECT: templates/TurtlePath.Template/TurtlePath.Template.csproj
+  TEMPLATE_SOLUTION: templates/TurtlePath.Template/templates/turtlepath-service/TurtlePath.Template.sln
+  TEMPLATE_INFO_PATH: templates/TurtlePath.Template/templates/turtlepath-service/turtlepath.template.json
 
 jobs:
-  build-and-test:
+  build-and-release-template:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -59,38 +51,18 @@ jobs:
       - name: Install .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            10.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Restore generated template solution
+        run: dotnet restore "$TEMPLATE_SOLUTION"
 
-          while IFS= read -r project; do
-            dotnet restore "$project"
-          done < <(find src tests benchmarks samples -name '*.csproj' | sort)
+      - name: Build generated template solution
+        run: dotnet build "$TEMPLATE_SOLUTION" --no-restore --configuration "$CONFIGURATION"
 
-      - name: Build
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Test generated template solution
+        run: dotnet test "$TEMPLATE_SOLUTION" --no-build --configuration "$CONFIGURATION" --verbosity normal
 
-          while IFS= read -r project; do
-            dotnet build "$project" --no-restore --configuration "$CONFIGURATION"
-          done < <(find src tests benchmarks samples -name '*.csproj' | sort)
-
-      - name: Test
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          while IFS= read -r project; do
-            dotnet test "$project" --no-build --configuration "$CONFIGURATION" --verbosity normal
-          done < <(find tests -name '*.csproj' | sort)
-
-      - name: Resolve release marker
+      - name: Resolve template release marker
         id: release
         if: >
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -105,25 +77,25 @@ jobs:
             BRANCH="${GITHUB_REF_NAME}"
 
             if [[ ! "$BRANCH" =~ $RELEASE_BRANCH_PATTERN ]]; then
-              echo "Manual releases must run from a branch matching $RELEASE_BRANCH_PATTERN. Current branch: $BRANCH"
+              echo "Manual template releases must run from a branch matching $RELEASE_BRANCH_PATTERN. Current branch: $BRANCH"
               exit 1
             fi
 
             TAG="${BRANCH#"$RELEASE_BRANCH_PREFIX"}"
           else
             if ! git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "$RELEASE_MARKER_PATH"; then
-              echo "$RELEASE_MARKER_PATH did not change in this push. Skipping release."
+              echo "$RELEASE_MARKER_PATH did not change in this push. Skipping template release."
               exit 0
             fi
 
             if [[ ! -f "$RELEASE_MARKER_PATH" ]]; then
-              echo "$RELEASE_MARKER_PATH was removed. Skipping release."
+              echo "$RELEASE_MARKER_PATH was removed. Skipping template release."
               exit 0
             fi
 
             NON_EMPTY_LINES="$(grep -cve '^[[:space:]]*$' "$RELEASE_MARKER_PATH" || true)"
             if [[ "$NON_EMPTY_LINES" != "1" ]]; then
-              echo "$RELEASE_MARKER_PATH must contain exactly one non-empty line with the release tag, for example v1.0.0."
+              echo "$RELEASE_MARKER_PATH must contain exactly one non-empty template release tag, for example template-v1.0.0."
               exit 1
             fi
 
@@ -131,11 +103,11 @@ jobs:
           fi
 
           if [[ ! "$TAG" =~ $RELEASE_TAG_PATTERN ]]; then
-            echo "Release tag must match $RELEASE_TAG_PATTERN. Current value: $TAG"
+            echo "Template release tag must match $RELEASE_TAG_PATTERN. Current value: $TAG"
             exit 1
           fi
 
-          VERSION="${TAG#v}"
+          VERSION="${TAG#template-v}"
           TAG_LINE=$(grep -m1 -E "^## \[($TAG|$VERSION)\]" "$CHANGELOG_PATH" || true)
 
           if [[ -z "$TAG_LINE" ]]; then
@@ -151,7 +123,7 @@ jobs:
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
           echo "tag_line=$TAG_LINE" >> "$GITHUB_OUTPUT"
 
-      - name: Create release branch
+      - name: Create template release branch
         if: steps.release.outputs.should_release == 'true' && github.event_name == 'push'
         shell: bash
         run: |
@@ -159,7 +131,7 @@ jobs:
 
           BRANCH="${{ steps.release.outputs.branch }}"
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            echo "Release branch $BRANCH already exists. Skipping creation."
+            echo "Template release branch $BRANCH already exists. Skipping creation."
             exit 0
           fi
 
@@ -168,7 +140,7 @@ jobs:
           git branch "$BRANCH" "${{ github.sha }}"
           git push origin "refs/heads/$BRANCH"
 
-      - name: Prepare release notes
+      - name: Prepare template release notes
         if: steps.release.outputs.should_release == 'true'
         shell: bash
         run: |
@@ -187,22 +159,40 @@ jobs:
             exit 1
           fi
 
-      - name: Pack NuGet packages
+      - name: Stamp template version
         if: steps.release.outputs.should_release == 'true'
         shell: bash
         run: |
           set -euo pipefail
 
-          while IFS= read -r project; do
-            dotnet pack "$project" \
-              --configuration "$CONFIGURATION" \
-              --output "$NUGET_OUTPUT" \
-              /p:Version=${{ steps.release.outputs.version }} \
-              /p:PackageVersion=${{ steps.release.outputs.version }} \
-              /p:MinVerVersionOverride=${{ steps.release.outputs.version }}
-          done < <(find src -name '*.csproj' | sort)
+          if [[ ! -f "$TEMPLATE_INFO_PATH" ]]; then
+            echo "$TEMPLATE_INFO_PATH was not found."
+            exit 1
+          fi
 
-      - name: Create or update release tag
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ["TEMPLATE_INFO_PATH"])
+          version = "${{ steps.release.outputs.version }}"
+          document = json.loads(path.read_text(encoding="utf-8"))
+          document["version"] = version
+          path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Pack template NuGet package
+        if: steps.release.outputs.should_release == 'true'
+        run: >
+          dotnet pack "$TEMPLATE_PROJECT"
+          --configuration "$CONFIGURATION"
+          --output "$NUGET_OUTPUT"
+          /p:Version=${{ steps.release.outputs.version }}
+          /p:PackageVersion=${{ steps.release.outputs.version }}
+          /p:MinVerVersionOverride=${{ steps.release.outputs.version }}
+
+      - name: Create or update template release tag
         if: steps.release.outputs.should_release == 'true'
         shell: bash
         run: |
@@ -218,10 +208,7 @@ jobs:
             git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
             TAG_SHA="$(git rev-list -n 1 "$TAG")"
 
-            if [[ "$TAG_SHA" == "$HEAD_SHA" ]]; then
-              echo "Tag $TAG already points to $HEAD_SHA. Nothing to update."
-            else
-              echo "Tag $TAG points to $TAG_SHA and will be moved to $HEAD_SHA."
+            if [[ "$TAG_SHA" != "$HEAD_SHA" ]]; then
               git tag --force "$TAG" "$HEAD_SHA"
               git push --force origin "refs/tags/$TAG"
             fi
@@ -230,12 +217,12 @@ jobs:
             git push origin "refs/tags/$TAG"
           fi
 
-      - name: Create GitHub Release
+      - name: Create GitHub Template Release
         if: steps.release.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release.outputs.tag }}
-          name: ${{ steps.release.outputs.tag }}
+          name: TurtlePath.Template ${{ steps.release.outputs.version }}
           body_path: ${{ env.RELEASE_NOTES_PATH }}
           draft: false
           prerelease: false
@@ -261,18 +248,18 @@ jobs:
         with:
           user: ${{ env.NUGET_USER }}
 
-      - name: Push to NuGet
+      - name: Push template to NuGet
         if: steps.release.outputs.should_release == 'true'
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
 
-          packages=("$NUGET_OUTPUT"/*.nupkg)
-          symbols=("$NUGET_OUTPUT"/*.snupkg)
+          packages=("$NUGET_OUTPUT"/TurtlePath.Template.*.nupkg)
+          symbols=("$NUGET_OUTPUT"/TurtlePath.Template.*.snupkg)
 
           if (( ${#packages[@]} == 0 )); then
-            echo "No .nupkg files were found in $NUGET_OUTPUT."
+            echo "No TurtlePath.Template .nupkg files were found in $NUGET_OUTPUT."
             exit 1
           fi
 
