@@ -1,5 +1,5 @@
 #if (JobHost)
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Caches transaction boundary decisions by request type.

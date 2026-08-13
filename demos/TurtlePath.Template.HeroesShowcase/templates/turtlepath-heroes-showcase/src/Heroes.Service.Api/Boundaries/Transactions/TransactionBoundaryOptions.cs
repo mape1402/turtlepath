@@ -1,6 +1,6 @@
 ﻿using System.Transactions;
 
-namespace Heroes.Service.Api.Boundaries
+namespace Heroes.Service.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Configures the Spider transaction boundary.

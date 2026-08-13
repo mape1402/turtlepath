@@ -109,13 +109,14 @@ turtlepath.template.json
 src/
   TurtlePath.Template.Api/
     Boundaries/
-      ITransactionBoundaryProfile.cs
-      ITransactionBoundaryRequestFilter.cs
-      SkipTransactionBoundaryAttribute.cs
-      TransactionBoundaryOptions.cs
-      TransactionBoundaryProfile.cs
-      TransactionBoundaryRequestFilter.cs
-      TransactionExecutionBoundary.cs
+      Transactions/
+        ITransactionBoundaryProfile.cs
+        ITransactionBoundaryRequestFilter.cs
+        SkipTransactionBoundaryAttribute.cs
+        TransactionBoundaryOptions.cs
+        TransactionBoundaryProfile.cs
+        TransactionBoundaryRequestFilter.cs
+        TransactionExecutionBoundary.cs
     Controllers/
       BaseController.cs
     DependencyInjection/
@@ -200,7 +201,9 @@ tests/
       TemplateTestHost.cs
     JobCompositionTests.cs
     TemplateCompositionTests.cs
-    TransactionExecutionBoundaryTests.cs
+    Boundaries/
+      Transactions/
+        TransactionExecutionBoundaryTests.cs
     TurtlePathTestingExamplesTests.cs
     TurtlePath.Template.Tests.csproj
 ```
@@ -1892,12 +1895,12 @@ public sealed class RebuildSearchIndexRequest : IRequest
 }
 ```
 
-Prefer a profile when a feature or module has several transaction rules. Put the profile close to the feature, for example `Business/Search/Boundaries/SearchTransactionBoundaryProfile.cs`:
+Prefer a profile when a feature or module has several transaction rules. Put the profile close to the feature, for example `Business/Search/Boundaries/Transactions/SearchTransactionBoundaryProfile.cs`:
 
 ```csharp
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 
-namespace TurtlePath.Template.Business.Search.Boundaries;
+namespace TurtlePath.Template.Business.Search.Boundaries.Transactions;
 
 public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfile
 {
@@ -2688,7 +2691,7 @@ Use Spider tests for use cases that must run through execution boundaries. This 
 ```csharp
 using Spider.Testing;
 using Spider.Testing.Assertions;
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 
 await using var host = await TemplateTestHost
     .CreateIntegrationHost<AppDbContext>()
@@ -2727,7 +2730,7 @@ Use a direct boundary filter test when the important behavior is whether a reque
 
 ```csharp
 using Microsoft.Extensions.Options;
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 
 var options = Options.Create(new TransactionBoundaryOptions
 {

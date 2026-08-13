@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Heroes.Service.Api.Boundaries
+namespace Heroes.Service.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Caches transaction boundary _decisions by request type.

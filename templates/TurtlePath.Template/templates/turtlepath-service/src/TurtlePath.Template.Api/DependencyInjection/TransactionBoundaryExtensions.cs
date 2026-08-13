@@ -1,4 +1,4 @@
-using TurtlePath.Template.Api.Boundaries;
+using TurtlePath.Template.Api.Boundaries.Transactions;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;

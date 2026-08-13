@@ -1,4 +1,4 @@
-namespace TurtlePath.Template.Api.Boundaries
+namespace TurtlePath.Template.Api.Boundaries.Transactions
 {
     /// <summary>
     /// Base class for transaction boundary profiles.
