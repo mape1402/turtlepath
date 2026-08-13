@@ -130,4 +130,5 @@ $updatedManifest = [ordered]@{
 }
 
 $json = $updatedManifest | ConvertTo-Json -Depth 20
-Set-Content -LiteralPath $manifestPath -Value $json -Encoding utf8
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $manifestPath), $json + [System.Environment]::NewLine, $utf8NoBom)
