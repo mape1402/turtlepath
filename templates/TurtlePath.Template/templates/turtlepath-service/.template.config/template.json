@@ -12,6 +12,9 @@
     "preferNameDirectory" : "true",
     "sources": [
         {
+            "copyOnly": [
+                "turtlepath.template.json"
+            ],
             "exclude": [
                 ".git/**",
                 ".template.config/**",

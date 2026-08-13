@@ -84,6 +84,17 @@ dotnet build --configuration Release --no-restore
 dotnet test --configuration Release --no-build
 ```
 
+Cada proyecto generado incluye `turtlepath.template.json` en la raiz de la solucion:
+
+```json
+{
+  "packageId": "TurtlePath.Template",
+  "version": "1.6.0"
+}
+```
+
+Usa ese archivo para saber con que version de `TurtlePath.Template` se creo el servicio. En el codigo fuente del repositorio puede aparecer como `0.0.0-local`; los paquetes publicados se estampan durante el release con la version real del paquete.
+
 Ambos hosts comparten la misma forma de Business, Domain, Persistence y tests. La diferencia principal es la capa de presentacion:
 
 - `api-consumer` levanta ASP.NET Core con controllers, Scalar OpenAPI docs, health checks, Spider y exception filters. Los consumers con Pigeon quedan listos para habilitarse cuando el servicio tenga configuracion del broker.
@@ -94,6 +105,7 @@ Ambos hosts comparten la misma forma de Business, Domain, Persistence y tests. L
 La solucion generada esta separada por responsabilidad:
 
 ```text
+turtlepath.template.json
 src/
   TurtlePath.Template.Api/
     Boundaries/

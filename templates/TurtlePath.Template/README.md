@@ -29,3 +29,5 @@ dotnet test
 ```
 
 The generated project includes TurtlePath defaults for handlers, automations, exception handling, jobs, DataScorpio filtering, OctoMap mapping, Crabalidator validation, and testing foundations.
+
+Generated services also include `turtlepath.template.json` at the solution root. That file records the `TurtlePath.Template` package version used to create the service.

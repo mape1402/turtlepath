@@ -84,6 +84,17 @@ dotnet build --configuration Release --no-restore
 dotnet test --configuration Release --no-build
 ```
 
+Every generated project includes `turtlepath.template.json` at the solution root:
+
+```json
+{
+  "packageId": "TurtlePath.Template",
+  "version": "1.6.0"
+}
+```
+
+Use that file to know which `TurtlePath.Template` package version created the service. In the repository source it can show `0.0.0-local`; published template packages are stamped during release with the real package version.
+
 The API/consumer host and job host share the same Business, Domain, Persistence, and testing shape. The main difference is the presentation host:
 
 - `api-consumer` starts an ASP.NET Core app with controllers, Scalar OpenAPI docs, health checks, Spider, and exception filters. Pigeon consumers are ready to enable when the service has broker settings.
@@ -94,6 +105,7 @@ The API/consumer host and job host share the same Business, Domain, Persistence,
 Generated projects are split by responsibility:
 
 ```text
+turtlepath.template.json
 src/
   TurtlePath.Template.Api/
     Boundaries/
