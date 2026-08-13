@@ -40,6 +40,11 @@ namespace Microsoft.Extensions.DependencyInjection
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapOpenApi();
+                endpoints.MapGet("/", context =>
+                {
+                    context.Response.Redirect($"/scalar/{OpenApiConstants.Docs.ApiVersion}");
+                    return Task.CompletedTask;
+                });
                 endpoints.MapScalarApiReference(options =>
                 {
                     options.Title = OpenApiConstants.Docs.ApiName;

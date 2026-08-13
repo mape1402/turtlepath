@@ -7,5 +7,8 @@ namespace Heroes.Service.Business.Skills.Queries;
 
 public sealed class GetSkillsQuery : GetManyQuery<Skill, SkillResponse>
 {
+    /// <summary>
+    /// Gets or sets the owner alignment for the skill.
+    /// </summary>
     public Alignment? OwnerAlignment { get; init; }
 }

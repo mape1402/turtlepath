@@ -11,5 +11,8 @@ public sealed class GetPagedHeroesQuery : GetPagedInfoQuery<Hero, HeroResponse>
     {
     }
 
+    /// <summary>
+    /// Gets or sets the team identifier associated with the resource.
+    /// </summary>
     public CId? TeamId { get; set; }
 }

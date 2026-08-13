@@ -11,5 +11,8 @@ public sealed class GetPagedIncidentsQuery : GetPagedInfoQuery<Incident, Inciden
     {
     }
 
+    /// <summary>
+    /// Gets or sets the current incident status.
+    /// </summary>
     public IncidentStatus? Status { get; set; }
 }
