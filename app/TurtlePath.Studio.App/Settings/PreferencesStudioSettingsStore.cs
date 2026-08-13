@@ -14,7 +14,7 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
     private const string UpdateChannelKey = "studio.updates.channel";
     private const string CheckUpdatesOnStartupKey = "studio.updates.checkOnStartup";
 
-    public const string DefaultUpdateManifestUrl = "https://github.com/mape1402/turtlepath/releases/latest/download/studio.manifest.json";
+    public const string DefaultUpdateManifestUrl = "https://github.com/mape1402/turtlepath/releases/download/studio-latest/studio.manifest.json";
     public const string DefaultUpdateChannel = "stable";
 
     public StudioSettings Load()
