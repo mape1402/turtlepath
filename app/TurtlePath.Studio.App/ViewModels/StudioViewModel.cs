@@ -31,6 +31,7 @@ public sealed class StudioViewModel
     private readonly IStudioSettingsStore settingsStore;
     private readonly IStudioGuideProvider guideProvider;
     private readonly IStudioUpdater studioUpdater;
+    private Task? guideLoadTask;
 
     public StudioSection Section { get; private set; } = StudioSection.Home;
     public bool SidebarCollapsed { get; private set; }
@@ -251,42 +252,80 @@ public sealed class StudioViewModel
 
     public void CloseCommandOutput() => IsCommandOutputOpen = false;
 
-    public async Task LoadGuidesAsync(bool forceRefresh = false)
+    public Task LoadGuidesAsync(bool forceRefresh = false)
     {
-        var templateVersion = Environment?.Template.Version;
-        if (string.IsNullOrWhiteSpace(templateVersion))
+        if (guideLoadTask is not null)
+            return guideLoadTask;
+
+        return guideLoadTask = LoadGuidesCoreAsync(forceRefresh);
+    }
+
+    public async Task PreloadGuidesQuietlyAsync(CancellationToken cancellationToken = default)
+    {
+        try
         {
-            TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
-            Environment = TemplateEnvironments.FirstOrDefault(environment =>
-                environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
-            templateVersion = Environment?.Template.Version ?? string.Empty;
+            await LoadGuidesAsync().WaitAsync(cancellationToken);
         }
-
-        GuideOptions = await guideProvider.GetGuidesAsync(
-            TurtlePathStudioDefaults.TemplatePackageId,
-            string.Empty);
-        TemplateGuideOptions = BuildTemplateGuideOptions(GuideOptions, templateVersion);
-
-        if (TemplateGuideOptions.Count == 0)
+        catch
         {
-            GuideStatus = "No versioned guides match the installed template. Using embedded fallback.";
-            return;
+            // Guide availability must never prevent the Studio shell from opening.
         }
+    }
 
-        SelectedTemplateGuideOption = SelectTemplateGuideOption(templateVersion);
-        var selectedGuide = SelectedTemplateGuideOption.Guide;
-        SelectedGuide = selectedGuide;
-        SelectedGuideCulture ??= selectedGuide.Cultures.FirstOrDefault(culture => string.Equals(culture.Code, "en", StringComparison.OrdinalIgnoreCase))
-            ?? selectedGuide.Cultures.FirstOrDefault();
-
-        if (SelectedGuideCulture is null)
+    private async Task LoadGuidesCoreAsync(bool forceRefresh)
+    {
+        try
         {
-            GuideStatus = "Selected guide has no available cultures.";
-            return;
-        }
+            var templateVersion = Environment?.Template.Version;
+            if (string.IsNullOrWhiteSpace(templateVersion))
+            {
+                TemplateEnvironments = await InspectTemplateEnvironmentsAsync();
+                Environment = TemplateEnvironments.FirstOrDefault(environment =>
+                    environment.Template.PackageId == TurtlePathStudioDefaults.TemplatePackageId);
+                templateVersion = Environment?.Template.Version ?? string.Empty;
+            }
 
-        CurrentGuide = await guideProvider.GetGuideAsync(selectedGuide, SelectedGuideCulture, forceRefresh);
-        GuideStatus = CurrentGuide.Status;
+            GuideOptions = await guideProvider.GetGuidesAsync(
+                TurtlePathStudioDefaults.TemplatePackageId,
+                templateVersion);
+            TemplateGuideOptions = BuildTemplateGuideOptions(GuideOptions, templateVersion);
+
+            if (TemplateGuideOptions.Count == 0)
+            {
+                SelectedTemplateGuideOption = null;
+                SelectedGuide = null;
+                SelectedGuideCulture = null;
+                CurrentGuide = null;
+                GuideStatus = string.IsNullOrWhiteSpace(templateVersion)
+                    ? "No installed template version is available to resolve a guide."
+                    : $"No documentation package is available for template {templateVersion}.";
+                return;
+            }
+
+            SelectedTemplateGuideOption = SelectTemplateGuideOption(templateVersion);
+            var selectedGuide = SelectedTemplateGuideOption.Guide;
+            SelectedGuide = selectedGuide;
+            SelectedGuideCulture ??= selectedGuide.Cultures.FirstOrDefault(culture => string.Equals(culture.Code, "en", StringComparison.OrdinalIgnoreCase))
+                ?? selectedGuide.Cultures.FirstOrDefault();
+
+            if (SelectedGuideCulture is null)
+            {
+                GuideStatus = "Selected guide has no available cultures.";
+                return;
+            }
+
+            CurrentGuide = await guideProvider.GetGuideAsync(selectedGuide, SelectedGuideCulture, forceRefresh);
+            GuideStatus = CurrentGuide.Status;
+        }
+        catch (Exception exception)
+        {
+            CurrentGuide = null;
+            GuideStatus = $"Guide loading failed: {exception.Message}";
+        }
+        finally
+        {
+            guideLoadTask = null;
+        }
     }
 
     public Task SelectTemplateGuideAsync(StudioTemplateGuideOption option)
@@ -443,11 +482,20 @@ public sealed class StudioViewModel
         {
             await LoadGuidesAsync(forceRefresh: true);
 
+            if (CurrentGuide is null)
+            {
+                Message = GuideStatus;
+                MessageIsError = false;
+                MessageIsWarning = true;
+                IsStatusMessageOpen = true;
+                return;
+            }
+
             Message = CurrentGuide?.IsTemplatePackage == true
                 ? "Documentation loaded from the installed template package."
                 : CurrentGuide?.LoadedFromCache == false && CurrentGuide.IsEmbeddedFallback == false
-                ? "Documentation synced from GitHub."
-                : "Documentation is available locally. GitHub could not be reached, so Studio kept the local guide.";
+                ? "Documentation synced from the TurtlePath documentation package."
+                : "Documentation is available locally. The documentation package could not be refreshed, so Studio kept the cached guide.";
             MessageIsError = false;
             MessageIsWarning = CurrentGuide?.IsTemplatePackage != true &&
                 (CurrentGuide?.LoadedFromCache != false || CurrentGuide.IsEmbeddedFallback);

@@ -51,8 +51,18 @@ public partial class MainPage : ContentPage
     private async Task CheckUpdatesOnStartupAsync()
     {
         await Task.Delay(750);
-        await viewModel.CheckStudioUpdateQuietlyAsync();
+        if (viewModel.CheckUpdatesOnStartup)
+            await viewModel.CheckStudioUpdateQuietlyAsync();
+
         await viewModel.CheckTemplateUpdatesQuietlyAsync();
+        MainThread.BeginInvokeOnMainThread(Render);
+        _ = PreloadGuidesAsync();
+    }
+
+    private async Task PreloadGuidesAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await viewModel.PreloadGuidesQuietlyAsync(timeout.Token);
         MainThread.BeginInvokeOnMainThread(Render);
     }
 
@@ -721,12 +731,19 @@ public partial class MainPage : ContentPage
             if (viewModel.CurrentGuide is null)
             {
                 await viewModel.LoadGuidesAsync();
-                MainThread.BeginInvokeOnMainThread(Render);
             }
 
             webView.Source = new HtmlWebViewSource
             {
-                Html = viewModel.CurrentGuide?.Html ?? "<!doctype html><html><body><h1>Guide unavailable</h1></body></html>"
+                Html = viewModel.CurrentGuide?.Html ?? $"""
+                    <!doctype html>
+                    <html>
+                    <body style="font-family:Segoe UI,Arial,sans-serif;padding:32px;color:#081f1a;background:#f4f8f5">
+                        <h1>Guide unavailable</h1>
+                        <p>{System.Net.WebUtility.HtmlEncode(viewModel.GuideStatus)}</p>
+                    </body>
+                    </html>
+                    """
             };
         }
         catch (Exception exception)
@@ -898,7 +915,7 @@ public partial class MainPage : ContentPage
             ? "embedded fallback"
             : viewModel.CurrentGuide.LoadedFromCache
                 ? "local cache"
-                : "GitHub";
+                : "NuGet documentation package";
 
         return $"Current guide: {viewModel.SelectedDocumentationGuideText} Language: {viewModel.CurrentGuide.Culture.Title}. Source: {source}.";
     }

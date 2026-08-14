@@ -25,30 +25,37 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             ? TurtlePathStudioDefaults.TemplatePackageId
             : packageId;
 
-        var manifest = await LoadLatestManifestAsync(forceRefresh: false, cancellationToken);
-        var normalizedVersion = NormalizeVersion(templateVersion);
-        var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
-            string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
-
-        if (mapping is null)
-            return [];
-
-        var guideVersion = NormalizeVersion(mapping.GuideVersion);
-        var cultures = new[]
+        try
         {
-            new StudioGuideCulture("en", "English", string.Empty),
-            new StudioGuideCulture("es", "Espanol", string.Empty)
-        };
+            var manifest = await LoadLatestManifestAsync(forceRefresh: false, cancellationToken);
+            var normalizedVersion = NormalizeVersion(templateVersion);
+            var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
+                string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
 
-        return [new StudioGuideOption(
-            $"template-use-guide-{guideVersion}",
-            "TurtlePath Template Use Guide",
-            guideVersion,
-            packageId,
-            BuildExactRange(normalizedVersion),
-            mapping.TemplateVersions,
-            cultures,
-            "NuGet")];
+            if (mapping is null)
+                return [];
+
+            var guideVersion = NormalizeVersion(mapping.GuideVersion);
+            var cultures = new[]
+            {
+                new StudioGuideCulture("en", "English", string.Empty),
+                new StudioGuideCulture("es", "Espanol", string.Empty)
+            };
+
+            return [new StudioGuideOption(
+                $"template-use-guide-{guideVersion}",
+                "TurtlePath Template Use Guide",
+                guideVersion,
+                packageId,
+                BuildExactRange(normalizedVersion),
+                mapping.TemplateVersions,
+                cultures,
+                "NuGet")];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     public async Task<StudioGuideDocument> GetGuideAsync(
@@ -61,7 +68,6 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         ArgumentNullException.ThrowIfNull(culture);
 
         var packageVersion = NormalizeVersion(guide.DocumentationVersion);
-        var packagePath = await EnsurePackageAsync(packageVersion, forceRefresh, cancellationToken);
         var htmlPath = Path.Combine(GetGuideCacheDirectory(packageVersion), $"{culture.Code}.html");
 
         if (!forceRefresh && File.Exists(htmlPath))
@@ -77,8 +83,9 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
 
         try
         {
+            var packagePath = await EnsurePackageAsync(packageVersion, forceRefresh, cancellationToken);
             var markdown = ReadGuideMarkdown(packagePath, packageVersion, culture.Code);
-            var html = SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})");
+            var html = await RenderMarkdownAsync(markdown, guide, culture, cancellationToken);
             Directory.CreateDirectory(GetGuideCacheDirectory(packageVersion));
             await File.WriteAllTextAsync(htmlPath, html, cancellationToken);
 
@@ -106,7 +113,7 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
                 guide,
                 culture,
                 SimpleMarkdownRenderer.Render("# Guide unavailable\n\nThe selected documentation package is not available locally.", "Guide unavailable"),
-                $"Guide {packageVersion} is not available locally and could not be downloaded.",
+                $"Guide {packageVersion} is not available locally. The documentation package may not be published yet or could not be downloaded.",
                 LoadedFromCache: false,
                 IsEmbeddedFallback: true);
         }
@@ -116,6 +123,15 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
     {
         if (!forceRefresh && latestManifest is not null)
             return latestManifest;
+
+        if (!forceRefresh)
+        {
+            var cachedManifest = await TryLoadCachedManifestAsync(cancellationToken);
+            if (cachedManifest is not null)
+                return latestManifest = cachedManifest;
+
+            return latestManifest = new DocumentationPackageManifest([]);
+        }
 
         try
         {
@@ -145,12 +161,39 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         var cachedVersionPath = GetLatestVersionPath();
         if (File.Exists(cachedVersionPath))
         {
-            var cachedVersion = NormalizeVersion(await File.ReadAllTextAsync(cachedVersionPath, cancellationToken));
-            latestManifest = ReadPackageManifest(await EnsurePackageAsync(cachedVersion, false, cancellationToken));
-            return latestManifest;
+            try
+            {
+                var cachedVersion = NormalizeVersion(await File.ReadAllTextAsync(cachedVersionPath, cancellationToken));
+                var cachedPackagePath = Path.Combine(
+                    GetPackageCacheDirectory(cachedVersion),
+                    $"{DocumentationPackageId}.{cachedVersion}.nupkg");
+
+                if (File.Exists(cachedPackagePath))
+                    latestManifest = ReadPackageManifest(cachedPackagePath);
+
+                return latestManifest ??= new DocumentationPackageManifest([]);
+            }
+            catch
+            {
+                return latestManifest = new DocumentationPackageManifest([]);
+            }
         }
 
         return latestManifest = new DocumentationPackageManifest([]);
+    }
+
+    private static async Task<DocumentationPackageManifest?> TryLoadCachedManifestAsync(CancellationToken cancellationToken)
+    {
+        var cachedVersionPath = GetLatestVersionPath();
+        if (!File.Exists(cachedVersionPath))
+            return null;
+
+        var cachedVersion = NormalizeVersion(await File.ReadAllTextAsync(cachedVersionPath, cancellationToken));
+        var packagePath = Path.Combine(
+            GetPackageCacheDirectory(cachedVersion),
+            $"{DocumentationPackageId}.{cachedVersion}.nupkg");
+
+        return File.Exists(packagePath) ? ReadPackageManifest(packagePath) : null;
     }
 
     private async Task<string> EnsurePackageAsync(string version, bool forceRefresh, CancellationToken cancellationToken)
@@ -161,11 +204,23 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             return packagePath;
 
         var packageUrl = $"https://api.nuget.org/v3-flatcontainer/{DocumentationPackageId.ToLowerInvariant()}/{version.ToLowerInvariant()}/{DocumentationPackageId.ToLowerInvariant()}.{version.ToLowerInvariant()}.nupkg";
-        using var response = await httpClient.GetAsync(packageUrl, cancellationToken);
+        using var response = await httpClient.GetAsync(packageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
         Directory.CreateDirectory(directory);
-        await using var output = File.Create(packagePath);
-        await response.Content.CopyToAsync(output, cancellationToken);
+        var temporaryPath = $"{packagePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await using (var output = File.Create(temporaryPath))
+                await response.Content.CopyToAsync(output, cancellationToken);
+
+            File.Move(temporaryPath, packagePath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
+
         return packagePath;
     }
 
@@ -185,6 +240,17 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             ?? throw new FileNotFoundException($"Guide content for culture '{culture}' was not found.");
         using var reader = new StreamReader(entry.Open());
         return reader.ReadToEnd();
+    }
+
+    private static Task<string> RenderMarkdownAsync(
+        string markdown,
+        StudioGuideOption guide,
+        StudioGuideCulture culture,
+        CancellationToken cancellationToken)
+    {
+        return Task.Run(
+            () => SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})"),
+            cancellationToken);
     }
 
     private static string GetPackageCacheDirectory(string version) => Path.Combine(GetCacheRoot(), "Packages", DocumentationPackageId, version);
