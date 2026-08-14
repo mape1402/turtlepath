@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <PackageId>TurtlePath.Studio</PackageId>
+    <Description>Self-contained Windows x64 application for creating and managing TurtlePath projects.</Description>
+    <PackageTags>turtlepath;studio;ide;windows</PackageTags>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsPackable>true</IsPackable>
+    <StudioPayloadDirectory Condition="'$(StudioPayloadDirectory)' == ''">$(MSBuildThisFileDirectory)bin\studio-payload</StudioPayloadDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(StudioPayloadDirectory)\**\*" Pack="true" PackagePath="tools\win-x64\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -114,6 +114,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Spider.Transacti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Spider.Transactions.Tests", "tests\TurtlePath.Spider.Transactions.Tests\TurtlePath.Spider.Transactions.Tests.csproj", "{1244CD5F-CCAA-4C0A-ABBC-3A37D97E2BBE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TurtlePath.Studio.Package", "app\TurtlePath.Studio.Package\TurtlePath.Studio.Package.csproj", "{73632CD0-49B6-4180-B32C-B408EFDB6F10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -676,6 +678,18 @@ Global
 		{1244CD5F-CCAA-4C0A-ABBC-3A37D97E2BBE}.Release|x64.Build.0 = Release|Any CPU
 		{1244CD5F-CCAA-4C0A-ABBC-3A37D97E2BBE}.Release|x86.ActiveCfg = Release|Any CPU
 		{1244CD5F-CCAA-4C0A-ABBC-3A37D97E2BBE}.Release|x86.Build.0 = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|x64.Build.0 = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Debug|x86.Build.0 = Debug|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|x64.ActiveCfg = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|x64.Build.0 = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|x86.ActiveCfg = Release|Any CPU
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -727,5 +741,6 @@ Global
 		{58979FB0-F8E8-49F5-BAB6-AD6A63C4278F} = {01E6E15F-5F38-4A8D-B097-C0437A8A1D18}
 		{86B8174B-3DAC-4EA6-BFD7-E31DE8265F24} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{1244CD5F-CCAA-4C0A-ABBC-3A37D97E2BBE} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{73632CD0-49B6-4180-B32C-B408EFDB6F10} = {01E6E15F-5F38-4A8D-B097-C0437A8A1D18}
 	EndGlobalSection
 EndGlobal

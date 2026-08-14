@@ -81,7 +81,7 @@ Update Studio later with:
 turtlepath-studio update
 ```
 
-Studio can also update itself from `Environment > Studio updates`. The default source is the public GitHub release manifest, and teams can change it to another reachable manifest URL. Studio-specific release notes live in [`STUDIO_CHANGELOG.md`](STUDIO_CHANGELOG.md).
+Studio can also update itself from `Environment > Studio updates`. The Studio and its updater are distributed as the `TurtlePath.Studio` NuGet package. Studio-specific release notes live in [`STUDIO_CHANGELOG.md`](STUDIO_CHANGELOG.md).
 
 Useful options:
 

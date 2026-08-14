@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
@@ -35,9 +36,9 @@ static void PrintHelp()
           turtlepath-studio update [options]
 
         Options:
-          --version <tag>     GitHub release tag to download. Default: latest Studio release
-          --repo <owner/name> GitHub repository. Default: mape1402/turtlepath
-          --asset <name>      Release asset name. Default: TurtlePath.Studio.win-x64.zip
+          --version <version> NuGet version to download. Default: latest Studio package
+          --repo <value>      Ignored for compatibility.
+          --asset <value>     Ignored for compatibility.
           --output <path>     Install directory. Default: %LOCALAPPDATA%\TurtlePath\Studio
           --force             Replace the existing install directory.
           --no-shortcut       Do not create or update the desktop shortcut.
@@ -147,9 +148,6 @@ internal sealed class StudioInstaller
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (string.IsNullOrWhiteSpace(options.Repository) || !options.Repository.Contains("/", StringComparison.Ordinal))
-            throw new InvalidOperationException("Repository must use the 'owner/name' format.");
-
         var replaceExistingInstall = options.Force || options.Command == StudioToolCommand.Update;
         if (Directory.Exists(options.OutputDirectory))
         {
@@ -161,19 +159,21 @@ internal sealed class StudioInstaller
 
         Directory.CreateDirectory(options.OutputDirectory);
 
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("TurtlePath-Studio-Tool", "1.0"));
+        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
 
         var release = await GetReleaseAsync(httpClient, options.Repository, options.ReleaseTag);
-        var asset = release.Assets.FirstOrDefault(item => string.Equals(item.Name, options.AssetName, StringComparison.OrdinalIgnoreCase));
-        if (asset is null)
-            throw new InvalidOperationException($"Release '{release.TagName}' does not contain asset '{options.AssetName}'.");
-
-        var archivePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}-{options.AssetName}");
+        var archivePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".nupkg");
         try
         {
-            await DownloadAsync(httpClient, asset.DownloadUrl, archivePath);
-            ZipFile.ExtractToDirectory(archivePath, options.OutputDirectory, overwriteFiles: true);
+            await DownloadAsync(httpClient, release.AssetUrl, archivePath);
+            var packageDirectory = Path.Combine(Path.GetTempPath(), "turtlepath-studio-" + Guid.NewGuid().ToString("N"));
+            ZipFile.ExtractToDirectory(archivePath, packageDirectory);
+            var payload = Path.Combine(packageDirectory, "tools", "win-x64");
+            var executable = Path.Combine(payload, StudioToolDefaults.ExecutableName);
+            if (!File.Exists(executable))
+                throw new InvalidOperationException("The TurtlePath.Studio package does not contain a valid Windows x64 payload.");
+            CopyDirectory(payload, options.OutputDirectory);
+            Directory.Delete(packageDirectory, recursive: true);
         }
         finally
         {
@@ -186,7 +186,7 @@ internal sealed class StudioInstaller
             throw new InvalidOperationException($"Studio was extracted, but '{StudioToolDefaults.ExecutableName}' was not found in {options.OutputDirectory}.");
 
         Console.WriteLine($"TurtlePath Studio installed at: {options.OutputDirectory}");
-        Console.WriteLine($"Version: {release.TagName}");
+        Console.WriteLine($"Version: {release.Version}");
         Console.WriteLine($"Executable: {executablePath}");
 
         if (options.CreateShortcut)
@@ -228,79 +228,32 @@ internal sealed class StudioInstaller
         Console.WriteLine($"Desktop shortcut: {shortcutPath}");
     }
 
-    private static async Task<GitHubRelease> GetReleaseAsync(
+    private static async Task<NuGetStudioPackage> GetReleaseAsync(
         HttpClient httpClient,
         string repository,
         string releaseTag)
     {
-        return releaseTag.Equals(StudioToolDefaults.LatestReleaseTag, StringComparison.OrdinalIgnoreCase)
-            ? await GetLatestStudioReleaseAsync(httpClient, repository)
-            : await GetReleaseByTagAsync(httpClient, repository, releaseTag);
+        var indexUrl = "https://api.nuget.org/v3-flatcontainer/turtlepath.studio/index.json";
+        var index = await httpClient.GetFromJsonAsync<NuGetVersionIndex>(indexUrl)
+            ?? throw new InvalidOperationException("NuGet did not return Studio versions.");
+        var version = string.IsNullOrWhiteSpace(releaseTag) || releaseTag.Equals(StudioToolDefaults.LatestReleaseTag, StringComparison.OrdinalIgnoreCase)
+            ? index.Versions.Where(item => Version.TryParse(item, out _)).OrderByDescending(item => Version.Parse(item)).FirstOrDefault()
+            : releaseTag.TrimStart('v');
+        if (string.IsNullOrWhiteSpace(version))
+            throw new InvalidOperationException("No published TurtlePath.Studio package was found.");
+        return new NuGetStudioPackage(version, "https://api.nuget.org/v3-flatcontainer/turtlepath.studio/" + version.ToLowerInvariant() + "/turtlepath.studio." + version.ToLowerInvariant() + ".nupkg");
     }
 
-    private static async Task<GitHubRelease> GetReleaseByTagAsync(
-        HttpClient httpClient,
-        string repository,
-        string releaseTag)
+    private static void CopyDirectory(string sourceDirectory, string targetDirectory)
     {
-        var requestUri = $"https://api.github.com/repos/{repository}/releases/tags/{Uri.EscapeDataString(releaseTag)}";
-        using var response = await httpClient.GetAsync(requestUri);
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Could not resolve Studio release '{releaseTag}' from {repository}. GitHub returned {(int)response.StatusCode}.");
-
-        return await ReadReleaseAsync(await response.Content.ReadAsStreamAsync());
-    }
-
-    private static async Task<GitHubRelease> GetLatestStudioReleaseAsync(
-        HttpClient httpClient,
-        string repository)
-    {
-        var requestUri = $"https://api.github.com/repos/{repository}/releases?per_page=100";
-        using var response = await httpClient.GetAsync(requestUri);
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Could not resolve the latest Studio release from {repository}. GitHub returned {(int)response.StatusCode}.");
-
-        await using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
-        foreach (var releaseElement in document.RootElement.EnumerateArray())
+        foreach (var directory in Directory.EnumerateDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(targetDirectory, Path.GetRelativePath(sourceDirectory, directory)));
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
-            var tagName = releaseElement.GetProperty("tag_name").GetString() ?? string.Empty;
-            var isDraft = releaseElement.TryGetProperty("draft", out var draftElement) && draftElement.GetBoolean();
-            var isPrerelease = releaseElement.TryGetProperty("prerelease", out var prereleaseElement) && prereleaseElement.GetBoolean();
-
-            if (!isDraft
-                && !isPrerelease
-                && tagName.StartsWith(StudioToolDefaults.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return ReadRelease(releaseElement);
-            }
+            var destination = Path.Combine(targetDirectory, Path.GetRelativePath(sourceDirectory, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(file, destination, overwrite: true);
         }
-
-        throw new InvalidOperationException($"No published Studio release was found in {repository}.");
-    }
-
-    private static async Task<GitHubRelease> ReadReleaseAsync(Stream stream)
-    {
-        using var document = await JsonDocument.ParseAsync(stream);
-        return ReadRelease(document.RootElement);
-    }
-
-    private static GitHubRelease ReadRelease(JsonElement releaseElement)
-    {
-        var tagName = releaseElement.GetProperty("tag_name").GetString() ?? string.Empty;
-        var assets = new List<GitHubReleaseAsset>();
-        if (releaseElement.TryGetProperty("assets", out var assetsElement))
-        {
-            foreach (var assetElement in assetsElement.EnumerateArray())
-            {
-                var name = assetElement.GetProperty("name").GetString() ?? string.Empty;
-                var downloadUrl = assetElement.GetProperty("browser_download_url").GetString() ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(downloadUrl))
-                    assets.Add(new GitHubReleaseAsset(name, downloadUrl));
-            }
-        }
-
-        return new GitHubRelease(tagName, assets);
     }
 
     private static async Task DownloadAsync(
@@ -309,8 +262,7 @@ internal sealed class StudioInstaller
         string destinationPath)
     {
         using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Could not download Studio asset. GitHub returned {(int)response.StatusCode}.");
+        response.EnsureSuccessStatusCode();
 
         await using var source = await response.Content.ReadAsStreamAsync();
         await using var destination = File.Create(destinationPath);
@@ -318,9 +270,8 @@ internal sealed class StudioInstaller
     }
 }
 
-internal sealed record GitHubRelease(string TagName, IReadOnlyList<GitHubReleaseAsset> Assets);
-
-internal sealed record GitHubReleaseAsset(string Name, string DownloadUrl);
+internal sealed record NuGetVersionIndex(IReadOnlyList<string> Versions);
+internal sealed record NuGetStudioPackage(string Version, string AssetUrl);
 
 internal enum StudioToolCommand
 {

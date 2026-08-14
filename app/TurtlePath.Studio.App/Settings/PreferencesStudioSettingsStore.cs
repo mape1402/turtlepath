@@ -10,12 +10,7 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
     private const string BuildAfterCreationKey = "studio.defaults.buildAfterCreation";
     private const string TestAfterCreationKey = "studio.defaults.testAfterCreation";
     private const string HideGuideAfterCreationKey = "studio.defaults.hideGuideAfterCreation";
-    private const string UpdateManifestUrlKey = "studio.updates.manifestUrl";
-    private const string UpdateChannelKey = "studio.updates.channel";
     private const string CheckUpdatesOnStartupKey = "studio.updates.checkOnStartup";
-
-    public const string DefaultUpdateManifestUrl = "https://github.com/mape1402/turtlepath/releases/download/studio-latest/studio.manifest.json";
-    public const string DefaultUpdateChannel = "stable";
 
     public StudioSettings Load()
     {
@@ -28,8 +23,6 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
             Preferences.Default.Get(BuildAfterCreationKey, defaults.BuildAfterCreation),
             Preferences.Default.Get(TestAfterCreationKey, defaults.TestAfterCreation),
             Preferences.Default.Get(HideGuideAfterCreationKey, defaults.HideGuideAfterCreation),
-            Preferences.Default.Get(UpdateManifestUrlKey, defaults.UpdateManifestUrl),
-            Preferences.Default.Get(UpdateChannelKey, defaults.UpdateChannel),
             Preferences.Default.Get(CheckUpdatesOnStartupKey, defaults.CheckUpdatesOnStartup));
     }
 
@@ -43,8 +36,6 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
         Preferences.Default.Set(BuildAfterCreationKey, settings.BuildAfterCreation);
         Preferences.Default.Set(TestAfterCreationKey, settings.TestAfterCreation);
         Preferences.Default.Set(HideGuideAfterCreationKey, settings.HideGuideAfterCreation);
-        Preferences.Default.Set(UpdateManifestUrlKey, settings.UpdateManifestUrl);
-        Preferences.Default.Set(UpdateChannelKey, settings.UpdateChannel);
         Preferences.Default.Set(CheckUpdatesOnStartupKey, settings.CheckUpdatesOnStartup);
     }
 
@@ -56,8 +47,6 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
         Preferences.Default.Remove(BuildAfterCreationKey);
         Preferences.Default.Remove(TestAfterCreationKey);
         Preferences.Default.Remove(HideGuideAfterCreationKey);
-        Preferences.Default.Remove(UpdateManifestUrlKey);
-        Preferences.Default.Remove(UpdateChannelKey);
         Preferences.Default.Remove(CheckUpdatesOnStartupKey);
     }
 
@@ -70,8 +59,6 @@ public sealed class PreferencesStudioSettingsStore : IStudioSettingsStore
             true,
             true,
             false,
-            DefaultUpdateManifestUrl,
-            DefaultUpdateChannel,
             true);
     }
 }
