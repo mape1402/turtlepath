@@ -7,6 +7,4 @@ public sealed record StudioSettings(
     bool BuildAfterCreation,
     bool TestAfterCreation,
     bool HideGuideAfterCreation,
-    string UpdateManifestUrl,
-    string UpdateChannel,
     bool CheckUpdatesOnStartup);

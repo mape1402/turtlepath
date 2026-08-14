@@ -54,8 +54,6 @@ public sealed class StudioViewModel
     public bool DefaultBuildAfterCreation { get; set; }
     public bool DefaultTestAfterCreation { get; set; }
     public bool DefaultHideGuideAfterCreation { get; set; }
-    public string UpdateManifestUrl { get; set; } = string.Empty;
-    public string UpdateChannel { get; set; } = string.Empty;
     public bool CheckUpdatesOnStartup { get; set; }
     public bool IsBusy { get; private set; }
     public string BusyTitle { get; private set; } = "Working";
@@ -644,8 +642,6 @@ public sealed class StudioViewModel
             DefaultBuildAfterCreation,
             DefaultTestAfterCreation,
             DefaultHideGuideAfterCreation,
-            UpdateManifestUrl.Trim(),
-            UpdateChannel.Trim(),
             CheckUpdatesOnStartup);
 
         settingsStore.Save(settings);
@@ -919,9 +915,9 @@ public sealed class StudioViewModel
 
     public Task CheckStudioUpdateAsync()
     {
-        return RunAsync("Checking Studio updates", "Studio is checking the configured update manifest.", async () =>
+        return RunAsync("Checking Studio updates", "Studio is checking the TurtlePath.Studio package on NuGet.", async () =>
         {
-            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(StudioUpdater.PackageId, "stable");
             Message = StudioUpdate.Message;
             MessageIsError = !StudioUpdate.Succeeded;
             MessageIsWarning = StudioUpdate.Succeeded && StudioUpdate.IsAvailable;
@@ -933,7 +929,7 @@ public sealed class StudioViewModel
     {
         try
         {
-            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+            StudioUpdate = await studioUpdater.CheckForUpdatesAsync(StudioUpdater.PackageId, "stable");
             if (!StudioUpdate.IsAvailable)
                 return;
 
@@ -989,7 +985,7 @@ public sealed class StudioViewModel
         return RunAsync("Installing Studio update", "Studio is downloading and preparing the update. The app will restart when the updater takes over.", async () =>
         {
             if (StudioUpdate is null || !StudioUpdate.IsAvailable)
-                StudioUpdate = await studioUpdater.CheckForUpdatesAsync(UpdateManifestUrl, UpdateChannel);
+                StudioUpdate = await studioUpdater.CheckForUpdatesAsync(StudioUpdater.PackageId, "stable");
 
             if (!StudioUpdate.IsAvailable)
             {
@@ -1004,18 +1000,6 @@ public sealed class StudioViewModel
 
             await studioUpdater.StartUpdateAsync(StudioUpdate);
         });
-    }
-
-    public void RestoreDefaultUpdateSource()
-    {
-        UpdateManifestUrl = PreferencesStudioSettingsStore.DefaultUpdateManifestUrl;
-        UpdateChannel = PreferencesStudioSettingsStore.DefaultUpdateChannel;
-        CheckUpdatesOnStartup = true;
-        StudioUpdate = null;
-        Message = "Studio update source restored.";
-        MessageIsError = false;
-        MessageIsWarning = false;
-        IsStatusMessageOpen = true;
     }
 
     private void ClearMessage()
@@ -1033,8 +1017,6 @@ public sealed class StudioViewModel
         DefaultBuildAfterCreation = settings.BuildAfterCreation;
         DefaultTestAfterCreation = settings.TestAfterCreation;
         DefaultHideGuideAfterCreation = settings.HideGuideAfterCreation;
-        UpdateManifestUrl = settings.UpdateManifestUrl;
-        UpdateChannel = settings.UpdateChannel;
         CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
     }
 

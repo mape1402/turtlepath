@@ -1,7 +1,6 @@
 namespace TurtlePath.Studio.App.Updates;
 
-public sealed record StudioUpdatePackage(
+public sealed record StudioPackage(
     string Platform,
     string Url,
-    string Sha256,
-    long Size);
+    string Version);

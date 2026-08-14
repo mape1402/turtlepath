@@ -70,5 +70,5 @@ Use this track for the desktop Studio app.
 2. Update `.studio.release` with `studio-vX.Y.Z`.
 3. Merge to `main`, or run the `Studio Release` workflow manually.
 
-The `Studio Release` workflow builds the Windows app, injects the semantic version from `.studio.release`, publishes the updater helper, creates `TurtlePath.Studio.win-x64.zip`, generates `studio.manifest.json`, and attaches both files to the `studio-vX.Y.Z` GitHub release.
+The `Studio NuGet Release` workflow builds the Windows app, injects the semantic version from `.studio.release`, publishes the updater helper, packs the complete Windows payload into `TurtlePath.Studio`, and publishes that package through NuGet trusted publishing. GitHub releases and remote manifests are not part of Studio distribution.
 

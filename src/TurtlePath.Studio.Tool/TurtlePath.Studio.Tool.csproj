@@ -6,7 +6,7 @@
     <ToolCommandName>turtlepath-studio</ToolCommandName>
     <PackageId>TurtlePath.Studio.Tool</PackageId>
     <Title>TurtlePath Studio Tool</Title>
-    <Description>Installs and updates TurtlePath Studio from the latest GitHub release asset.</Description>
+    <Description>Installs and updates TurtlePath Studio from its NuGet package.</Description>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>

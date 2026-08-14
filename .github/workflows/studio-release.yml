@@ -1,269 +1,124 @@
-name: Studio Release
+name: Studio NuGet Release
 
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'app/TurtlePath.Studio.App/**'
       - 'app/TurtlePath.Studio.Abstractions/**'
       - 'app/TurtlePath.Studio.Application/**'
       - 'app/TurtlePath.Studio.Infrastructure/**'
       - 'app/TurtlePath.Studio.Updater/**'
+      - 'app/TurtlePath.Studio.Package/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
       - 'STUDIO_CHANGELOG.md'
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'app/TurtlePath.Studio.App/**'
       - 'app/TurtlePath.Studio.Abstractions/**'
       - 'app/TurtlePath.Studio.Application/**'
       - 'app/TurtlePath.Studio.Infrastructure/**'
       - 'app/TurtlePath.Studio.Updater/**'
+      - 'app/TurtlePath.Studio.Package/**'
       - '.github/workflows/studio-release.yml'
       - '.studio.release'
       - 'STUDIO_CHANGELOG.md'
 
 env:
-  CONFIGURATION: Release
   DOTNET_VERSION: 10.0.x
-  RELEASE_MARKER_PATH: .studio.release
-  RELEASE_NOTES_PATH: studio_release_notes.txt
-  RELEASE_TAG_PATTERN: ^studio-v[0-9]+\.[0-9]+\.[0-9]+$
-  STUDIO_ASSET_NAME: TurtlePath.Studio.win-x64.zip
-  STUDIO_MANIFEST_NAME: studio.manifest.json
-  STUDIO_LATEST_TAG: studio-latest
+  STUDIO_VERSION_FILE: .studio.release
   STUDIO_PROJECT: app/TurtlePath.Studio.App/TurtlePath.Studio.App.csproj
   STUDIO_UPDATER_PROJECT: app/TurtlePath.Studio.Updater/TurtlePath.Studio.Updater.csproj
+  STUDIO_PACKAGE_PROJECT: app/TurtlePath.Studio.Package/TurtlePath.Studio.Package.csproj
   STUDIO_TARGET_FRAMEWORK: net10.0-windows10.0.19041.0
   STUDIO_RUNTIME: win-x64
+  NUGET_SOURCE: https://api.nuget.org/v3/index.json
+  NUGET_USER: ${{ vars.NUGET_USER }}
 
 jobs:
-  build-and-release-studio:
+  release:
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Resolve Studio version
+        id: version
+        shell: pwsh
+        run: |
+          $tag = (Get-Content $env:STUDIO_VERSION_FILE -Raw).Trim()
+          if ($tag -notmatch '^studio-v\d+\.\d+\.\d+$') { throw "Invalid Studio release marker: $tag" }
+          "version=$($tag.Substring(8))" >> $env:GITHUB_OUTPUT
+
       - name: Restore MAUI workloads
         run: dotnet workload restore "${{ env.STUDIO_PROJECT }}"
 
-      - name: Restore Studio
-        run: |
-          dotnet restore "${{ env.STUDIO_PROJECT }}"
-          dotnet restore "${{ env.STUDIO_UPDATER_PROJECT }}"
-
-      - name: Build Studio
-        run: >
-          dotnet build "${{ env.STUDIO_PROJECT }}"
-          --no-restore
-          --configuration "${{ env.CONFIGURATION }}"
-          --framework "${{ env.STUDIO_TARGET_FRAMEWORK }}"
-
-      - name: Build Studio updater
-        run: >
-          dotnet build "${{ env.STUDIO_UPDATER_PROJECT }}"
-          --no-restore
-          --configuration "${{ env.CONFIGURATION }}"
-
-      - name: Resolve Studio release marker
-        id: release
-        if: >
-          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-          github.event_name == 'workflow_dispatch'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "should_release=false" >> "$GITHUB_OUTPUT"
-
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            if ! git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "$RELEASE_MARKER_PATH"; then
-              echo "$RELEASE_MARKER_PATH did not change in this push. Skipping Studio release."
-              exit 0
-            fi
-          fi
-
-          if [[ ! -f "$RELEASE_MARKER_PATH" ]]; then
-            echo "$RELEASE_MARKER_PATH is required for Studio releases."
-            exit 1
-          fi
-
-          NON_EMPTY_LINES="$(grep -cve '^[[:space:]]*$' "$RELEASE_MARKER_PATH" || true)"
-          if [[ "$NON_EMPTY_LINES" != "1" ]]; then
-            echo "$RELEASE_MARKER_PATH must contain exactly one non-empty Studio release tag, for example studio-v1.0.0."
-            exit 1
-          fi
-
-          TAG="$(grep -ve '^[[:space:]]*$' "$RELEASE_MARKER_PATH" | tr -d '[:space:]')"
-          if [[ ! "$TAG" =~ $RELEASE_TAG_PATTERN ]]; then
-            echo "Studio release tag must match $RELEASE_TAG_PATTERN. Current value: $TAG"
-            exit 1
-          fi
-
-          VERSION="${TAG#studio-v}"
-          echo "should_release=true" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Publish Studio
-        if: steps.release.outputs.should_release == 'true'
+      - name: Publish Studio payload
         shell: pwsh
         run: |
-          $publishDirectory = Join-Path $env:RUNNER_TEMP "turtlepath-studio-publish"
-          New-Item -ItemType Directory -Force $publishDirectory | Out-Null
+          $payload = Join-Path $env:RUNNER_TEMP 'turtlepath-studio-payload'
+          New-Item -ItemType Directory -Force $payload | Out-Null
 
           dotnet publish "${{ env.STUDIO_PROJECT }}" `
-            --configuration "${{ env.CONFIGURATION }}" `
+            --configuration Release `
             --framework "${{ env.STUDIO_TARGET_FRAMEWORK }}" `
             --runtime "${{ env.STUDIO_RUNTIME }}" `
             --self-contained true `
             -p:WindowsPackageType=None `
             -p:WindowsAppSDKSelfContained=true `
-            -p:ApplicationDisplayVersion="${{ steps.release.outputs.version }}" `
-            -p:Version="${{ steps.release.outputs.version }}" `
-            -p:AssemblyVersion="${{ steps.release.outputs.version }}.0" `
-            -p:FileVersion="${{ steps.release.outputs.version }}.0" `
-            -p:PublishDir="$publishDirectory/"
+            -p:ApplicationDisplayVersion="${{ steps.version.outputs.version }}" `
+            -p:Version="${{ steps.version.outputs.version }}" `
+            -p:AssemblyVersion="${{ steps.version.outputs.version }}.0" `
+            -p:FileVersion="${{ steps.version.outputs.version }}.0" `
+            -p:PublishDir="$payload\"
 
-          $updaterDirectory = Join-Path $publishDirectory "updater"
-          New-Item -ItemType Directory -Force $updaterDirectory | Out-Null
+          $updater = Join-Path $payload 'updater'
+          New-Item -ItemType Directory -Force $updater | Out-Null
           dotnet publish "${{ env.STUDIO_UPDATER_PROJECT }}" `
-            --configuration "${{ env.CONFIGURATION }}" `
-            --self-contained true `
+            --configuration Release `
             --runtime "${{ env.STUDIO_RUNTIME }}" `
+            --self-contained true `
             -p:PublishSingleFile=true `
-            -p:PublishDir="$updaterDirectory/"
+            -p:PublishDir="$updater\"
 
-          $assetPath = Join-Path $env:RUNNER_TEMP "${{ env.STUDIO_ASSET_NAME }}"
-          if (Test-Path $assetPath) {
-            Remove-Item $assetPath -Force
-          }
-
-          Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $assetPath -Force
-          $hash = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          $assetSize = (Get-Item $assetPath).Length
-          $manifestPath = Join-Path $env:RUNNER_TEMP "${{ env.STUDIO_MANIFEST_NAME }}"
-          $manifest = [ordered]@{
-            channel = "stable"
-            latestVersion = "${{ steps.release.outputs.version }}"
-            minimumSupportedVersion = "1.0.0"
-            releaseNotesUrl = "https://github.com/${{ github.repository }}/releases/tag/${{ steps.release.outputs.tag }}"
-            packages = @(
-              [ordered]@{
-                platform = "${{ env.STUDIO_RUNTIME }}"
-                url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.release.outputs.tag }}/${{ env.STUDIO_ASSET_NAME }}"
-                sha256 = $hash
-                size = $assetSize
-              }
-            )
-          }
-          $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $manifestPath -Encoding utf8
-
-          "asset_path=$assetPath" >> $env:GITHUB_OUTPUT
-          "manifest_path=$manifestPath" >> $env:GITHUB_OUTPUT
+          "payload=$payload" >> $env:GITHUB_OUTPUT
         id: publish
 
-      - name: Prepare Studio release notes
-        if: steps.release.outputs.should_release == 'true'
+      - name: Pack Studio NuGet package
+        run: >
+          dotnet pack "${{ env.STUDIO_PACKAGE_PROJECT }}"
+          --configuration Release
+          --output "${{ runner.temp }}\studio-nupkg"
+          /p:Version=${{ steps.version.outputs.version }}
+          /p:PackageVersion=${{ steps.version.outputs.version }}
+          /p:StudioPayloadDirectory="${{ steps.publish.outputs.payload }}"
+
+      - name: Validate NuGet trusted publishing user
+        shell: bash
+        run: test -n "$NUGET_USER"
+
+      - name: NuGet trusted publishing login
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ env.NUGET_USER }}
+
+      - name: Push Studio package
         shell: pwsh
         run: |
-          @"
-          TurtlePath Studio ${{ steps.release.outputs.version }}
-
-          Asset:
-          - ${{ env.STUDIO_ASSET_NAME }}
-          - ${{ env.STUDIO_MANIFEST_NAME }}
-
-          Changelog:
-          - https://github.com/${{ github.repository }}/blob/main/STUDIO_CHANGELOG.md
-
-          Usage:
-          1. Download the zip.
-          2. Extract it.
-          3. Run TurtlePath.Studio.App.exe.
-          "@ | Set-Content -Path "${{ env.RELEASE_NOTES_PATH }}" -Encoding utf8
-
-      - name: Create or update Studio release tag
-        if: steps.release.outputs.should_release == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TAG="${{ steps.release.outputs.tag }}"
-          HEAD_SHA="$(git rev-parse HEAD)"
-
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
-            TAG_SHA="$(git rev-list -n 1 "$TAG")"
-
-            if [[ "$TAG_SHA" != "$HEAD_SHA" ]]; then
-              git tag --force "$TAG" "$HEAD_SHA"
-              git push --force origin "refs/tags/$TAG"
-            fi
-          else
-            git tag --force "$TAG" "$HEAD_SHA"
-            git push origin "refs/tags/$TAG"
-          fi
-
-      - name: Create GitHub Release
-        if: steps.release.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          name: TurtlePath Studio ${{ steps.release.outputs.version }}
-          body_path: ${{ env.RELEASE_NOTES_PATH }}
-          draft: false
-          prerelease: false
-          files: |
-            ${{ steps.publish.outputs.asset_path }}
-            ${{ steps.publish.outputs.manifest_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create or update Studio latest tag
-        if: steps.release.outputs.should_release == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TAG="${{ env.STUDIO_LATEST_TAG }}"
-          HEAD_SHA="$(git rev-parse HEAD)"
-
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag --force "$TAG" "$HEAD_SHA"
-          git push --force origin "refs/tags/$TAG"
-
-      - name: Create GitHub Studio latest release
-        if: steps.release.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.STUDIO_LATEST_TAG }}
-          name: TurtlePath Studio Latest
-          body_path: ${{ env.RELEASE_NOTES_PATH }}
-          draft: false
-          prerelease: false
-          make_latest: false
-          overwrite_files: true
-          files: |
-            ${{ steps.publish.outputs.asset_path }}
-            ${{ steps.publish.outputs.manifest_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dotnet nuget push "${{ runner.temp }}\studio-nupkg\TurtlePath.Studio.${{ steps.version.outputs.version }}.nupkg" `
+            --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" `
+            --source "${{ env.NUGET_SOURCE }}" `
+            --skip-duplicate

@@ -821,15 +821,14 @@ public partial class MainPage : ContentPage
             LineBreakMode = LineBreakMode.WordWrap
         });
 
-        var manifestUrl = CreateEntry(viewModel.UpdateManifestUrl, "https://example.com/studio.manifest.json");
-        manifestUrl.TextChanged += (_, args) => viewModel.UpdateManifestUrl = args.NewTextValue;
-        layout.Add(CreateField("Update manifest URL", manifestUrl));
+        layout.Add(new Label
+        {
+            Text = "Updates are downloaded from the TurtlePath.Studio NuGet package.",
+            TextColor = Muted,
+            LineBreakMode = LineBreakMode.WordWrap
+        });
 
-        var channel = CreateEntry(viewModel.UpdateChannel, "stable");
-        channel.TextChanged += (_, args) => viewModel.UpdateChannel = args.NewTextValue;
-        layout.Add(CreateField("Update channel", channel));
-
-        layout.Add(CreateSwitchRow("Check updates on startup", "Studio can notify you when the configured manifest publishes a newer version.", viewModel.CheckUpdatesOnStartup, value => viewModel.CheckUpdatesOnStartup = value));
+        layout.Add(CreateSwitchRow("Check updates on startup", "Studio checks NuGet once when it starts and keeps the result available here.", viewModel.CheckUpdatesOnStartup, value => viewModel.CheckUpdatesOnStartup = value));
 
         var actions = new HorizontalStackLayout { Spacing = 10 };
         actions.Add(CreateButton("Check Studio update", async () =>
@@ -846,11 +845,6 @@ public partial class MainPage : ContentPage
             await install;
             Render();
         }));
-        actions.Add(CreateButton("Restore update source", () =>
-        {
-            viewModel.RestoreDefaultUpdateSource();
-            Render();
-        }, secondary: true));
         layout.Add(actions);
 
         return CreateBorder(layout);
