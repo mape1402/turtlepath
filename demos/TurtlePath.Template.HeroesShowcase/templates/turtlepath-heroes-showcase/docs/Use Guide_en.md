@@ -858,19 +858,7 @@ The template uses a Spider execution boundary for ambient transactions instead o
 Registration:
 
 ```csharp
-services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
-services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
-{
-    var filter = new TransactionBoundaryRequestFilter(provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
-    filter.Discover(typeof(Constants).Assembly);
-
-    return filter;
-});
-
-services.AddSpider(builder =>
-{
-    builder.AddExecutionBoundary<TransactionExecutionBoundary>();
-});
+services.AddTurtlePathSpiderTransactions(configuration);
 ```
 
 Configuration:

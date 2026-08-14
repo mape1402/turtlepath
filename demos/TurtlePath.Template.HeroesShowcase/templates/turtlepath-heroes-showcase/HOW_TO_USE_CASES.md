@@ -198,6 +198,6 @@ Implemented examples:
 - `tests/Heroes.Service.Tests/JobsBusinessTests.cs`
 - `tests/Heroes.Service.Tests/HeroOperationsReadModelTests.cs`
 - `tests/Heroes.Service.Tests/SpiderPelicanBridgeTests.cs`
-- `tests/Heroes.Service.Tests/Boundaries/Transactions/TransactionExecutionBoundaryTests.cs`
+- `TurtlePath.Spider.Transactions` package tests cover the reusable transaction boundary.
 
 The tests use the real dependency graph, SQLite, Pelican, Spider bridge helpers and TurtlePath testing support so users can copy the same testing shape into their generated service.

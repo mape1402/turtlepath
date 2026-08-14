@@ -375,7 +375,7 @@ Start here:
 ```text
 tests/Heroes.Service.Tests/TurtlePathTestingExamplesTests.cs
 tests/Heroes.Service.Tests/TemplateCompositionTests.cs
-tests/Heroes.Service.Tests/Boundaries/Transactions/TransactionExecutionBoundaryTests.cs
+TurtlePath.Spider.Transactions package tests cover the reusable transaction boundary.
 tests/Heroes.Service.Tests/HeroOperationsReadModelTests.cs
 ```
 
