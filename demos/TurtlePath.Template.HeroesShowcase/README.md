@@ -39,4 +39,5 @@ The generated solution demonstrates:
 - One-shot and recurring jobs.
 - Exception handling setup.
 - Optional Pigeon and EventSourcing extension points.
+- Pigeon 2.4.0 consumer throughput configuration with `MaxConcurrency` and `QueueCapacity` examples.
 - Unit and integration tests using TurtlePath testing helpers.

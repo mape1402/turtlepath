@@ -4,6 +4,13 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.6.4] - 2026-08-14
+
+### Changed
+
+- Updated generated Pigeon packages to 2.4.0.
+- Added guidance for limiting consumer concurrency and queue capacity with Pigeon 2.4.0.
+
 ## [template-v1.6.3] - 2026-08-14
 
 ### Changed

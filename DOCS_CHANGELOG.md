@@ -4,6 +4,13 @@ All notable changes to TurtlePath versioned documentation will be documented in 
 
 Documentation has its own release marker in `.docs.release` and its own GitHub Actions workflow. A documentation version can support multiple `TurtlePath.Template` versions through `docs/guides/template/guide-manifest.json`.
 
+## [docs-v1.2.2] - 2026-08-14
+
+### Added
+
+- Added Pigeon 2.4.0 guidance for consumer concurrency, queue capacity, handler timeouts, and outbox batch-size tuning.
+- Added the English and Spanish guide package version `1.2.2`.
+
 ## [docs-v1.2.1] - 2026-08-14
 
 ### Added

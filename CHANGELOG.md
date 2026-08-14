@@ -4,6 +4,13 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.6.2] - 2026-08-14
+
+### Changed
+
+- Updated `TurtlePath.Testing.Integration` to Pigeon.Testing 2.4.0.
+- Added integration testing documentation for Pigeon consumer throughput and concurrency configuration.
+
 ## [v1.6.1] - 2026-08-13
 
 ### Added

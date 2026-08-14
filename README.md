@@ -96,7 +96,7 @@ turtlepath-studio update --version studio-v1.0.0
 
 Generated API/consumer services start with Scalar OpenAPI UI, Spider pipeline boundaries, TurtlePath exception handling, DataScorpio filtering, OctoMap mapping, Crabalidator validation, EF Core storage adapters, jobs, and testing foundations.
 
-Pigeon messaging and EventSourcing are included as opt-in template surfaces. They stay disabled by default so a new service can start without broker or event-store settings; enable them from the API dependency registration when the service actually needs messaging or append-only event history.
+Pigeon messaging 2.4.0 and EventSourcing are included as opt-in template surfaces. Pigeon 2.4.0 adds configurable consumer throughput through `MaxConcurrency` and `QueueCapacity`; they stay disabled by default so a new service can start without broker or event-store settings. Enable them from the API dependency registration when the service actually needs messaging or append-only event history.
 
 The generated project keeps layer ownership explicit: Business references Domain and TurtlePath abstractions, API owns host composition, and Persistence owns the concrete EF Core `DbContext`. Business code that needs persistence should depend on `IDbContext`, not the concrete `AppDbContext`.
 
