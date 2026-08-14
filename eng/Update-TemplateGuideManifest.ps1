@@ -70,8 +70,17 @@ if ($null -eq $target) {
     $cleanMaps += $target
 }
 
-$target.templateVersions = @($target.templateVersions + $templateVersion) |
-    Sort-Object { [System.Version]::Parse($_) } -Unique
+$targetVersions = [System.Collections.Generic.List[string]]::new()
+foreach ($version in @($target.templateVersions)) {
+    $normalizedVersion = [string]$version
+    if (-not [string]::IsNullOrWhiteSpace($normalizedVersion) -and -not $targetVersions.Contains($normalizedVersion)) {
+        $targetVersions.Add($normalizedVersion)
+    }
+}
+if (-not $targetVersions.Contains($templateVersion)) {
+    $targetVersions.Add($templateVersion)
+}
+$target.templateVersions = @($targetVersions | Sort-Object { [System.Version]::Parse([string]$_) } -Unique)
 
 $orderedMaps = @($cleanMaps | Sort-Object { [System.Version]::Parse($_.guideVersion) })
 $jsonLines = [System.Collections.Generic.List[string]]::new()
