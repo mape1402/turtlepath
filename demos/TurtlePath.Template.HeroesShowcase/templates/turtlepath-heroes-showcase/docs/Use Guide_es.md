@@ -856,19 +856,7 @@ El template usa un execution boundary de Spider para transacciones ambientales e
 Registro:
 
 ```csharp
-services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
-services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
-{
-    var filter = new TransactionBoundaryRequestFilter(provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>());
-    filter.Discover(typeof(Constants).Assembly);
-
-    return filter;
-});
-
-services.AddSpider(builder =>
-{
-    builder.AddExecutionBoundary<TransactionExecutionBoundary>();
-});
+services.AddTurtlePathSpiderTransactions(configuration);
 ```
 
 Configuración:

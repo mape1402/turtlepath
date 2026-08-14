@@ -41,6 +41,7 @@
     <PackageReference Update="TurtlePath.Jobs" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.OctoMap" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Spider" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Spider.Transactions" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Testing" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Testing.Integration" Version="$(TurtlePathVersion)" />

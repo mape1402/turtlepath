@@ -1,4 +1,3 @@
-﻿using Heroes.Service.Api.Boundaries.Transactions;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -8,12 +7,7 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         internal static IServiceCollection AddPipelineDefaults(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddTransactionBoundaryDefaults(configuration);
-
-            services.AddSpider(builder =>
-            {
-                builder.AddExecutionBoundary<TransactionExecutionBoundary>();
-            });
+            services.AddTurtlePathSpiderTransactions(configuration);
 
             return services;
         }

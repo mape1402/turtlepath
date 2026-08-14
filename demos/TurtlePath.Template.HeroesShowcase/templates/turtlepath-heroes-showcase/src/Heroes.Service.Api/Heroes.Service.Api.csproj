@@ -32,6 +32,7 @@
     <PackageReference Include="TurtlePath.Jobs" />
     <PackageReference Include="TurtlePath.OctoMap" />
     <PackageReference Include="TurtlePath.Spider" />
+    <PackageReference Include="TurtlePath.Spider.Transactions" />
   </ItemGroup>
 
   <ItemGroup>

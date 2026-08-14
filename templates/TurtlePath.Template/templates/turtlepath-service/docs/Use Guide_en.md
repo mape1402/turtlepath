@@ -108,15 +108,6 @@ Generated projects are split by responsibility:
 turtlepath.template.json
 src/
   TurtlePath.Template.Api/
-    Boundaries/
-      Transactions/
-        ITransactionBoundaryProfile.cs
-        ITransactionBoundaryRequestFilter.cs
-        SkipTransactionBoundaryAttribute.cs
-        TransactionBoundaryOptions.cs
-        TransactionBoundaryProfile.cs
-        TransactionBoundaryRequestFilter.cs
-        TransactionExecutionBoundary.cs
     Controllers/
       BaseController.cs
     DependencyInjection/
@@ -201,14 +192,13 @@ tests/
       TemplateTestHost.cs
     JobCompositionTests.cs
     TemplateCompositionTests.cs
-    Boundaries/
-      Transactions/
-        TransactionExecutionBoundaryTests.cs
     TurtlePathTestingExamplesTests.cs
     TurtlePath.Template.Tests.csproj
 ```
 
 `Api` is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, OpenAPI schema configuration, Scalar UI, health checks, and the custom dependency injection entry point.
+
+Transaction boundary implementation is provided by the `TurtlePath.Spider.Transactions` package. The generated API contains only the registration call; it does not duplicate boundary source files. Business profiles use `TransactionBoundaryProfile` from that package and are discovered automatically.
 
 `Business` owns use cases. The template includes a `Feature` placeholder only to show the intended folder shape. In real code, replace `Feature` with the actual feature name:
 
@@ -1841,29 +1831,10 @@ The template uses Spider execution boundaries for cross-cutting execution behavi
 Registration:
 
 ```csharp
-services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
-services.PostConfigure<TransactionBoundaryOptions>(options =>
-{
-    options.DiscoverRequestsFrom(typeof(Constants).Assembly);
-    options.DiscoverRequestsFrom(typeof(TransactionBoundaryExtensions).Assembly);
-
-    // TransactionBoundaryProfile implementations are discovered from Business and Api.
-});
-
-services.AddSingleton<ITransactionBoundaryRequestFilter>(provider =>
-{
-    var options = provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>();
-    var filter = new TransactionBoundaryRequestFilter(options);
-
-    filter.Discover(options.Value.RequestAssemblies.ToArray());
-    return filter;
-});
-
-services.AddSpider(builder =>
-{
-    builder.AddExecutionBoundary<TransactionExecutionBoundary>();
-});
+services.AddTurtlePathSpiderTransactions(configuration);
 ```
+
+The `TurtlePath.Spider.Transactions` package discovers request types and transaction profiles from loaded assemblies. Feature-specific profiles can live in Business without referencing API.
 
 Configuration:
 
@@ -1898,7 +1869,7 @@ public sealed class RebuildSearchIndexRequest : IRequest
 Prefer a profile when a feature or module has several transaction rules. Put the profile close to the feature, for example `Business/Search/Boundaries/Transactions/SearchTransactionBoundaryProfile.cs`:
 
 ```csharp
-using TurtlePath.Template.Api.Boundaries.Transactions;
+using TurtlePath.Spider.Transactions;
 
 namespace TurtlePath.Template.Business.Search.Boundaries.Transactions;
 
@@ -2691,7 +2662,7 @@ Use Spider tests for use cases that must run through execution boundaries. This 
 ```csharp
 using Spider.Testing;
 using Spider.Testing.Assertions;
-using TurtlePath.Template.Api.Boundaries.Transactions;
+using TurtlePath.Spider.Transactions;
 
 await using var host = await TemplateTestHost
     .CreateIntegrationHost<AppDbContext>()
@@ -2730,7 +2701,7 @@ Use a direct boundary filter test when the important behavior is whether a reque
 
 ```csharp
 using Microsoft.Extensions.Options;
-using TurtlePath.Template.Api.Boundaries.Transactions;
+using TurtlePath.Spider.Transactions;
 
 var options = Options.Create(new TransactionBoundaryOptions
 {
