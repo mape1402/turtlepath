@@ -14,6 +14,21 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class TransactionServiceCollectionExtensions
 {
     /// <summary>
+    /// Adds the transaction boundary directly to a service collection.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configuration">The application configuration.</param>
+    /// <returns>The same service collection.</returns>
+    public static IServiceCollection AddTurtlePathSpiderTransactions(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        Register(services, configuration);
+        return services;
+    }
+
+    /// <summary>
     /// Adds transaction boundary options, profile discovery, request discovery, and the Spider boundary.
     /// </summary>
     /// <param name="builder">The TurtlePath registration builder.</param>
@@ -26,6 +41,12 @@ public static class TransactionServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var services = builder.Services;
+        Register(services, configuration);
+        return builder;
+    }
+
+    private static void Register(IServiceCollection services, IConfiguration configuration)
+    {
         if (configuration != null)
             services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
         else
@@ -52,8 +73,6 @@ public static class TransactionServiceCollectionExtensions
         {
             spider.AddExecutionBoundary<TransactionExecutionBoundary>();
         });
-
-        return builder;
     }
 
     private static IEnumerable<ITransactionBoundaryProfile> DiscoverProfiles(IEnumerable<Assembly> assemblies)

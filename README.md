@@ -19,6 +19,7 @@ The recommended package set is:
 - `TurtlePath.EventSourcing`: Krackend event sourcing bridge for TurtlePath command handler hooks.
 - `TurtlePath.Jobs`: standard one-shot Kubernetes jobs and recurring cron-style background jobs.
 - `TurtlePath.Spider`: Spider extension methods for dispatching Pelican requests through Spider boundaries without coupling Spider and Pelican to each other.
+- `TurtlePath.Spider.Transactions`: ambient transaction boundary implementation, request filtering, profile discovery, and chainable Spider registration without an EF Core dependency.
 - `TurtlePath.Testing`: test host, delegate adapters, and in-memory storage for TurtlePath handler and automation tests.
 - `TurtlePath.Testing.EntityFrameworkCore`: SQLite-backed integration testing helpers for EF Core TurtlePath applications.
 - `TurtlePath.Testing.EventSourcing`: event stream assertion helpers for TurtlePath event sourcing tests.
@@ -114,6 +115,7 @@ dotnet add package TurtlePath.ExceptionHandling.Workers
 dotnet add package TurtlePath.EventSourcing
 dotnet add package TurtlePath.Jobs
 dotnet add package TurtlePath.Spider
+dotnet add package TurtlePath.Spider.Transactions
 dotnet add package TurtlePath.Testing
 dotnet add package TurtlePath.Testing.EntityFrameworkCore
 dotnet add package TurtlePath.Testing.EventSourcing
