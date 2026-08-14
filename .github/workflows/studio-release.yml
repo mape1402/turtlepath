@@ -147,7 +147,7 @@ jobs:
         id: release_tag
 
       - name: Create or update GitHub Studio release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release_tag.outputs.tag }}
           name: ${{ steps.release_tag.outputs.tag }}
