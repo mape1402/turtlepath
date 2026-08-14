@@ -1,5 +1,12 @@
 # TurtlePath Studio Changelog
 
+## 1.0.5
+
+### Fixed
+
+- Prepared the Studio release metadata for the current application build.
+- Kept the displayed Studio version driven by the semantic release tag (`v*.*.*`).
+
 ## 1.0.4
 
 ### Fixed
