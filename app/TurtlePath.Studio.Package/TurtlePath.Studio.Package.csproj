@@ -7,6 +7,8 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <IsPackable>true</IsPackable>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
     <StudioPayloadDirectory Condition="'$(StudioPayloadDirectory)' == ''">$(MSBuildThisFileDirectory)bin\studio-payload</StudioPayloadDirectory>
   </PropertyGroup>
 

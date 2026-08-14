@@ -1,5 +1,11 @@
 # TurtlePath Studio Changelog
 
+## 1.0.7
+
+### Fixed
+
+- Disabled source and symbols packaging for the payload-only Studio NuGet package so releases publish only a valid `.nupkg`.
+
 ## 1.0.6
 
 ### Added

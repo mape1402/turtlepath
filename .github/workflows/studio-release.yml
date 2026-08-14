@@ -103,6 +103,8 @@ jobs:
           --output "${{ runner.temp }}\studio-nupkg"
           /p:Version=${{ steps.version.outputs.version }}
           /p:PackageVersion=${{ steps.version.outputs.version }}
+          /p:IncludeSymbols=false
+          /p:IncludeSource=false
           /p:StudioPayloadDirectory="${{ steps.publish.outputs.payload }}"
 
       - name: Validate NuGet trusted publishing user
