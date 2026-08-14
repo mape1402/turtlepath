@@ -1,5 +1,12 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.6] - 2026-08-14
+
+### Changed
+
+- Updated the generated Heroes Showcase Pigeon packages to 2.4.0.
+- Added a consumer throughput and concurrency example to the generated guide.
+
 ## [demo-v1.4.5] - 2026-08-14
 
 ### Changed

@@ -89,6 +89,24 @@ services.AddPigeon(configuration, builder =>
 
 Outbox settings are configurable from `Pigeon:Outbox`. The template defaults to EF Core storage, auto schema creation, immediate dispatch after commit, retry support, and periodic cleanup. When direct broker publishing runs inside an ambient transaction without outbox, Pigeon explicitly suppresses the transaction scope.
 
+### Control consumer throughput and concurrency
+
+Pigeon 2.4.0 lets the Heroes consumers limit parallel handler execution:
+
+```csharp
+services.AddPigeon(configuration, builder =>
+{
+    builder.ConfigureConsumerExecution(execution =>
+    {
+        execution.MaxConcurrency = 32;
+        execution.QueueCapacity = 256;
+        execution.HandlerTimeout = TimeSpan.FromSeconds(30);
+    });
+});
+```
+
+`MaxConcurrency` protects dependencies such as the database and external services. `QueueCapacity` absorbs short bursts while handlers are busy. `null` or a value below `1` leaves the corresponding limit unbounded. This controls consumer dispatch and is independent from the outbox `DispatchBatchSize` setting.
+
 ### Minimal Manual Flow
 
 Entity:
