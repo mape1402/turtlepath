@@ -40,7 +40,7 @@
     <ProjectReference Include="..\TurtlePath.Template.Persistence\TurtlePath.Template.Persistence.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TurtlePathLocalBuild)' == 'true'">
+  <ItemGroup Condition="'$(TurtlePathLocalBuild)' == 'true' Or Exists('..\..\..\..\..\..\src\TurtlePath.Spider\TurtlePath.Spider.csproj')">
     <!-- Used only when building this repository before the Spider packages are published. -->
     <PackageReference Remove="TurtlePath.Spider;TurtlePath.Spider.Transactions" />
     <ProjectReference Include="..\..\..\..\..\..\src\TurtlePath.Spider\TurtlePath.Spider.csproj" />
