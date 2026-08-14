@@ -1,32 +1,15 @@
 {
-  "guides": [
+  "map": [
     {
-      "id": "template-use-guide-1.2.0",
-      "title": "TurtlePath Template Use Guide",
-      "documentationVersion": "1.2.0",
-      "packageId": "TurtlePath.Template",
-      "supportedTemplateVersionRange": "[1.5.0,1.6.3]",
-      "supportedTemplateVersions": [
+      "guideVersion": "1.2.0",
+      "templateVersions": [
         "1.5.0",
         "1.5.1",
         "1.6.0",
         "1.6.1",
         "1.6.2",
         "1.6.3"
-      ],
-      "cultures": [
-        {
-          "code": "en",
-          "title": "English",
-          "sourceUrl": "https://raw.githubusercontent.com/mape1402/turtlepath/docs-v1.2.0/docs/guides/template/template-use-guide-1.2.0/en.md"
-        },
-        {
-          "code": "es",
-          "title": "Espanol",
-          "sourceUrl": "https://raw.githubusercontent.com/mape1402/turtlepath/docs-v1.2.0/docs/guides/template/template-use-guide-1.2.0/es.md"
-        }
-      ],
-      "source": "GitHub"
+      ]
     }
   ]
 }

@@ -58,7 +58,9 @@ Use this track for files under `docs/guides/template`.
 2. Update `.docs.release` with `docs-vX.Y.Z` when the guide content needs a new documentation version.
 3. Run `eng/Update-TemplateGuideManifest.ps1` locally, or let the `Documentation Release` workflow update the manifest on `main`.
 
-The `Documentation Release` workflow regenerates `docs/guides/template/guide-manifest.json` from `.docs.release` and `.template.release`. When a new template version can keep using the same guide, the workflow adds that template version to the current guide instead of forcing a new guide version.
+The documentation release is an independent NuGet package: `TurtlePath.Template.Documentation`. Each package contains only its own English and Spanish guide plus the cumulative `guide-manifest.json` map. The manifest maps template versions to the guide package version that should be shown, so a guide can serve multiple template versions and a later guide can replace an earlier association.
+
+Every template release that changes the mapping must also publish a new documentation package, even when the markdown is unchanged. Update `.docs.release` to the next documentation version, run `eng/Update-TemplateGuideManifest.ps1`, and commit the generated manifest. The `Documentation Release` workflow packs and publishes the package through NuGet trusted publishing.
 
 ## Studio
 
