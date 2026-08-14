@@ -1,5 +1,17 @@
 # TurtlePath Studio Changelog
 
+## 1.0.6
+
+### Added
+
+- Added versioned documentation package resolution through NuGet.
+- Added local caching for documentation packages and rendered guides.
+
+### Changed
+
+- Studio now resolves a template version to its guide through the cumulative documentation manifest.
+- Guide loading no longer depends on GitHub, Google Drive, or embedded documentation URLs.
+
 ## 1.0.5
 
 ### Fixed
