@@ -6,4 +6,5 @@ public sealed record StudioGuideDocument(
     string Html,
     string Status,
     bool LoadedFromCache,
-    bool IsEmbeddedFallback);
+    bool IsEmbeddedFallback,
+    bool IsTemplatePackage = false);

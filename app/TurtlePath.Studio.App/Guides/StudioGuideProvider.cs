@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Maui.Storage;
 using TurtlePath.Studio.Application.Defaults;
@@ -25,6 +26,7 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             : packageId;
 
         var knownGuides = await LoadManifestAsync(cancellationToken);
+        knownGuides = AddInstalledTemplateVersion(knownGuides, packageId, templateVersion);
 
         var matchingGuides = knownGuides
             .Where(guide => string.Equals(guide.PackageId, packageId, StringComparison.OrdinalIgnoreCase))
@@ -47,6 +49,15 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         var cacheDirectory = GetGuideCacheDirectory(guide);
         var htmlPath = Path.Combine(cacheDirectory, $"{culture.Code}.html");
         var manifestPath = Path.Combine(cacheDirectory, "manifest.json");
+
+        var installedPackage = await TryLoadInstalledTemplateGuideAsync(guide, culture, cancellationToken);
+        if (installedPackage is not null)
+        {
+            Directory.CreateDirectory(cacheDirectory);
+            await File.WriteAllTextAsync(htmlPath, installedPackage.Html, cancellationToken);
+            await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(guide, JsonOptions), cancellationToken);
+            return installedPackage;
+        }
 
         if (!forceRefresh && File.Exists(htmlPath))
         {
@@ -166,6 +177,113 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             IsEmbeddedFallback: true);
     }
 
+    private static IReadOnlyList<StudioGuideOption> AddInstalledTemplateVersion(
+        IReadOnlyList<StudioGuideOption> knownGuides,
+        string packageId,
+        string templateVersion)
+    {
+        if (!Version.TryParse(NormalizeVersion(templateVersion), out var parsedTemplateVersion))
+            return knownGuides;
+
+        var guide = knownGuides.FirstOrDefault(candidate =>
+            string.Equals(candidate.PackageId, packageId, StringComparison.OrdinalIgnoreCase));
+
+        if (guide is null)
+            return knownGuides;
+
+        var supportedVersions = guide.SupportedTemplateVersions
+            .Append(parsedTemplateVersion.ToString(3))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(version => Version.Parse(NormalizeVersion(version)))
+            .ToArray();
+
+        var range = supportedVersions.Length == 1
+            ? $"[{supportedVersions[0]}]"
+            : $"[{supportedVersions[0]},{supportedVersions[^1]}]";
+
+        return knownGuides
+            .Select(candidate => ReferenceEquals(candidate, guide)
+                ? candidate with
+                {
+                    SupportedTemplateVersionRange = range,
+                    SupportedTemplateVersions = supportedVersions
+                }
+                : candidate)
+            .ToArray();
+    }
+
+    private async Task<StudioGuideDocument?> TryLoadInstalledTemplateGuideAsync(
+        StudioGuideOption guide,
+        StudioGuideCulture culture,
+        CancellationToken cancellationToken)
+    {
+        var packagePath = FindInstalledTemplatePackage(guide);
+        if (packagePath is null)
+            return null;
+
+        try
+        {
+            using var archive = ZipFile.OpenRead(packagePath);
+            var entry = archive.Entries.FirstOrDefault(candidate =>
+                candidate.FullName.EndsWith($"/docs/Use Guide_{culture.Code}.md", StringComparison.OrdinalIgnoreCase));
+
+            if (entry is null)
+                return null;
+
+            await using var stream = entry.Open();
+            using var reader = new StreamReader(stream);
+            var markdown = await reader.ReadToEndAsync(cancellationToken);
+
+            return new StudioGuideDocument(
+                guide,
+                culture,
+                SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})"),
+                $"Using guide docs from the installed {guide.PackageId} template package.",
+                LoadedFromCache: false,
+                IsEmbeddedFallback: false,
+                IsTemplatePackage: true);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? FindInstalledTemplatePackage(StudioGuideOption guide)
+    {
+        var packageDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".templateengine",
+            "packages");
+
+        if (!Directory.Exists(packageDirectory))
+            return null;
+
+        return Directory.EnumerateFiles(packageDirectory, $"{guide.PackageId}.*.nupkg")
+            .Select(path => new
+            {
+                Path = path,
+                Version = ParsePackageVersion(path, guide.PackageId)
+            })
+            .Where(candidate => candidate.Version is not null && guide.SupportedTemplateVersions.Any(version =>
+                string.Equals(NormalizeVersion(version), candidate.Version!.ToString(3), StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(candidate => candidate.Version)
+            .Select(candidate => candidate.Path)
+            .FirstOrDefault();
+    }
+
+    private static Version? ParsePackageVersion(string path, string packageId)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(path);
+        var prefix = $"{packageId}.";
+        if (!fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return Version.TryParse(NormalizeVersion(fileName[prefix.Length..]), out var version)
+            ? version
+            : null;
+    }
+
     private async Task<IReadOnlyList<StudioGuideOption>> LoadManifestAsync(CancellationToken cancellationToken)
     {
         if (guides is not null)
@@ -186,9 +304,22 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             "Studio",
             "Docs",
             CacheVersion,
-            guide.Id);
+            $"{guide.Id}-{string.Join('-', guide.SupportedTemplateVersions.OrderByDescending(version => Version.Parse(NormalizeVersion(version))).Take(1))}");
 
         return root;
+    }
+
+    private static string NormalizeVersion(string version)
+    {
+        var normalized = version.Trim();
+        if (normalized.StartsWith('v'))
+            normalized = normalized[1..];
+
+        var metadataIndex = normalized.IndexOf('+', StringComparison.Ordinal);
+        if (metadataIndex >= 0)
+            normalized = normalized[..metadataIndex];
+
+        return normalized;
     }
 
     private static class VersionRange

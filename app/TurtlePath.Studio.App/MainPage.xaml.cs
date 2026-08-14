@@ -892,7 +892,9 @@ public partial class MainPage : ContentPage
         if (viewModel.CurrentGuide is null)
             return "Studio will load the best matching guide for the installed template version. You can sync the guide here when internet access is available.";
 
-        var source = viewModel.CurrentGuide.IsEmbeddedFallback
+        var source = viewModel.CurrentGuide.IsTemplatePackage
+            ? "installed template package"
+            : viewModel.CurrentGuide.IsEmbeddedFallback
             ? "embedded fallback"
             : viewModel.CurrentGuide.LoadedFromCache
                 ? "local cache"

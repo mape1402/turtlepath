@@ -443,11 +443,14 @@ public sealed class StudioViewModel
         {
             await LoadGuidesAsync(forceRefresh: true);
 
-            Message = CurrentGuide?.LoadedFromCache == false && CurrentGuide.IsEmbeddedFallback == false
+            Message = CurrentGuide?.IsTemplatePackage == true
+                ? "Documentation loaded from the installed template package."
+                : CurrentGuide?.LoadedFromCache == false && CurrentGuide.IsEmbeddedFallback == false
                 ? "Documentation synced from GitHub."
                 : "Documentation is available locally. GitHub could not be reached, so Studio kept the local guide.";
             MessageIsError = false;
-            MessageIsWarning = CurrentGuide?.LoadedFromCache != false || CurrentGuide.IsEmbeddedFallback;
+            MessageIsWarning = CurrentGuide?.IsTemplatePackage != true &&
+                (CurrentGuide?.LoadedFromCache != false || CurrentGuide.IsEmbeddedFallback);
             IsStatusMessageOpen = true;
         });
     }
