@@ -42,7 +42,7 @@ jobs:
   release:
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
@@ -106,6 +106,55 @@ jobs:
           /p:IncludeSymbols=false
           /p:IncludeSource=false
           /p:StudioPayloadDirectory="${{ steps.publish.outputs.payload }}"
+
+      - name: Create or update Studio release tag
+        shell: pwsh
+        env:
+          STUDIO_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $tag = "studio-v$env:STUDIO_VERSION"
+          $head = (git rev-parse HEAD).Trim()
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          $existing = git ls-remote --tags origin "refs/tags/$tag"
+          if ($existing) {
+              git fetch --force origin "refs/tags/$tag:refs/tags/$tag"
+              $current = (git rev-list -n 1 $tag).Trim()
+              if ($current -ne $head) {
+                  git tag --force $tag $head
+                  git push --force origin "refs/tags/$tag"
+              }
+          }
+          else {
+              git tag --force $tag $head
+              git push origin "refs/tags/$tag"
+          }
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+        id: release_tag
+
+      - name: Create or update GitHub Studio release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: ${{ steps.release_tag.outputs.tag }}
+          body: |
+            TurtlePath Studio ${{ steps.version.outputs.version }}
+
+            Install or update it with:
+
+            ```powershell
+            dotnet tool update -g TurtlePath.Studio.Tool
+            turtlepath-studio update
+            ```
+          draft: false
+          prerelease: false
+          files: |
+            ${{ runner.temp }}\studio-nupkg\TurtlePath.Studio.${{ steps.version.outputs.version }}.nupkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate NuGet trusted publishing user
         shell: bash
