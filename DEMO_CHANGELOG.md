@@ -1,5 +1,12 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.5] - 2026-08-14
+
+### Changed
+
+- Updated the generated Heroes Showcase package references to the published `1.6.1` release.
+- Switched the generated transaction boundary integration to the published `TurtlePath.Spider.Transactions` package without local project references.
+
 ## [demo-v1.4.4] - 2026-08-13
 
 ### Added

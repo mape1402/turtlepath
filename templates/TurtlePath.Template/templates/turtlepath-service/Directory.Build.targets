@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
-    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.4.1</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.6.1</TurtlePathVersion>
   </PropertyGroup>
 
 	<ItemGroup>

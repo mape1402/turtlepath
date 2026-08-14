@@ -4,6 +4,13 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.6.3] - 2026-08-14
+
+### Changed
+
+- Updated the generated TurtlePath package references to the published `1.6.1` release.
+- Switched the generated transaction boundary integration to the published `TurtlePath.Spider.Transactions` package without local project references.
+
 ## [template-v1.6.2] - 2026-08-13
 
 ### Added

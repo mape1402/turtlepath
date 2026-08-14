@@ -40,11 +40,4 @@
     <ProjectReference Include="..\Heroes.Service.Persistence\Heroes.Service.Persistence.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TurtlePathLocalBuild)' == 'true' Or Exists('..\..\..\..\..\..\src\TurtlePath.Spider\TurtlePath.Spider.csproj')">
-    <!-- Used only when building this repository before the Spider packages are published. -->
-    <PackageReference Remove="TurtlePath.Spider;TurtlePath.Spider.Transactions" />
-    <ProjectReference Include="..\..\..\..\..\..\src\TurtlePath.Spider\TurtlePath.Spider.csproj" />
-    <ProjectReference Include="..\..\..\..\..\..\src\TurtlePath.Spider.Transactions\TurtlePath.Spider.Transactions.csproj" />
-  </ItemGroup>
-
 </Project>
