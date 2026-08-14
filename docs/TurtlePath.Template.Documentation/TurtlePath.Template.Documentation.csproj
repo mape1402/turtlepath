@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <PackageId>TurtlePath.Template.Documentation</PackageId>
+    <Description>Versioned English and Spanish documentation for the TurtlePath project template.</Description>
+    <PackageTags>turtlepath;template;documentation</PackageTags>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <DocumentationVersion Condition="'$(DocumentationVersion)' == ''">1.2.0</DocumentationVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../guides/template/guide-manifest.json" Pack="true" PackagePath="guide-manifest.json" />
+    <None Include="../guides/template/template-use-guide-$(DocumentationVersion)/en.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_en.md" />
+    <None Include="../guides/template/template-use-guide-$(DocumentationVersion)/es.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_es.md" />
+  </ItemGroup>
+</Project>

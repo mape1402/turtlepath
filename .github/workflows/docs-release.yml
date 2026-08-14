@@ -31,6 +31,10 @@ env:
   RELEASE_BRANCH_PATTERN: ^docs-releases/docs-v[0-9]+\.[0-9]+\.[0-9]+$
   RELEASE_TAG_PATTERN: ^docs-v[0-9]+\.[0-9]+\.[0-9]+$
   TEMPLATE_GUIDE_MANIFEST_PATH: docs/guides/template/guide-manifest.json
+  DOCUMENTATION_PROJECT: docs/TurtlePath.Template.Documentation/TurtlePath.Template.Documentation.csproj
+  NUGET_OUTPUT: ./nupkgs
+  NUGET_SOURCE: https://api.nuget.org/v3/index.json
+  NUGET_USER: ${{ vars.NUGET_USER }}
 
 jobs:
   validate-and-release-docs:
@@ -43,6 +47,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
       - name: Update template guide manifest
         shell: pwsh
@@ -99,6 +108,22 @@ jobs:
 
             TAG="${BRANCH#"$RELEASE_BRANCH_PREFIX"}"
           else
+            TEMPLATE_MARKER_CHANGED=false
+            DOCS_MARKER_CHANGED=false
+
+            if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx ".template.release"; then
+              TEMPLATE_MARKER_CHANGED=true
+            fi
+
+            if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "$RELEASE_MARKER_PATH"; then
+              DOCS_MARKER_CHANGED=true
+            fi
+
+            if [[ "$TEMPLATE_MARKER_CHANGED" == "true" && "$DOCS_MARKER_CHANGED" != "true" ]]; then
+              echo "A template release changes the template-to-guide map. Increment .docs.release and publish a new TurtlePath.Template.Documentation package in the same change."
+              exit 1
+            fi
+
             if ! git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "$RELEASE_MARKER_PATH"; then
               echo "$RELEASE_MARKER_PATH did not change in this push. Skipping documentation release."
               exit 0
@@ -155,6 +180,32 @@ jobs:
             exit 1
           fi
 
+      - name: Pack documentation NuGet package
+        if: steps.release.outputs.should_release == 'true'
+        run: >
+          dotnet pack "$DOCUMENTATION_PROJECT"
+          --configuration Release
+          --output "$NUGET_OUTPUT"
+          /p:DocumentationVersion=${{ steps.release.outputs.version }}
+          /p:Version=${{ steps.release.outputs.version }}
+          /p:PackageVersion=${{ steps.release.outputs.version }}
+
+      - name: Validate NuGet trusted publishing user
+        if: steps.release.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          if [[ -z "$NUGET_USER" ]]; then
+            echo "NuGet publishing user is not configured."
+            exit 1
+          fi
+
+      - name: NuGet trusted publishing login
+        if: steps.release.outputs.should_release == 'true'
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ env.NUGET_USER }}
+
       - name: Create or update docs release tag
         if: steps.release.outputs.should_release == 'true'
         shell: bash
@@ -189,6 +240,17 @@ jobs:
           body_path: ${{ env.RELEASE_NOTES_PATH }}
           draft: false
           prerelease: false
-          files: ${{ env.TEMPLATE_GUIDE_MANIFEST_PATH }}
+          files: |
+            ${{ env.TEMPLATE_GUIDE_MANIFEST_PATH }}
+            ${{ env.NUGET_OUTPUT }}/TurtlePath.Template.Documentation.${{ steps.release.outputs.version }}.nupkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push documentation to NuGet
+        if: steps.release.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet nuget push "$NUGET_OUTPUT/TurtlePath.Template.Documentation.${{ steps.release.outputs.version }}.nupkg" \
+            -k ${{ steps.nuget_login.outputs.NUGET_API_KEY }} \
+            -s "$NUGET_SOURCE" --skip-duplicate

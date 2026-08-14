@@ -2,122 +2,96 @@ param(
     [string]$DocsRoot = "docs/guides/template",
     [string]$DocsReleaseFile = ".docs.release",
     [string]$TemplateReleaseFile = ".template.release",
-    [string]$RepositoryRawBase = "https://raw.githubusercontent.com/mape1402/turtlepath"
+    [string]$ManifestPath = "docs/guides/template/guide-manifest.json"
 )
 
 $ErrorActionPreference = "Stop"
 
 function Read-SingleLine {
-    param(
-        [string]$Path,
-        [string]$Name
-    )
+    param([string]$Path, [string]$Name)
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$Name marker was not found at $Path."
-    }
-
+    if (-not (Test-Path -LiteralPath $Path)) { throw "$Name marker was not found at $Path." }
     $lines = @(Get-Content -LiteralPath $Path | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    if ($lines.Count -ne 1) {
-        throw "$Name marker must contain exactly one non-empty line."
-    }
-
-    return $lines[0].Trim()
+    if ($lines.Count -ne 1) { throw "$Name marker must contain exactly one non-empty line." }
+    $lines[0].Trim()
 }
 
 function ConvertFrom-Marker {
-    param(
-        [string]$Marker,
-        [string]$Prefix,
-        [string]$Name
-    )
+    param([string]$Marker, [string]$Prefix, [string]$Name)
 
-    if (-not $Marker.StartsWith($Prefix, [System.StringComparison]::Ordinal)) {
-        throw "$Name marker must start with '$Prefix'. Current value: $Marker"
-    }
-
+    if (-not $Marker.StartsWith($Prefix, [System.StringComparison]::Ordinal)) { throw "$Name marker must start with '$Prefix'." }
     $version = $Marker.Substring($Prefix.Length)
-    $parsedVersion = $null
-    if (-not [System.Version]::TryParse($version, [ref]$parsedVersion)) {
-        throw "$Name marker has an invalid semantic version. Current value: $Marker"
+    $parsed = $null
+    if (-not [System.Version]::TryParse($version, [ref]$parsed)) { throw "$Name marker has an invalid semantic version: $Marker" }
+    $version
+}
+
+function Get-Maps {
+    param($Manifest)
+
+    if ($Manifest -and $Manifest.map) { return @($Manifest.map) }
+    if ($Manifest -and $Manifest.maps) { return @($Manifest.maps) }
+
+    # Migrate the former URL-oriented manifest without carrying its URLs forward.
+    $migrated = @()
+    foreach ($guide in @($Manifest.guides)) {
+        $migrated += [pscustomobject]@{
+            guideVersion = [string]$guide.documentationVersion
+            templateVersions = @($guide.supportedTemplateVersions)
+        }
     }
-
-    return $version
+    $migrated
 }
 
-$docsMarker = Read-SingleLine -Path $DocsReleaseFile -Name "Docs release"
-$docsVersion = ConvertFrom-Marker -Marker $docsMarker -Prefix "docs-v" -Name "Docs release"
+$docsVersion = ConvertFrom-Marker (Read-SingleLine $DocsReleaseFile "Docs release") "docs-v" "Docs release"
+$templateVersion = ConvertFrom-Marker (Read-SingleLine $TemplateReleaseFile "Template release") "template-v" "Template release"
 
-$templateMarker = Read-SingleLine -Path $TemplateReleaseFile -Name "Template release"
-$templateVersion = ConvertFrom-Marker -Marker $templateMarker -Prefix "template-v" -Name "Template release"
+$manifest = if (Test-Path -LiteralPath $ManifestPath) { Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json } else { $null }
+$maps = @(Get-Maps $manifest)
+$cleanMaps = @()
 
-$guideId = "template-use-guide-$docsVersion"
-$guideDirectory = Join-Path $DocsRoot $guideId
-$englishGuide = Join-Path $guideDirectory "en.md"
-$spanishGuide = Join-Path $guideDirectory "es.md"
-$manifestPath = Join-Path $DocsRoot "guide-manifest.json"
+foreach ($map in $maps) {
+    $versions = @($map.templateVersions) |
+        ForEach-Object { [string]$_ } |
+        Where-Object { $_ -and $_ -ne $templateVersion } |
+        Sort-Object { [System.Version]::Parse($_) } -Unique
 
-foreach ($requiredFile in @($englishGuide, $spanishGuide)) {
-    if (-not (Test-Path -LiteralPath $requiredFile)) {
-        throw "Required guide file was not found: $requiredFile"
+    if ($versions.Count -gt 0) {
+        $cleanMaps += [pscustomobject]@{
+            guideVersion = [string]$map.guideVersion
+            templateVersions = @($versions)
+        }
     }
 }
 
-if (Test-Path -LiteralPath $manifestPath) {
-    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    $guides = @($manifest.guides)
-}
-else {
-    $guides = @()
+$target = $cleanMaps | Where-Object { $_.guideVersion -eq $docsVersion } | Select-Object -First 1
+if ($null -eq $target) {
+    $target = [pscustomobject]@{ guideVersion = $docsVersion; templateVersions = @() }
+    $cleanMaps += $target
 }
 
-$existingGuide = $guides | Where-Object { $_.documentationVersion -eq $docsVersion } | Select-Object -First 1
-$supportedVersions = @()
-if ($existingGuide -and $existingGuide.supportedTemplateVersions) {
-    $supportedVersions += @($existingGuide.supportedTemplateVersions)
-}
-
-$supportedVersions += $templateVersion
-$supportedVersions = $supportedVersions |
-    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+$target.templateVersions = @($target.templateVersions + $templateVersion) |
     Sort-Object { [System.Version]::Parse($_) } -Unique
 
-$minimumVersion = $supportedVersions[0]
-$maximumVersion = $supportedVersions[-1]
-$range = if ($minimumVersion -eq $maximumVersion) { "[$minimumVersion]" } else { "[$minimumVersion,$maximumVersion]" }
-$rawBase = $RepositoryRawBase.TrimEnd("/")
-$sourceRef = "docs-v$docsVersion"
-
-$guide = [ordered]@{
-    id = $guideId
-    title = "TurtlePath Template Use Guide"
-    documentationVersion = $docsVersion
-    packageId = "TurtlePath.Template"
-    supportedTemplateVersionRange = $range
-    supportedTemplateVersions = @($supportedVersions)
-    cultures = @(
-        [ordered]@{
-            code = "en"
-            title = "English"
-            sourceUrl = "$rawBase/$sourceRef/docs/guides/template/$guideId/en.md"
-        },
-        [ordered]@{
-            code = "es"
-            title = "Espanol"
-            sourceUrl = "$rawBase/$sourceRef/docs/guides/template/$guideId/es.md"
-        }
-    )
-    source = "GitHub"
+$orderedMaps = @($cleanMaps | Sort-Object { [System.Version]::Parse($_.guideVersion) })
+$jsonLines = [System.Collections.Generic.List[string]]::new()
+$null = $jsonLines.Add('{')
+$null = $jsonLines.Add('  "map": [')
+for ($index = 0; $index -lt $orderedMaps.Count; $index++) {
+    $map = $orderedMaps[$index]
+    $comma = if ($index -lt $orderedMaps.Count - 1) { ',' } else { '' }
+    $null = $jsonLines.Add('    {')
+    $null = $jsonLines.Add(('      "guideVersion": "{0}",' -f $map.guideVersion))
+    $null = $jsonLines.Add('      "templateVersions": [')
+    for ($versionIndex = 0; $versionIndex -lt $map.templateVersions.Count; $versionIndex++) {
+        $versionComma = if ($versionIndex -lt $map.templateVersions.Count - 1) { ',' } else { '' }
+        $null = $jsonLines.Add(('        "{0}"{1}' -f $map.templateVersions[$versionIndex], $versionComma))
+    }
+    $null = $jsonLines.Add(('      ]'))
+    $null = $jsonLines.Add(('    }}{0}' -f $comma))
 }
-
-$updatedGuides = @($guides | Where-Object { $_.documentationVersion -ne $docsVersion })
-$updatedGuides += [pscustomobject]$guide
-$updatedGuides = $updatedGuides | Sort-Object { [System.Version]::Parse($_.documentationVersion) } -Descending
-
-$updatedManifest = [ordered]@{
-    guides = @($updatedGuides)
-}
-
-$json = $updatedManifest | ConvertTo-Json -Depth 20
+$null = $jsonLines.Add('  ]')
+$null = $jsonLines.Add('}')
+$json = $jsonLines -join [Environment]::NewLine
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-[System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $manifestPath), $json + [System.Environment]::NewLine, $utf8NoBom)
+[System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $ManifestPath), $json + [Environment]::NewLine, $utf8NoBom)

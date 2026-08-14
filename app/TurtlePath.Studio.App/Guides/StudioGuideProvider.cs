@@ -1,20 +1,20 @@
 using System.IO.Compression;
 using System.Text.Json;
-using Microsoft.Maui.Storage;
 using TurtlePath.Studio.Application.Defaults;
 
 namespace TurtlePath.Studio.App.Guides;
 
+/// <summary>
+/// Resolves template guides from the versioned documentation package published on NuGet.
+/// The downloaded package is retained locally so the guide remains available offline.
+/// </summary>
 public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuideProvider
 {
-    private const string CacheVersion = "v8";
+    private const string DocumentationPackageId = "TurtlePath.Template.Documentation";
+    private const string CacheVersion = "v10";
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true
-    };
-
-    private IReadOnlyList<StudioGuideOption>? guides;
+    private DocumentationPackageManifest? latestManifest;
 
     public async Task<IReadOnlyList<StudioGuideOption>> GetGuidesAsync(
         string packageId,
@@ -25,16 +25,30 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             ? TurtlePathStudioDefaults.TemplatePackageId
             : packageId;
 
-        var knownGuides = await LoadManifestAsync(cancellationToken);
-        knownGuides = AddInstalledTemplateVersion(knownGuides, packageId, templateVersion);
+        var manifest = await LoadLatestManifestAsync(forceRefresh: false, cancellationToken);
+        var normalizedVersion = NormalizeVersion(templateVersion);
+        var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
+            string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
 
-        var matchingGuides = knownGuides
-            .Where(guide => string.Equals(guide.PackageId, packageId, StringComparison.OrdinalIgnoreCase))
-            .Where(guide => VersionRange.Contains(guide.SupportedTemplateVersionRange, templateVersion))
-            .OrderByDescending(guide => Version.Parse(guide.DocumentationVersion))
-            .ToArray();
+        if (mapping is null)
+            return [];
 
-        return matchingGuides;
+        var guideVersion = NormalizeVersion(mapping.GuideVersion);
+        var cultures = new[]
+        {
+            new StudioGuideCulture("en", "English", string.Empty),
+            new StudioGuideCulture("es", "Espanol", string.Empty)
+        };
+
+        return [new StudioGuideOption(
+            $"template-use-guide-{guideVersion}",
+            "TurtlePath Template Use Guide",
+            guideVersion,
+            packageId,
+            BuildExactRange(normalizedVersion),
+            mapping.TemplateVersions,
+            cultures,
+            "NuGet")];
     }
 
     public async Task<StudioGuideDocument> GetGuideAsync(
@@ -46,18 +60,9 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         ArgumentNullException.ThrowIfNull(guide);
         ArgumentNullException.ThrowIfNull(culture);
 
-        var cacheDirectory = GetGuideCacheDirectory(guide);
-        var htmlPath = Path.Combine(cacheDirectory, $"{culture.Code}.html");
-        var manifestPath = Path.Combine(cacheDirectory, "manifest.json");
-
-        var installedPackage = await TryLoadInstalledTemplateGuideAsync(guide, culture, cancellationToken);
-        if (installedPackage is not null)
-        {
-            Directory.CreateDirectory(cacheDirectory);
-            await File.WriteAllTextAsync(htmlPath, installedPackage.Html, cancellationToken);
-            await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(guide, JsonOptions), cancellationToken);
-            return installedPackage;
-        }
+        var packageVersion = NormalizeVersion(guide.DocumentationVersion);
+        var packagePath = await EnsurePackageAsync(packageVersion, forceRefresh, cancellationToken);
+        var htmlPath = Path.Combine(GetGuideCacheDirectory(packageVersion), $"{culture.Code}.html");
 
         if (!forceRefresh && File.Exists(htmlPath))
         {
@@ -65,312 +70,145 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
                 guide,
                 culture,
                 await File.ReadAllTextAsync(htmlPath, cancellationToken),
-                $"Cached guide docs {guide.DocumentationVersion} for template versions {guide.SupportedTemplateVersionRange}.",
+                $"Cached guide {packageVersion} from {DocumentationPackageId}.",
                 LoadedFromCache: true,
                 IsEmbeddedFallback: false);
         }
 
-        if (!forceRefresh)
-        {
-            var embedded = await TryLoadEmbeddedGuideAsync(guide, culture, cancellationToken);
-            if (embedded is not null)
-            {
-                Directory.CreateDirectory(cacheDirectory);
-                await File.WriteAllTextAsync(htmlPath, embedded.Html, cancellationToken);
-                await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(guide, JsonOptions), cancellationToken);
-
-                return embedded with
-                {
-                    Status = $"Using bundled guide docs {guide.DocumentationVersion}; cached locally for the next load.",
-                    LoadedFromCache = true,
-                    IsEmbeddedFallback = false
-                };
-            }
-        }
-
         try
         {
-            using var response = await httpClient.GetAsync(culture.SourceUrl, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            var markdown = await response.Content.ReadAsStringAsync(cancellationToken);
+            var markdown = ReadGuideMarkdown(packagePath, packageVersion, culture.Code);
             var html = SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})");
-
-            Directory.CreateDirectory(cacheDirectory);
+            Directory.CreateDirectory(GetGuideCacheDirectory(packageVersion));
             await File.WriteAllTextAsync(htmlPath, html, cancellationToken);
-            await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(guide, JsonOptions), cancellationToken);
 
             return new StudioGuideDocument(
                 guide,
                 culture,
                 html,
-                $"Downloaded guide docs {guide.DocumentationVersion} for template versions {guide.SupportedTemplateVersionRange}.",
+                $"Loaded guide {packageVersion} from {DocumentationPackageId}.",
                 LoadedFromCache: false,
+                IsEmbeddedFallback: false);
+        }
+        catch when (File.Exists(htmlPath))
+        {
+            return new StudioGuideDocument(
+                guide,
+                culture,
+                await File.ReadAllTextAsync(htmlPath, cancellationToken),
+                $"Using cached guide {packageVersion}; the documentation package could not be read.",
+                LoadedFromCache: true,
                 IsEmbeddedFallback: false);
         }
         catch
         {
-            if (File.Exists(htmlPath))
-            {
-                return new StudioGuideDocument(
-                    guide,
-                    culture,
-                    await File.ReadAllTextAsync(htmlPath, cancellationToken),
-                    $"Using cached guide docs {guide.DocumentationVersion} for template versions {guide.SupportedTemplateVersionRange}; GitHub is not reachable.",
-                    LoadedFromCache: true,
-                    IsEmbeddedFallback: false);
-            }
-
-            return await LoadEmbeddedFallbackAsync(guide, culture, cancellationToken);
-        }
-    }
-
-    private static async Task<StudioGuideDocument?> TryLoadEmbeddedGuideAsync(
-        StudioGuideOption guide,
-        StudioGuideCulture culture,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var embeddedPath = $"Docs/{guide.Id}/{culture.Code}.md";
-            await using var stream = await FileSystem.OpenAppPackageFileAsync(embeddedPath);
-            using var reader = new StreamReader(stream);
-            var markdown = await reader.ReadToEndAsync(cancellationToken);
-
             return new StudioGuideDocument(
                 guide,
                 culture,
-                SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})"),
-                "Using bundled guide documentation.",
+                SimpleMarkdownRenderer.Render("# Guide unavailable\n\nThe selected documentation package is not available locally.", "Guide unavailable"),
+                $"Guide {packageVersion} is not available locally and could not be downloaded.",
                 LoadedFromCache: false,
                 IsEmbeddedFallback: true);
         }
-        catch
-        {
-            return null;
-        }
     }
 
-    private static async Task<StudioGuideDocument> LoadEmbeddedFallbackAsync(
-        StudioGuideOption guide,
-        StudioGuideCulture culture,
-        CancellationToken cancellationToken)
+    private async Task<DocumentationPackageManifest> LoadLatestManifestAsync(bool forceRefresh, CancellationToken cancellationToken)
     {
-        var embedded = await TryLoadEmbeddedGuideAsync(guide, culture, cancellationToken);
-        if (embedded is not null)
-            return embedded with
-            {
-                Status = "Using embedded fallback documentation because GitHub and cache are unavailable.",
-                IsEmbeddedFallback = true
-            };
-
-        var html = SimpleMarkdownRenderer.Render(
-            "# Guide unavailable\n\nThere is no local embedded copy for this guide and GitHub is not reachable. Check the configured documentation manifest or update TurtlePath Studio.",
-            "Guide unavailable");
-
-        return new StudioGuideDocument(
-            guide,
-            culture,
-            html,
-            "Selected documentation is not cached yet and GitHub is unavailable.",
-            LoadedFromCache: false,
-            IsEmbeddedFallback: true);
-    }
-
-    private static IReadOnlyList<StudioGuideOption> AddInstalledTemplateVersion(
-        IReadOnlyList<StudioGuideOption> knownGuides,
-        string packageId,
-        string templateVersion)
-    {
-        if (!Version.TryParse(NormalizeVersion(templateVersion), out var parsedTemplateVersion))
-            return knownGuides;
-
-        var guide = knownGuides.FirstOrDefault(candidate =>
-            string.Equals(candidate.PackageId, packageId, StringComparison.OrdinalIgnoreCase));
-
-        if (guide is null)
-            return knownGuides;
-
-        var supportedVersions = guide.SupportedTemplateVersions
-            .Append(parsedTemplateVersion.ToString(3))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(version => Version.Parse(NormalizeVersion(version)))
-            .ToArray();
-
-        var range = supportedVersions.Length == 1
-            ? $"[{supportedVersions[0]}]"
-            : $"[{supportedVersions[0]},{supportedVersions[^1]}]";
-
-        return knownGuides
-            .Select(candidate => ReferenceEquals(candidate, guide)
-                ? candidate with
-                {
-                    SupportedTemplateVersionRange = range,
-                    SupportedTemplateVersions = supportedVersions
-                }
-                : candidate)
-            .ToArray();
-    }
-
-    private async Task<StudioGuideDocument?> TryLoadInstalledTemplateGuideAsync(
-        StudioGuideOption guide,
-        StudioGuideCulture culture,
-        CancellationToken cancellationToken)
-    {
-        var packagePath = FindInstalledTemplatePackage(guide);
-        if (packagePath is null)
-            return null;
+        if (!forceRefresh && latestManifest is not null)
+            return latestManifest;
 
         try
         {
-            using var archive = ZipFile.OpenRead(packagePath);
-            var entry = archive.Entries.FirstOrDefault(candidate =>
-                candidate.FullName.EndsWith($"/docs/Use Guide_{culture.Code}.md", StringComparison.OrdinalIgnoreCase));
+            var indexUrl = $"https://api.nuget.org/v3-flatcontainer/{DocumentationPackageId.ToLowerInvariant()}/index.json";
+            using var response = await httpClient.GetAsync(indexUrl, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var index = await JsonSerializer.DeserializeAsync<NuGetVersionIndex>(
+                await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+            var latestVersion = index?.Versions?
+                .Where(version => Version.TryParse(NormalizeVersion(version), out _))
+                .OrderByDescending(version => Version.Parse(NormalizeVersion(version)))
+                .FirstOrDefault();
 
-            if (entry is null)
-                return null;
-
-            await using var stream = entry.Open();
-            using var reader = new StreamReader(stream);
-            var markdown = await reader.ReadToEndAsync(cancellationToken);
-
-            return new StudioGuideDocument(
-                guide,
-                culture,
-                SimpleMarkdownRenderer.Render(markdown, $"{guide.Title} ({culture.Title})"),
-                $"Using guide docs from the installed {guide.PackageId} template package.",
-                LoadedFromCache: false,
-                IsEmbeddedFallback: false,
-                IsTemplatePackage: true);
+            if (latestVersion is not null)
+            {
+                var packagePath = await EnsurePackageAsync(NormalizeVersion(latestVersion), forceRefresh, cancellationToken);
+                latestManifest = ReadPackageManifest(packagePath);
+                await File.WriteAllTextAsync(GetLatestVersionPath(), NormalizeVersion(latestVersion), cancellationToken);
+                return latestManifest;
+            }
         }
         catch
         {
-            return null;
+            // Offline startup is supported by the last package downloaded locally.
         }
+
+        var cachedVersionPath = GetLatestVersionPath();
+        if (File.Exists(cachedVersionPath))
+        {
+            var cachedVersion = NormalizeVersion(await File.ReadAllTextAsync(cachedVersionPath, cancellationToken));
+            latestManifest = ReadPackageManifest(await EnsurePackageAsync(cachedVersion, false, cancellationToken));
+            return latestManifest;
+        }
+
+        return latestManifest = new DocumentationPackageManifest([]);
     }
 
-    private static string? FindInstalledTemplatePackage(StudioGuideOption guide)
+    private async Task<string> EnsurePackageAsync(string version, bool forceRefresh, CancellationToken cancellationToken)
     {
-        var packageDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".templateengine",
-            "packages");
+        var directory = GetPackageCacheDirectory(version);
+        var packagePath = Path.Combine(directory, $"{DocumentationPackageId}.{version}.nupkg");
+        if (!forceRefresh && File.Exists(packagePath))
+            return packagePath;
 
-        if (!Directory.Exists(packageDirectory))
-            return null;
-
-        return Directory.EnumerateFiles(packageDirectory, $"{guide.PackageId}.*.nupkg")
-            .Select(path => new
-            {
-                Path = path,
-                Version = ParsePackageVersion(path, guide.PackageId)
-            })
-            .Where(candidate => candidate.Version is not null && guide.SupportedTemplateVersions.Any(version =>
-                string.Equals(NormalizeVersion(version), candidate.Version!.ToString(3), StringComparison.OrdinalIgnoreCase)))
-            .OrderByDescending(candidate => candidate.Version)
-            .Select(candidate => candidate.Path)
-            .FirstOrDefault();
+        var packageUrl = $"https://api.nuget.org/v3-flatcontainer/{DocumentationPackageId.ToLowerInvariant()}/{version.ToLowerInvariant()}/{DocumentationPackageId.ToLowerInvariant()}.{version.ToLowerInvariant()}.nupkg";
+        using var response = await httpClient.GetAsync(packageUrl, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        Directory.CreateDirectory(directory);
+        await using var output = File.Create(packagePath);
+        await response.Content.CopyToAsync(output, cancellationToken);
+        return packagePath;
     }
 
-    private static Version? ParsePackageVersion(string path, string packageId)
+    private static DocumentationPackageManifest ReadPackageManifest(string packagePath)
     {
-        var fileName = Path.GetFileNameWithoutExtension(path);
-        var prefix = $"{packageId}.";
-        if (!fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        return Version.TryParse(NormalizeVersion(fileName[prefix.Length..]), out var version)
-            ? version
-            : null;
+        using var archive = ZipFile.OpenRead(packagePath);
+        var entry = archive.GetEntry("guide-manifest.json") ?? throw new InvalidDataException("The documentation package has no guide-manifest.json.");
+        using var stream = entry.Open();
+        return JsonSerializer.Deserialize<DocumentationPackageManifest>(stream, JsonOptions)
+            ?? new DocumentationPackageManifest([]);
     }
 
-    private async Task<IReadOnlyList<StudioGuideOption>> LoadManifestAsync(CancellationToken cancellationToken)
+    private static string ReadGuideMarkdown(string packagePath, string version, string culture)
     {
-        if (guides is not null)
-            return guides;
-
-        await using var stream = await FileSystem.OpenAppPackageFileAsync("Docs/guide-manifest.json");
-        var manifest = await JsonSerializer.DeserializeAsync<StudioGuideManifest>(stream, JsonOptions, cancellationToken);
-        guides = manifest?.Guides ?? [];
-
-        return guides;
+        using var archive = ZipFile.OpenRead(packagePath);
+        var entry = archive.GetEntry($"user_guide_v{version}_{culture}.md")
+            ?? throw new FileNotFoundException($"Guide content for culture '{culture}' was not found.");
+        using var reader = new StreamReader(entry.Open());
+        return reader.ReadToEnd();
     }
 
-    private static string GetGuideCacheDirectory(StudioGuideOption guide)
-    {
-        var root = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TurtlePath",
-            "Studio",
-            "Docs",
-            CacheVersion,
-            $"{guide.Id}-{string.Join('-', guide.SupportedTemplateVersions.OrderByDescending(version => Version.Parse(NormalizeVersion(version))).Take(1))}");
+    private static string GetPackageCacheDirectory(string version) => Path.Combine(GetCacheRoot(), "Packages", DocumentationPackageId, version);
 
-        return root;
-    }
+    private static string GetGuideCacheDirectory(string version) => Path.Combine(GetPackageCacheDirectory(version), "Rendered");
+
+    private static string GetLatestVersionPath() => Path.Combine(GetCacheRoot(), "latest.txt");
+
+    private static string GetCacheRoot() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "TurtlePath", "Studio", "Docs", CacheVersion);
+
+    private static string BuildExactRange(string version) => $"[{version}]";
 
     private static string NormalizeVersion(string version)
     {
-        var normalized = version.Trim();
-        if (normalized.StartsWith('v'))
-            normalized = normalized[1..];
-
+        var normalized = version.Trim().TrimStart('v');
         var metadataIndex = normalized.IndexOf('+', StringComparison.Ordinal);
-        if (metadataIndex >= 0)
-            normalized = normalized[..metadataIndex];
-
-        return normalized;
+        return metadataIndex >= 0 ? normalized[..metadataIndex] : normalized;
     }
 
-    private static class VersionRange
-    {
-        public static bool Contains(string range, string version)
-        {
-            if (string.IsNullOrWhiteSpace(version) || !Version.TryParse(Normalize(version), out var parsed))
-                return true;
+    private sealed record NuGetVersionIndex(IReadOnlyList<string> Versions);
 
-            if (string.IsNullOrWhiteSpace(range) || range.Length < 5)
-                return true;
+    private sealed record DocumentationPackageManifest(IReadOnlyList<DocumentationMap> Map);
 
-            var includeMin = range[0] == '[';
-            var includeMax = range[^1] == ']';
-            var parts = range[1..^1].Split(',', StringSplitOptions.TrimEntries);
-            if (parts.Length != 2)
-                return true;
-
-            return IsLowerBoundValid(parsed, parts[0], includeMin) &&
-                   IsUpperBoundValid(parsed, parts[1], includeMax);
-        }
-
-        private static bool IsLowerBoundValid(Version version, string minimum, bool inclusive)
-        {
-            if (string.IsNullOrWhiteSpace(minimum) || !Version.TryParse(Normalize(minimum), out var parsed))
-                return true;
-
-            var comparison = version.CompareTo(parsed);
-            return inclusive ? comparison >= 0 : comparison > 0;
-        }
-
-        private static bool IsUpperBoundValid(Version version, string maximum, bool inclusive)
-        {
-            if (string.IsNullOrWhiteSpace(maximum) || !Version.TryParse(Normalize(maximum), out var parsed))
-                return true;
-
-            var comparison = version.CompareTo(parsed);
-            return inclusive ? comparison <= 0 : comparison < 0;
-        }
-
-        private static string Normalize(string version)
-        {
-            var normalized = version.Trim();
-            if (normalized.StartsWith('v'))
-                normalized = normalized[1..];
-
-            var metadataIndex = normalized.IndexOf('+', StringComparison.Ordinal);
-            if (metadataIndex >= 0)
-                normalized = normalized[..metadataIndex];
-
-            return normalized;
-        }
-    }
+    private sealed record DocumentationMap(string GuideVersion, IReadOnlyList<string> TemplateVersions);
 }
