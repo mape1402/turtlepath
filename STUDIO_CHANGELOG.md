@@ -1,5 +1,11 @@
 # TurtlePath Studio Changelog
 
+## 1.0.8
+
+### Changed
+
+- Prepared a test release that publishes both the NuGet package and the self-contained Studio ZIP to GitHub Releases.
+
 ## 1.0.7
 
 ### Fixed
