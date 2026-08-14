@@ -107,6 +107,17 @@ jobs:
           /p:IncludeSource=false
           /p:StudioPayloadDirectory="${{ steps.publish.outputs.payload }}"
 
+      - name: Compress Studio payload
+        shell: pwsh
+        env:
+          STUDIO_VERSION: ${{ steps.version.outputs.version }}
+          STUDIO_PAYLOAD: ${{ steps.publish.outputs.payload }}
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "TurtlePath.Studio.$env:STUDIO_VERSION.zip"
+          Compress-Archive -Path (Join-Path $env:STUDIO_PAYLOAD '*') -DestinationPath $zip -CompressionLevel Optimal
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+        id: zip
+
       - name: Create or update Studio release tag
         shell: pwsh
         env:
@@ -153,6 +164,7 @@ jobs:
           prerelease: false
           files: |
             ${{ runner.temp }}\studio-nupkg\TurtlePath.Studio.${{ steps.version.outputs.version }}.nupkg
+            ${{ steps.zip.outputs.zip }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
