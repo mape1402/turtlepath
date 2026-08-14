@@ -45,6 +45,7 @@ El proyecto generado no es un ASP.NET Core vacio. Ya trae configurado el stack e
 - `Pelican.Mediator` para dispatch de requests.
 - `Spider.Pipelines` para execution boundaries, incluyendo el transaction boundary.
 - `TurtlePath.Spider` para el bridge propio de TurtlePath que envia requests de Pelican por Spider sin acoplar esas librerias entre si.
+- `TurtlePath.Spider.Transactions` para el transaction boundary ambiente, discovery de perfiles y filtro de requests.
 - `Pigeon.Messaging` con Azure Service Bus y EF Core outbox preparado como stack opcional.
 - `TurtlePath.Analyzers` para evitar comparaciones y asignaciones inseguras de `CId`.
 
@@ -1733,7 +1734,7 @@ public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfil
 }
 ```
 
-El container default descubre perfiles de transaction boundary desde los assemblies de Business y Api. No edites `AddPipelineDefaults` para reglas especificas de un feature.
+El paquete `TurtlePath.Spider.Transactions` descubre perfiles de transaction boundary desde los assemblies cargados. No edites `AddPipelineDefaults` para reglas especificas de un feature.
 
 ## 15. Consumers Con Pigeon Y Outbox
 

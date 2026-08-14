@@ -45,6 +45,7 @@ The generated service is not an empty ASP.NET Core project. It already has the s
 - `Pelican.Mediator` for request dispatch.
 - `Spider.Pipelines` for execution boundaries, including the default transaction boundary.
 - `TurtlePath.Spider` for the TurtlePath-owned bridge that sends Pelican requests through Spider without coupling those libraries to each other.
+- `TurtlePath.Spider.Transactions` for the ambient transaction boundary, profile discovery, and request filtering.
 - `Pigeon.Messaging` with Azure Service Bus and EF Core outbox prepared as an opt-in messaging stack.
 - `TurtlePath.Analyzers` to prevent unsafe `CId` comparisons and assignments.
 
@@ -1883,7 +1884,7 @@ public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfil
 }
 ```
 
-The default container discovers transaction boundary profiles from the Business and Api assemblies. Do not edit `AddPipelineDefaults` for feature-specific transaction rules.
+The `TurtlePath.Spider.Transactions` package discovers transaction boundary profiles from loaded assemblies. Do not edit `AddPipelineDefaults` for feature-specific transaction rules.
 
 Use Spider when a flow must go through execution boundaries. The controller base and hub consumer base expose `Spider` for that reason.
 

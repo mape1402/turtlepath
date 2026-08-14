@@ -33,6 +33,7 @@ Runtime package artifacts include:
 - `TurtlePath.ExceptionHandling.Workers`
 - `TurtlePath.Jobs`
 - `TurtlePath.Spider`
+- `TurtlePath.Spider.Transactions`
 - `TurtlePath.Studio.Tool`
 - `TurtlePath.Testing`
 - `TurtlePath.Testing.EntityFrameworkCore`
