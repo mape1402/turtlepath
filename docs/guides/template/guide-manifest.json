@@ -5,13 +5,14 @@
       "title": "TurtlePath Template Use Guide",
       "documentationVersion": "1.2.0",
       "packageId": "TurtlePath.Template",
-      "supportedTemplateVersionRange": "[1.5.0,1.6.2]",
+      "supportedTemplateVersionRange": "[1.5.0,1.6.3]",
       "supportedTemplateVersions": [
         "1.5.0",
         "1.5.1",
         "1.6.0",
         "1.6.1",
-        "1.6.2"
+        "1.6.2",
+        "1.6.3"
       ],
       "cultures": [
         {
