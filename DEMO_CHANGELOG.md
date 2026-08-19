@@ -1,5 +1,12 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.8] - 2026-08-19
+
+### Fixed
+
+- Updated the generated Heroes Showcase TurtlePath package default and fallback to `1.6.3`.
+- Updated generated transaction boundary registration guidance to use explicit Business and API assemblies.
+
 ## [demo-v1.4.7] - 2026-08-19
 
 ### Fixed
