@@ -4,6 +4,17 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.6.3] - 2026-08-19
+
+### Fixed
+
+- Changed `TurtlePath.Spider.Transactions` request and profile discovery to use explicitly supplied application assemblies instead of scanning every loaded assembly.
+- Prevented test host assemblies from affecting transaction options creation.
+
+### Changed
+
+- Updated the service template and Heroes showcase transaction registration to pass Business and API assemblies explicitly.
+
 ## [v1.6.2] - 2026-08-14
 
 ### Changed

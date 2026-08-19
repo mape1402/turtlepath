@@ -192,6 +192,17 @@ services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 ```
 
+Register the Spider transaction boundary with the application assemblies that contain requests and transaction profiles. Keep this registration in the host composition root:
+
+```csharp
+services.AddTurtlePathSpiderTransactions(
+    configuration,
+    typeof(MyApplicationMarker).Assembly,
+    typeof(Program).Assembly);
+```
+
+The registration does not scan the entire `AppDomain`; test hosts and unrelated dependencies are never included. Feature-specific transaction profiles can remain in the Business assembly and are discovered automatically from the assemblies supplied here.
+
 `UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. Put legacy or mixed-schema overrides in a profile:
 
 ```csharp
