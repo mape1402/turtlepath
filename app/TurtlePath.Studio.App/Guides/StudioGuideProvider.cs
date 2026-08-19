@@ -27,7 +27,9 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
 
         try
         {
-            var manifest = await LoadLatestManifestAsync(forceRefresh: false, cancellationToken);
+            // Resolve the manifest from NuGet once per Studio session. The package and rendered guide
+            // remain cached locally, while the first lookup can still discover a newly published guide.
+            var manifest = await LoadLatestManifestAsync(forceRefresh: true, cancellationToken);
             var normalizedVersion = NormalizeVersion(templateVersion);
             var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
                 string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
