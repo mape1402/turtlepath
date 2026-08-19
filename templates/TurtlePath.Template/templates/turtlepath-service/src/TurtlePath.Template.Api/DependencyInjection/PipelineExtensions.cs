@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using TurtlePath.Template.Business;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -7,7 +8,10 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         internal static IServiceCollection AddPipelineDefaults(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddTurtlePathSpiderTransactions(configuration);
+            services.AddTurtlePathSpiderTransactions(
+                configuration,
+                typeof(Constants).Assembly,
+                typeof(PipelineExtensions).Assembly);
 
             return services;
         }

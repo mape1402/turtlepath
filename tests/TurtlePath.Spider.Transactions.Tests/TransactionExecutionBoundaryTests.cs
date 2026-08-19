@@ -13,7 +13,9 @@ public sealed class TransactionExecutionBoundaryTests
     {
         var services = new ServiceCollection();
 
-        services.AddTurtlePathSpiderTransactions(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        services.AddTurtlePathSpiderTransactions(
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
+            typeof(TransactionExecutionBoundary).Assembly);
 
         using var provider = services.BuildServiceProvider();
 

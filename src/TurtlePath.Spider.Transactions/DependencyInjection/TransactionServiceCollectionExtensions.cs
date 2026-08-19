@@ -18,13 +18,15 @@ public static class TransactionServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The application configuration.</param>
+    /// <param name="assemblies">Application assemblies that contain requests and transaction profiles.</param>
     /// <returns>The same service collection.</returns>
     public static IServiceCollection AddTurtlePathSpiderTransactions(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(services);
-        Register(services, configuration);
+        Register(services, configuration, assemblies);
         return services;
     }
 
@@ -33,27 +35,35 @@ public static class TransactionServiceCollectionExtensions
     /// </summary>
     /// <param name="builder">The TurtlePath registration builder.</param>
     /// <param name="configuration">The application configuration.</param>
+    /// <param name="assemblies">Application assemblies that contain requests and transaction profiles.</param>
     /// <returns>The same TurtlePath builder.</returns>
     public static ITurtlePathBuilder UseSpiderTransactions(
         this ITurtlePathBuilder builder,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        params Assembly[] assemblies)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var services = builder.Services;
-        Register(services, configuration);
+        Register(services, configuration, assemblies);
         return builder;
     }
 
-    private static void Register(IServiceCollection services, IConfiguration configuration)
+    private static void Register(
+        IServiceCollection services,
+        IConfiguration configuration,
+        IReadOnlyCollection<Assembly> assemblies)
     {
+        ArgumentNullException.ThrowIfNull(assemblies);
+        if (assemblies.Count == 0)
+            throw new ArgumentException("At least one application assembly is required.", nameof(assemblies));
+
         if (configuration != null)
             services.Configure<TransactionBoundaryOptions>(configuration.GetSection("TransactionBoundary"));
         else
             services.AddOptions<TransactionBoundaryOptions>();
         services.PostConfigure<TransactionBoundaryOptions>(options =>
         {
-            var assemblies = GetApplicationAssemblies();
             foreach (var assembly in assemblies)
                 options.DiscoverRequestsFrom(assembly);
 
@@ -86,23 +96,6 @@ public static class TransactionServiceCollectionExtensions
             if (Activator.CreateInstance(type) is ITransactionBoundaryProfile profile)
                 yield return profile;
         }
-    }
-
-    private static IReadOnlyList<Assembly> GetApplicationAssemblies()
-    {
-        return AppDomain.CurrentDomain
-            .GetAssemblies()
-            .Where(assembly => assembly is not null && !IsTestAssembly(assembly))
-            .Distinct()
-            .ToArray();
-    }
-
-    private static bool IsTestAssembly(Assembly assembly)
-    {
-        var name = assembly.GetName().Name ?? string.Empty;
-        return name.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith(".Test", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains(".TestHost", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
