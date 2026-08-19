@@ -1,5 +1,12 @@
 # TurtlePath Studio Changelog
 
+## 1.0.9
+
+### Fixed
+
+- Fixed first-run documentation discovery so Studio downloads the current documentation manifest from NuGet when no local guide cache exists.
+- Kept documentation package and rendered guide caching available for subsequent loads and offline use.
+
 ## 1.0.8
 
 ### Changed
