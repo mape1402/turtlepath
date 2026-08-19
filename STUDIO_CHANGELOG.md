@@ -1,5 +1,12 @@
 # TurtlePath Studio Changelog
 
+## 1.0.10
+
+### Fixed
+
+- Keep the latest compatible template guide available when a template is updated before its documentation package is published.
+- Show every template-to-guide mapping from the cumulative documentation manifest instead of only the installed template version.
+
 ## 1.0.9
 
 ### Fixed
