@@ -9,11 +9,14 @@
     <IncludeSource>false</IncludeSource>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <DocumentationVersion Condition="'$(DocumentationVersion)' == ''">1.2.0</DocumentationVersion>
+    <GuideContentVersion>$(DocumentationVersion)</GuideContentVersion>
+    <!-- A manifest-only documentation release reuses the latest guide content. -->
+    <GuideContentVersion Condition="!Exists('../guides/template/template-use-guide-$(GuideContentVersion)/en.md')">1.2.2</GuideContentVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="../guides/template/guide-manifest.json" Pack="true" PackagePath="guide-manifest.json" />
-    <None Include="../guides/template/template-use-guide-$(DocumentationVersion)/en.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_en.md" />
-    <None Include="../guides/template/template-use-guide-$(DocumentationVersion)/es.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_es.md" />
+    <None Include="../guides/template/template-use-guide-$(GuideContentVersion)/en.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_en.md" />
+    <None Include="../guides/template/template-use-guide-$(GuideContentVersion)/es.md" Pack="true" PackagePath="user_guide_v$(DocumentationVersion)_es.md" />
   </ItemGroup>
 </Project>
