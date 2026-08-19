@@ -199,7 +199,7 @@ tests/
 
 `Api` es la capa host. Ahi viven controllers, consumers opcionales, composicion de arranque, exception handling, boundaries transaccionales con Spider, configuracion opcional de Pigeon, Scalar OpenAPI docs, health checks y el punto para registrar dependencias custom.
 
-La implementacion del transaction boundary la proporciona el paquete `TurtlePath.Spider.Transactions`. El API generado solo contiene el registro y no duplica los archivos fuente del boundary. Los perfiles de Business usan `TransactionBoundaryProfile` de ese paquete y se descubren automaticamente.
+La implementacion del transaction boundary la proporciona el paquete `TurtlePath.Spider.Transactions`. El API generado solo contiene el registro y no duplica los archivos fuente del boundary. Los perfiles de Business usan `TransactionBoundaryProfile` de ese paquete y se descubren desde los assemblies que el registro de API pasa explicitamente.
 
 `Business` contiene los casos de uso. El template incluye una carpeta `Feature` solo como placeholder para mostrar la estructura esperada. En codigo real se sustituye por el nombre del feature:
 
@@ -1688,10 +1688,13 @@ Usa `Mediator.Send` para dispatch normal. Usa `Spider.DefaultSend<TRequest, TRes
 El template usa Spider execution boundaries para comportamiento transversal. El default es el transaction boundary.
 
 ```csharp
-services.AddTurtlePathSpiderTransactions(configuration);
+services.AddTurtlePathSpiderTransactions(
+    configuration,
+    typeof(Constants).Assembly,
+    typeof(PipelineExtensions).Assembly);
 ```
 
-El paquete `TurtlePath.Spider.Transactions` descubre requests y perfiles desde los assemblies cargados. Los perfiles especificos de cada feature pueden vivir en Business sin referenciar Api.
+El paquete `TurtlePath.Spider.Transactions` descubre requests y perfiles desde los assemblies que se pasan al registro. El template pasa el assembly de Business y el assembly de API, por eso los perfiles especificos de cada feature pueden vivir en Business sin referenciar Api.
 
 ```json
 "TransactionBoundary": {
@@ -1736,7 +1739,7 @@ public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfil
 }
 ```
 
-El paquete `TurtlePath.Spider.Transactions` descubre perfiles de transaction boundary desde los assemblies cargados. No edites `AddPipelineDefaults` para reglas especificas de un feature.
+El paquete `TurtlePath.Spider.Transactions` descubre perfiles de transaction boundary desde los assemblies pasados a `AddTurtlePathSpiderTransactions`. No edites `AddPipelineDefaults` para reglas especificas de un feature.
 
 ## 15. Consumers Con Pigeon Y Outbox
 

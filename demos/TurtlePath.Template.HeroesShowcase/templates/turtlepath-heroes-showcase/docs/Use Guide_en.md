@@ -876,7 +876,10 @@ The template uses a Spider execution boundary for ambient transactions instead o
 Registration:
 
 ```csharp
-services.AddTurtlePathSpiderTransactions(configuration);
+services.AddTurtlePathSpiderTransactions(
+    configuration,
+    typeof(Constants).Assembly,
+    typeof(PipelineExtensions).Assembly);
 ```
 
 Configuration:

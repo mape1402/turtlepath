@@ -199,7 +199,7 @@ tests/
 
 `Api` is the host layer. It owns controllers, optional consumers, startup composition, exception handling, Spider transaction boundaries, optional Pigeon configuration, OpenAPI schema configuration, Scalar UI, health checks, and the custom dependency injection entry point.
 
-Transaction boundary implementation is provided by the `TurtlePath.Spider.Transactions` package. The generated API contains only the registration call; it does not duplicate boundary source files. Business profiles use `TransactionBoundaryProfile` from that package and are discovered automatically.
+Transaction boundary implementation is provided by the `TurtlePath.Spider.Transactions` package. The generated API contains only the registration call; it does not duplicate boundary source files. Business profiles use `TransactionBoundaryProfile` from that package and are discovered from the assemblies explicitly passed by the API registration.
 
 `Business` owns use cases. The template includes a `Feature` placeholder only to show the intended folder shape. In real code, replace `Feature` with the actual feature name:
 
@@ -1832,10 +1832,13 @@ The template uses Spider execution boundaries for cross-cutting execution behavi
 Registration:
 
 ```csharp
-services.AddTurtlePathSpiderTransactions(configuration);
+services.AddTurtlePathSpiderTransactions(
+    configuration,
+    typeof(Constants).Assembly,
+    typeof(PipelineExtensions).Assembly);
 ```
 
-The `TurtlePath.Spider.Transactions` package discovers request types and transaction profiles from loaded assemblies. Feature-specific profiles can live in Business without referencing API.
+The `TurtlePath.Spider.Transactions` package discovers request types and transaction profiles from the assemblies passed to the registration call. The template passes the Business assembly and the API assembly, so feature-specific profiles can live in Business without referencing API.
 
 Configuration:
 
@@ -1884,7 +1887,7 @@ public sealed class SearchTransactionBoundaryProfile : TransactionBoundaryProfil
 }
 ```
 
-The `TurtlePath.Spider.Transactions` package discovers transaction boundary profiles from loaded assemblies. Do not edit `AddPipelineDefaults` for feature-specific transaction rules.
+The `TurtlePath.Spider.Transactions` package discovers transaction boundary profiles from the assemblies passed to `AddTurtlePathSpiderTransactions`. Do not edit `AddPipelineDefaults` for feature-specific transaction rules.
 
 Use Spider when a flow must go through execution boundaries. The controller base and hub consumer base expose `Spider` for that reason.
 

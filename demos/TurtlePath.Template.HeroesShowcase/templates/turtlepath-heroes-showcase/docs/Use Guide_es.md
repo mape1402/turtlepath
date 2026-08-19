@@ -874,7 +874,10 @@ El template usa un execution boundary de Spider para transacciones ambientales e
 Registro:
 
 ```csharp
-services.AddTurtlePathSpiderTransactions(configuration);
+services.AddTurtlePathSpiderTransactions(
+    configuration,
+    typeof(Constants).Assembly,
+    typeof(PipelineExtensions).Assembly);
 ```
 
 Configuración:

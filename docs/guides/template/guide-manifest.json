@@ -27,6 +27,12 @@
       "templateVersions": [
         "1.6.5"
       ]
+    },
+    {
+      "guideVersion": "1.2.5",
+      "templateVersions": [
+        "1.6.6"
+      ]
     }
   ]
 }
