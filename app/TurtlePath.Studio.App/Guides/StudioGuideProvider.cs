@@ -31,37 +31,39 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             // remain cached locally, while the first lookup can still discover a newly published guide.
             var manifest = await LoadLatestManifestAsync(forceRefresh: true, cancellationToken);
             var normalizedVersion = NormalizeVersion(templateVersion);
-            var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
+            var installedMapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
                 string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
 
-            var isFallback = false;
-            if (mapping is null)
-            {
-                mapping = FindLatestCompatibleMapping(manifest.Map, normalizedVersion);
-                isFallback = mapping is not null;
-            }
-
-            if (mapping is null)
-                return [];
-
-            var guideVersion = NormalizeVersion(mapping.GuideVersion);
             var cultures = new[]
             {
                 new StudioGuideCulture("en", "English", string.Empty),
                 new StudioGuideCulture("es", "Espanol", string.Empty)
             };
 
-            return [new StudioGuideOption(
-                $"template-use-guide-{guideVersion}",
-                "TurtlePath Template Use Guide",
-                guideVersion,
-                packageId,
-                BuildExactRange(normalizedVersion),
-                mapping.TemplateVersions,
-                cultures,
-                isFallback
-                    ? "NuGet fallback: latest compatible guide"
-                    : "NuGet")];
+            var options = manifest.Map
+                .Select(mapping => CreateGuideOption(mapping, packageId, cultures))
+                .ToList();
+
+            if (installedMapping is null)
+            {
+                var fallbackMapping = FindLatestCompatibleMapping(manifest.Map, normalizedVersion);
+                if (fallbackMapping is not null)
+                {
+                    var fallbackOption = CreateGuideOption(
+                        fallbackMapping,
+                        packageId,
+                        cultures,
+                        normalizedVersion,
+                        "NuGet fallback: latest compatible guide");
+
+                    options.Add(fallbackOption);
+                }
+            }
+
+            return options
+                .GroupBy(option => $"{option.DocumentationVersion}:{option.SupportedTemplateVersionRange}", StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToArray();
         }
         catch
         {
@@ -275,6 +277,48 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         "TurtlePath", "Studio", "Docs", CacheVersion);
 
     private static string BuildExactRange(string version) => $"[{version}]";
+
+    private static StudioGuideOption CreateGuideOption(
+        DocumentationMap mapping,
+        string packageId,
+        IReadOnlyList<StudioGuideCulture> cultures,
+        string? templateVersion = null,
+        string source = "NuGet")
+    {
+        var guideVersion = NormalizeVersion(mapping.GuideVersion);
+        var templateVersions = mapping.TemplateVersions
+            .Select(NormalizeVersion)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(templateVersion) && !templateVersions.Contains(templateVersion, StringComparer.OrdinalIgnoreCase))
+            templateVersions.Add(templateVersion);
+
+        return new StudioGuideOption(
+            $"template-use-guide-{guideVersion}",
+            "TurtlePath Template Use Guide",
+            guideVersion,
+            packageId,
+            templateVersion is null ? BuildTemplateRange(templateVersions) : BuildExactRange(templateVersion),
+            templateVersions,
+            cultures,
+            source);
+    }
+
+    private static string BuildTemplateRange(IReadOnlyList<string> versions)
+    {
+        var parsedVersions = versions
+            .Where(version => Version.TryParse(version, out _))
+            .Select(Version.Parse)
+            .OrderBy(version => version)
+            .ToArray();
+
+        return parsedVersions.Length switch
+        {
+            0 => string.Empty,
+            1 => BuildExactRange(parsedVersions[0].ToString()),
+            _ => $"[{parsedVersions[0]},{parsedVersions[^1]}]"
+        };
+    }
 
     private static DocumentationMap? FindLatestCompatibleMapping(
         IReadOnlyList<DocumentationMap> mappings,
