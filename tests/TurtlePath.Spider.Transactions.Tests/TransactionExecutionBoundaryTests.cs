@@ -9,6 +9,18 @@ namespace TurtlePath.Template.Tests;
 public sealed class TransactionExecutionBoundaryTests
 {
     [Fact]
+    public void Registration_does_not_discover_profiles_from_test_assemblies()
+    {
+        var services = new ServiceCollection();
+
+        services.AddTurtlePathSpiderTransactions(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IOptions<TransactionBoundaryOptions>>().Value);
+    }
+
+    [Fact]
     public async Task BeginAsync_opens_transaction_for_commands()
     {
         var options = Options.Create(new TransactionBoundaryOptions());
@@ -112,5 +124,13 @@ public sealed class TransactionExecutionBoundaryTests
 
     private sealed class SampleExcludedCommand
     {
+    }
+
+    private sealed class ThrowingTestProfile : ITransactionBoundaryProfile
+    {
+        public void Configure(TransactionBoundaryOptions options)
+        {
+            throw new InvalidOperationException("Test profiles must not be discovered by application registration.");
+        }
     }
 }

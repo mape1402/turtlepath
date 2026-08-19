@@ -53,7 +53,7 @@ public static class TransactionServiceCollectionExtensions
             services.AddOptions<TransactionBoundaryOptions>();
         services.PostConfigure<TransactionBoundaryOptions>(options =>
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var assemblies = GetApplicationAssemblies();
             foreach (var assembly in assemblies)
                 options.DiscoverRequestsFrom(assembly);
 
@@ -86,6 +86,23 @@ public static class TransactionServiceCollectionExtensions
             if (Activator.CreateInstance(type) is ITransactionBoundaryProfile profile)
                 yield return profile;
         }
+    }
+
+    private static IReadOnlyList<Assembly> GetApplicationAssemblies()
+    {
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
+            .Where(assembly => assembly is not null && !IsTestAssembly(assembly))
+            .Distinct()
+            .ToArray();
+    }
+
+    private static bool IsTestAssembly(Assembly assembly)
+    {
+        var name = assembly.GetName().Name ?? string.Empty;
+        return name.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
+               name.EndsWith(".Test", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains(".TestHost", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
