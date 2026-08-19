@@ -34,6 +34,13 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
             var mapping = manifest.Map.FirstOrDefault(candidate => candidate.TemplateVersions.Any(version =>
                 string.Equals(NormalizeVersion(version), normalizedVersion, StringComparison.OrdinalIgnoreCase)));
 
+            var isFallback = false;
+            if (mapping is null)
+            {
+                mapping = FindLatestCompatibleMapping(manifest.Map, normalizedVersion);
+                isFallback = mapping is not null;
+            }
+
             if (mapping is null)
                 return [];
 
@@ -52,7 +59,9 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
                 BuildExactRange(normalizedVersion),
                 mapping.TemplateVersions,
                 cultures,
-                "NuGet")];
+                isFallback
+                    ? "NuGet fallback: latest compatible guide"
+                    : "NuGet")];
         }
         catch
         {
@@ -266,6 +275,32 @@ public sealed class StudioGuideProvider(HttpClient httpClient) : IStudioGuidePro
         "TurtlePath", "Studio", "Docs", CacheVersion);
 
     private static string BuildExactRange(string version) => $"[{version}]";
+
+    private static DocumentationMap? FindLatestCompatibleMapping(
+        IReadOnlyList<DocumentationMap> mappings,
+        string templateVersion)
+    {
+        if (!Version.TryParse(templateVersion, out var requestedVersion))
+            return null;
+
+        return mappings
+            .Select(mapping => new
+            {
+                Mapping = mapping,
+                LatestTemplateVersion = mapping.TemplateVersions
+                    .Select(NormalizeVersion)
+                    .Where(version => Version.TryParse(version, out _))
+                    .Select(Version.Parse)
+                    .Where(version => version.CompareTo(requestedVersion) <= 0)
+                    .OrderByDescending(version => version)
+                    .FirstOrDefault()
+            })
+            .Where(candidate => candidate.LatestTemplateVersion is not null)
+            .OrderByDescending(candidate => Version.Parse(NormalizeVersion(candidate.Mapping.GuideVersion)))
+            .ThenByDescending(candidate => candidate.LatestTemplateVersion)
+            .Select(candidate => candidate.Mapping)
+            .FirstOrDefault();
+    }
 
     private static string NormalizeVersion(string version)
     {
