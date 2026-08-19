@@ -1,5 +1,11 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.7] - 2026-08-19
+
+### Fixed
+
+- Updated the generated Heroes Showcase TurtlePath package fallback from `1.6.1` to the published `1.6.2` release.
+
 ## [demo-v1.4.6] - 2026-08-14
 
 ### Changed
