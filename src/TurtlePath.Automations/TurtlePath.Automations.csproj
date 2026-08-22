@@ -18,6 +18,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
-    <PackageReference Include="Pelican.Mediator" Version="1.1.2" />
+    <PackageReference Include="Pelican.Mediator" Version="2.0.0" />
   </ItemGroup>
 </Project>
