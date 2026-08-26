@@ -219,7 +219,7 @@ jobs:
 
       - name: Create GitHub Template Release
         if: steps.release.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release.outputs.tag }}
           name: TurtlePath.Template ${{ steps.release.outputs.version }}
