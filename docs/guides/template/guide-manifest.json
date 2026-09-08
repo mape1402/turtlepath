@@ -33,6 +33,12 @@
       "templateVersions": [
         "1.6.6"
       ]
+    },
+    {
+      "guideVersion": "1.2.6",
+      "templateVersions": [
+        "1.6.7"
+      ]
     }
   ]
 }
