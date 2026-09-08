@@ -4,6 +4,12 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.6.7] - 2026-09-08
+
+### Fixed
+
+- Renamed the generated Heroes Showcase incident command handler folder from `Handlers` to `Commands`.
+
 ## [template-v1.6.6] - 2026-08-19
 
 ### Fixed
