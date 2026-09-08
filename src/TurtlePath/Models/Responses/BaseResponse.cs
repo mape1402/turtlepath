@@ -10,7 +10,7 @@ namespace TurtlePath.Models.Responses
         /// <summary>
         /// Gets or sets the unique identifier for the resource.
         /// </summary>
-        public CId Id { get; set; }
+        public virtual CId Id { get; set; }
     }
 }
 
