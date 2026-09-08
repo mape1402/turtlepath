@@ -4,6 +4,12 @@ All notable changes to TurtlePath versioned documentation will be documented in 
 
 Documentation has its own release marker in `.docs.release` and its own GitHub Actions workflow. A documentation version can support multiple `TurtlePath.Template` versions through `docs/guides/template/guide-manifest.json`.
 
+## [docs-v1.2.6] - 2026-09-08
+
+### Changed
+
+- Updated the template-to-guide map so template version `1.6.7` uses the current guide.
+
 ## [docs-v1.2.5] - 2026-08-19
 
 ### Changed
