@@ -4,6 +4,12 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.6.4] - 2026-09-08
+
+### Changed
+
+- Made `BaseRequest.Id` and `BaseResponse.Id` virtual for `CId`-based models.
+
 ## [v1.6.3] - 2026-08-19
 
 ### Fixed
