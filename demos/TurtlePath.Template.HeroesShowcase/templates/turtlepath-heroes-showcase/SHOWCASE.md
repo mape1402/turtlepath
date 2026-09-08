@@ -156,8 +156,8 @@ That handler inherits from `GetPagedInfoQueryHandler` and overrides query compos
 The demo also includes fully custom Pelican handlers:
 
 ```text
-src/Heroes.Service.Business/Incidents/Handlers/AssignIncidentCommandHandler.cs
-src/Heroes.Service.Business/Incidents/Handlers/ResolveIncidentCommandHandler.cs
+src/Heroes.Service.Business/Incidents/Commands/AssignIncidentCommandHandler.cs
+src/Heroes.Service.Business/Incidents/Commands/ResolveIncidentCommandHandler.cs
 ```
 
 Those handlers do not inherit from TurtlePath bases because the flow coordinates a custom workflow. They still stay thin: persistence and rule orchestration live behind `IIncidentWorkflowService`, while the handler only invokes the use case, adds audit context and maps the response.

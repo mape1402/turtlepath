@@ -1,5 +1,11 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.9] - 2026-09-08
+
+### Fixed
+
+- Renamed the Heroes Showcase incident command handler folder from `Handlers` to `Commands`.
+
 ## [demo-v1.4.8] - 2026-08-19
 
 ### Fixed

@@ -5,7 +5,7 @@ using Heroes.Service.Business.Incidents.Services.Workflow;
 using Pelican.Mediator;
 using TurtlePath.Mapping;
 
-namespace Heroes.Service.Business.Incidents.Handlers;
+namespace Heroes.Service.Business.Incidents.Commands;
 
 /// <summary>
 /// Demonstrates a fully custom command handler that keeps persistence details inside a feature service.

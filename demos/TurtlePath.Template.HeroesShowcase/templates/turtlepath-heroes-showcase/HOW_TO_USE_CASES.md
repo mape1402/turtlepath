@@ -49,8 +49,8 @@ Use a custom Pelican handler when the workflow is not a CRUD happy path.
 
 Implemented examples:
 
-- `src/Heroes.Service.Business/Incidents/Handlers/AssignIncidentCommandHandler.cs`
-- `src/Heroes.Service.Business/Incidents/Handlers/ResolveIncidentCommandHandler.cs`
+- `src/Heroes.Service.Business/Incidents/Commands/AssignIncidentCommandHandler.cs`
+- `src/Heroes.Service.Business/Incidents/Commands/ResolveIncidentCommandHandler.cs`
 
 These handlers do not inherit from TurtlePath base handlers. They still follow a clean pattern: call a feature service, add request-specific audit context, and map the response.
 
