@@ -1,5 +1,12 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.4.10] - 2026-09-24
+
+### Changed
+
+- Updated generated Heroes Showcase Pigeon messaging packages to 4.0.0.
+- Updated generated Heroes Showcase documentation to reference Pigeon 4.0.0.
+
 ## [demo-v1.4.9] - 2026-09-08
 
 ### Fixed

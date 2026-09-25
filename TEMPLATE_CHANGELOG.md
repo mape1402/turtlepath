@@ -4,6 +4,13 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.6.8] - 2026-09-24
+
+### Changed
+
+- Updated generated Pigeon messaging packages to 4.0.0.
+- Updated generated template documentation to reference Pigeon 4.0.0.
+
 ## [template-v1.6.7] - 2026-09-08
 
 ### Fixed

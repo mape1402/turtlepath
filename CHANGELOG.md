@@ -4,6 +4,12 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.6.5] - 2026-09-24
+
+### Changed
+
+- Updated `TurtlePath.Testing.Integration` to Pigeon.Testing 4.0.0.
+
 ## [v1.6.4] - 2026-09-08
 
 ### Changed

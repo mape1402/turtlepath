@@ -1921,7 +1921,7 @@ When Pigeon is enabled, the outbox defaults persist messages with the database t
 
 ### Control consumer throughput and concurrency
 
-Pigeon 2.4.0 lets you protect downstream resources by configuring consumer execution. `MaxConcurrency` is the maximum number of messages that Pigeon dispatches to handlers at the same time. `QueueCapacity` is the number of messages that can wait in the internal dispatch queue while those handlers are busy:
+Pigeon 4.0.0 lets you protect downstream resources by configuring consumer execution. `MaxConcurrency` is the maximum number of messages that Pigeon dispatches to handlers at the same time. `QueueCapacity` is the number of messages that can wait in the internal dispatch queue while those handlers are busy:
 
 ```csharp
 services.AddPigeon(configuration, builder =>

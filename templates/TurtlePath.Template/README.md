@@ -46,6 +46,6 @@ The generated project includes TurtlePath defaults for handlers, automations, ex
 
 Transaction boundaries are registered through `TurtlePath.Spider.Transactions` using the generated Business and API assemblies explicitly, so test assemblies and unrelated loaded assemblies are not scanned.
 
-The optional Pigeon integration uses Pigeon 2.4.0. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
+The optional Pigeon integration uses Pigeon 4.0.0. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
 
 Generated services also include `turtlepath.template.json` at the solution root. That file records the `TurtlePath.Template` package version used to create the service.
