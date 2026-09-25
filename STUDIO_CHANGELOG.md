@@ -1,5 +1,11 @@
 # TurtlePath Studio Changelog
 
+## 1.0.11
+
+### Changed
+
+- Prepared a Studio release aligned with the Pigeon 4.0.0 template and documentation updates.
+
 ## 1.0.10
 
 ### Fixed

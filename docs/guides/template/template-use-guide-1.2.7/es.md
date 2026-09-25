@@ -1,4 +1,4 @@
-﻿# Guia De Uso De TurtlePath Template
+# Guia De Uso De TurtlePath Template
 
 Esta guia explica como crear y crecer un servicio generado con `TurtlePath.Template`. Esta pensada para el dev que acaba de crear un proyecto y necesita saber donde va cada clase, que defaults ya vienen configurados, y cuando usar automations, handlers, hooks, jobs, consumers y exception handling.
 
