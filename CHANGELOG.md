@@ -4,6 +4,13 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.6.6] - 2026-09-28
+
+### Added
+
+- Added `IEventSourcingAppendObserver` and `IEventSourcingAppendObserver<TRequest, TEntity>` so services can observe Krackend `EventEnvelope` values immediately after TurtlePath.EventSourcing appends events.
+- Added `EventSourcingAppendContext` and `EventSourcingAppendContext<TRequest, TEntity>` with request, entity, stream, expected-version, payload, and envelope details for post-append observers.
+
 ## [v1.6.5] - 2026-09-24
 
 ### Changed

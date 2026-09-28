@@ -45,6 +45,12 @@
       "templateVersions": [
         "1.6.8"
       ]
+    },
+    {
+      "guideVersion": "1.2.8",
+      "templateVersions": [
+        "1.6.9"
+      ]
     }
   ]
 }

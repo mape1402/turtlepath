@@ -641,6 +641,31 @@ public sealed class CommerceEventMappingProfile : OctoMapProfile
 
 `ToEvent<TEvent>()` can be repeated for the same command/entity pair. Use `When(...)` for conditional events and `UseExpectedVersion(...)` for optimistic concurrency rules.
 
+Register `IEventSourcingAppendObserver` when a service needs the envelopes Krackend creates during the append. TurtlePath calls observers only after a successful append, once per append batch, and passes the original request, saved entity, stream, expected version, payloads, and returned `EventEnvelope` values.
+
+```csharp
+public sealed class EventMetadataCapture :
+    IEventSourcingAppendObserver<CreateCustomerRequest, Customer>
+{
+    private readonly EventMetadataContext metadata;
+
+    public EventMetadataCapture(EventMetadataContext metadata)
+    {
+        this.metadata = metadata;
+    }
+
+    public ValueTask OnAppendedAsync(
+        EventSourcingAppendContext<CreateCustomerRequest, Customer> context,
+        CancellationToken cancellationToken = default)
+    {
+        metadata.EventId = context.Envelopes.Single().EventId;
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+This is useful when a later publisher or interceptor needs the newly generated `EventId`, `EventType`, `StreamVersion`, or `OccurredAt` without rereading the event store.
+
 ## Exception Handling
 
 `TurtlePath.ExceptionHandling` keeps exception rules transport-neutral. Applications map exceptions once into an `ExceptionDescriptor`; target adapters decide how to project that descriptor to HTTP, consumers, workers, or jobs.
