@@ -8,7 +8,6 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 ### Changed
 
-- Updated the generated TurtlePath package fallback to `1.6.6`.
 - Added generated documentation for TurtlePath.EventSourcing post-append observers.
 
 ## [template-v1.6.8] - 2026-09-24
