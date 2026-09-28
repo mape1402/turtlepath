@@ -4,7 +4,6 @@
 
 ### Changed
 
-- Updated the generated Heroes Showcase TurtlePath package fallback to `1.6.6`.
 - Added Heroes Showcase documentation references for TurtlePath.EventSourcing post-append observers.
 
 ## [demo-v1.4.10] - 2026-09-24
