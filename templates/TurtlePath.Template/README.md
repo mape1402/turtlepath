@@ -27,12 +27,12 @@ By default, the generated project uses the TurtlePath package version tested wit
 To generate a project with a specific TurtlePath package version, pass:
 
 ```bash
-dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.6.3
+dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.6.6
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
 
-The current template release has been validated against TurtlePath `1.6.3`.
+The current template release has been validated against TurtlePath `1.6.6`.
 
 ## Validate A Generated Project
 
@@ -47,5 +47,7 @@ The generated project includes TurtlePath defaults for handlers, automations, ex
 Transaction boundaries are registered through `TurtlePath.Spider.Transactions` using the generated Business and API assemblies explicitly, so test assemblies and unrelated loaded assemblies are not scanned.
 
 The optional Pigeon integration uses Pigeon 4.0.0. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
+
+The optional EventSourcing integration supports post-append observers so services can capture newly generated Krackend `EventEnvelope` metadata, such as `EventId`, before publishing follow-up messages.
 
 Generated services also include `turtlepath.template.json` at the solution root. That file records the `TurtlePath.Template` package version used to create the service.

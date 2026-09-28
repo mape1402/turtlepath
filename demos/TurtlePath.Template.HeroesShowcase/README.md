@@ -21,7 +21,7 @@ By default, the generated demo uses the TurtlePath package version tested with t
 To generate the demo with a specific TurtlePath package version, pass:
 
 ```powershell
-dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.6.3
+dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.6.6
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
@@ -39,5 +39,6 @@ The generated solution demonstrates:
 - One-shot and recurring jobs.
 - Exception handling setup.
 - Optional Pigeon and EventSourcing extension points.
+- EventSourcing post-append observer support for capturing newly generated Krackend event metadata.
 - Pigeon 4.0.0 consumer throughput configuration with `MaxConcurrency` and `QueueCapacity` examples.
 - Unit and integration tests using TurtlePath testing helpers.
