@@ -128,6 +128,68 @@ public class EventSourcingTests
         Assert.Contains(envelopes, envelope => envelope.EventType == "customer-created");
     }
 
+    [Fact]
+    public async Task EventSourcingAfterSaveHook_notifies_append_observers_with_envelopes()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePath()
+            .UseEventSourcingProfile<MixedExpectedVersionCustomerEventSourcingProfile>();
+        services.AddSingleton<IMapperAdapter, TestMapperAdapter>();
+        services.AddScoped<RecordingAppendObserver>();
+        services.AddScoped<IEventSourcingAppendObserver>(provider =>
+            provider.GetRequiredService<RecordingAppendObserver>());
+        services.AddScoped<IEventSourcingAppendObserver<CreateCustomerRequest, Customer>>(provider =>
+            provider.GetRequiredService<RecordingAppendObserver>());
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var observer = scope.ServiceProvider.GetRequiredService<RecordingAppendObserver>();
+        var hook = scope.ServiceProvider
+            .GetRequiredService<IAfterSaveHook<CreateCustomerRequest, Customer>>();
+
+        var request = new CreateCustomerRequest("customer-003", "Observer");
+        var entity = new Customer("customer-003", "Observer");
+        var context = new CommandHookContext<CreateCustomerRequest, Customer>(request)
+        {
+            Entity = entity
+        };
+
+        await hook.AfterSaveAsync(context);
+
+        Assert.Equal(2, observer.TypedContexts.Count);
+        Assert.Equal(2, observer.Contexts.Count);
+
+        var firstTypedContext = observer.TypedContexts[0];
+
+        Assert.Same(request, firstTypedContext.Request);
+        Assert.Same(entity, firstTypedContext.Entity);
+        Assert.Equal("customers", firstTypedContext.StreamName);
+        Assert.Equal("customer-003", firstTypedContext.StreamId);
+        Assert.Equal(ExpectedVersion.NoStream, firstTypedContext.ExpectedVersion);
+        Assert.Single(firstTypedContext.Payloads);
+        Assert.IsType<CustomerCreated>(firstTypedContext.Payloads.Single());
+        Assert.Single(firstTypedContext.Envelopes);
+        Assert.NotEqual(Guid.Empty, firstTypedContext.Envelopes.Single().EventId);
+        Assert.Equal("customer-created", firstTypedContext.Envelopes.Single().EventType);
+        Assert.Equal(1, firstTypedContext.Envelopes.Single().StreamVersion);
+
+        var secondContext = observer.Contexts[1];
+
+        Assert.Same(request, secondContext.Request);
+        Assert.Same(entity, secondContext.Entity);
+        Assert.Equal("customers", secondContext.StreamName);
+        Assert.Equal("customer-003", secondContext.StreamId);
+        Assert.Equal(ExpectedVersion.Any, secondContext.ExpectedVersion);
+        Assert.Single(secondContext.Payloads);
+        Assert.IsType<CustomerAudited>(secondContext.Payloads.Single());
+        Assert.Single(secondContext.Envelopes);
+        Assert.Equal("customer-audited", secondContext.Envelopes.Single().EventType);
+        Assert.Equal(2, secondContext.Envelopes.Single().StreamVersion);
+    }
+
     private sealed record EntityStreamCreateCustomerRequest(string Name);
 
     [EventStream("customers")]
@@ -174,6 +236,41 @@ public class EventSourcingTests
                 .UseStream("customers", context => context.Entity.Id)
                 .ToEvent<CustomerEventSource, CustomerCreated>(
                     context => new CustomerEventSource(context.Entity.Id, context.Entity.Name));
+        }
+    }
+
+    private sealed class MixedExpectedVersionCustomerEventSourcingProfile : IEventSourcingProfile
+    {
+        public void Configure(IEventSourcingProfileBuilder builder)
+        {
+            builder.For<CreateCustomerRequest, Customer>()
+                .ToEvent<CustomerCreated>(options => options.UseExpectedVersion(ExpectedVersion.NoStream))
+                .ToEvent<CustomerAudited>(options => options.UseExpectedVersion(ExpectedVersion.Any));
+        }
+    }
+
+    private sealed class RecordingAppendObserver :
+        IEventSourcingAppendObserver,
+        IEventSourcingAppendObserver<CreateCustomerRequest, Customer>
+    {
+        public List<EventSourcingAppendContext> Contexts { get; } = new();
+
+        public List<EventSourcingAppendContext<CreateCustomerRequest, Customer>> TypedContexts { get; } = new();
+
+        public ValueTask OnAppendedAsync(
+            EventSourcingAppendContext context,
+            CancellationToken cancellationToken = default)
+        {
+            Contexts.Add(context);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask OnAppendedAsync(
+            EventSourcingAppendContext<CreateCustomerRequest, Customer> context,
+            CancellationToken cancellationToken = default)
+        {
+            TypedContexts.Add(context);
+            return ValueTask.CompletedTask;
         }
     }
 
