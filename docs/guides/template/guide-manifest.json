@@ -47,9 +47,9 @@
       ]
     },
     {
-      "guideVersion": "1.2.8",
+      "guideVersion": "1.3.0",
       "templateVersions": [
-        "1.6.9"
+        "1.7.0"
       ]
     }
   ]

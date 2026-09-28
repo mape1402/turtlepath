@@ -4,7 +4,7 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
-## [template-v1.6.9] - 2026-09-28
+## [template-v1.7.0] - 2026-09-28
 
 ### Changed
 

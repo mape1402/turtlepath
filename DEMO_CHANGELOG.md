@@ -1,6 +1,6 @@
 # TurtlePath Demo Templates Changelog
 
-## [demo-v1.4.11] - 2026-09-28
+## [demo-v1.5.0] - 2026-09-28
 
 ### Changed
 
