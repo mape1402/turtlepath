@@ -1,5 +1,6 @@
 namespace TurtlePath.EventSourcing
 {
+    using Krackend.EventSourcing.Envelopes;
     using Krackend.EventSourcing.Stores;
     using Krackend.EventSourcing.Streams;
     using TurtlePath.EventSourcing.Internal;
@@ -19,6 +20,8 @@ namespace TurtlePath.EventSourcing
         private readonly ICommandStreamResolver<TRequest> streamResolver;
         private readonly IEventStore eventStore;
         private readonly EventSourcingRegistrationRegistry registry;
+        private readonly IReadOnlyCollection<IEventSourcingAppendObserver> appendObservers;
+        private readonly IReadOnlyCollection<IEventSourcingAppendObserver<TRequest, TEntity>> typedAppendObservers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EventSourcingAfterSaveHook{TRequest, TEntity}"/> class.
@@ -27,12 +30,16 @@ namespace TurtlePath.EventSourcing
             IServiceProvider serviceProvider,
             ICommandStreamResolver<TRequest> streamResolver,
             IEventStore eventStore,
-            EventSourcingRegistrationRegistry registry)
+            EventSourcingRegistrationRegistry registry,
+            IEnumerable<IEventSourcingAppendObserver> appendObservers,
+            IEnumerable<IEventSourcingAppendObserver<TRequest, TEntity>> typedAppendObservers)
         {
             this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             this.streamResolver = streamResolver ?? throw new ArgumentNullException(nameof(streamResolver));
             this.eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
             this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
+            this.appendObservers = (appendObservers ?? throw new ArgumentNullException(nameof(appendObservers))).ToArray();
+            this.typedAppendObservers = (typedAppendObservers ?? throw new ArgumentNullException(nameof(typedAppendObservers))).ToArray();
         }
 
         /// <inheritdoc />
@@ -73,13 +80,66 @@ namespace TurtlePath.EventSourcing
 
             foreach (var batch in CreateBatches(pending))
             {
-                await eventStore.AppendAsync(
+                var envelopes = await eventStore.AppendAsync(
                     stream.Name,
                     stream.Id,
                     batch.ExpectedVersion,
                     batch.Events,
                     cancellationToken);
+
+                await NotifyAppendObservers(
+                    context,
+                    stream.Name,
+                    stream.Id,
+                    batch.ExpectedVersion,
+                    batch.Events,
+                    envelopes,
+                    cancellationToken);
             }
+        }
+
+        private async ValueTask NotifyAppendObservers(
+            CommandHookContext<TRequest, TEntity> context,
+            string streamName,
+            string streamId,
+            ExpectedVersion expectedVersion,
+            IReadOnlyCollection<object> payloads,
+            IReadOnlyCollection<EventEnvelope> envelopes,
+            CancellationToken cancellationToken)
+        {
+            if (typedAppendObservers.Count == 0 && appendObservers.Count == 0)
+                return;
+
+            var typedContext = new EventSourcingAppendContext<TRequest, TEntity>
+            {
+                Request = context.Request,
+                Entity = context.Entity,
+                StreamName = streamName,
+                StreamId = streamId,
+                ExpectedVersion = expectedVersion,
+                Payloads = payloads,
+                Envelopes = envelopes
+            };
+
+            foreach (var observer in typedAppendObservers)
+                await observer.OnAppendedAsync(typedContext, cancellationToken);
+
+            if (appendObservers.Count == 0)
+                return;
+
+            var appendContext = new EventSourcingAppendContext
+            {
+                Request = context.Request,
+                Entity = context.Entity,
+                StreamName = streamName,
+                StreamId = streamId,
+                ExpectedVersion = expectedVersion,
+                Payloads = payloads,
+                Envelopes = envelopes
+            };
+
+            foreach (var observer in appendObservers)
+                await observer.OnAppendedAsync(appendContext, cancellationToken);
         }
 
         private static IEnumerable<EventBatch> CreateBatches(IReadOnlyCollection<PendingEvent> events)
