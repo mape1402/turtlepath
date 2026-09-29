@@ -18,6 +18,7 @@ namespace TurtlePath.Automations.Descriptors
             LambdaExpression keySelector = null,
             string defaultSortProperty = null,
             string notFoundMessage = null,
+            bool? validateRequest = null,
             bool reloadBeforeResponse = false,
             IReadOnlyCollection<LambdaExpression> responseIncludeExpressions = null)
         {
@@ -31,7 +32,8 @@ namespace TurtlePath.Automations.Descriptors
             KeySelector = keySelector;
             DefaultSortProperty = defaultSortProperty;
             NotFoundMessage = notFoundMessage;
-            ReloadBeforeResponse = reloadBeforeResponse || responseIncludeExpressions?.Count > 0;
+            ValidateRequest = validateRequest;
+            ReloadBeforeResponse = reloadBeforeResponse;
             ResponseIncludeExpressions = responseIncludeExpressions ?? [];
         }
 
@@ -54,6 +56,8 @@ namespace TurtlePath.Automations.Descriptors
         public string DefaultSortProperty { get; }
 
         public string NotFoundMessage { get; }
+
+        public bool? ValidateRequest { get; }
 
         public bool ReloadBeforeResponse { get; }
 

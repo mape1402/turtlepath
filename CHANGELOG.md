@@ -4,6 +4,15 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.8.0] - 2026-09-29
+
+### Added
+
+- Added automation configuration for generated mutation validation through `ValidateRequest(...)` profiles and `ValidateRequest` attribute properties.
+- Added `ReloadBeforeResponse` attribute configuration for create, update, and patch automations with responses.
+- Added default sort support for get-many automations, matching the existing get-paged `DefaultSort` behavior.
+- Added `DefaultSort` attribute configuration for get-many and get-paged automations.
+
 ## [v1.7.0] - 2026-09-28
 
 ### Added

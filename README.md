@@ -251,10 +251,14 @@ public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
     public override void Configure(ITurtlePathAutomationBuilder builder)
     {
         builder.For<Customer>()
-            .ToCreate<CreateCustomerRequest, CustomerResponse>()
+            .ToCreate<CreateCustomerRequest, CustomerResponse>(mutation => mutation
+                .ValidateRequest()
+                .ReloadBeforeResponse())
             .ToUpdate<UpdateCustomerRequest, CustomerResponse>()
-            .ToPatch<PatchCustomerEmailRequest, CustomerResponse>()
+            .ToPatch<PatchCustomerEmailRequest, CustomerResponse>(mutation => mutation
+                .ValidateRequest())
             .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
+            .ToGetMany<GetCustomersQuery, CustomerResponse>(query => query.DefaultSort("Name"))
             .ToGetPaged<GetCustomersPageQuery, CustomerResponse>(query => query.DefaultSort("Name"));
     }
 }
@@ -289,6 +293,10 @@ builder.For<Customer>()
 ```
 
 `Include(...)` implies response projection from storage. Use `ReloadBeforeResponse()` when the response should be rebuilt from storage even without navigation includes.
+
+Mutation automations keep the generic handler defaults unless configured. Create and update validate requests by default; patch and delete do not. Use `ValidateRequest()` or `ValidateRequest(false)` when a generated mutation needs to opt in or out. Use `ReloadBeforeResponse()` or `ReloadBeforeResponse(false)` to control response projection from storage for create, update, and patch responses.
+
+Query automations accept default sort strings in the same format consumed by the configured query engine: `"Name"` for ascending and `"-Name"` for descending. `DefaultSort(...)` applies to get-many and get-paged automations only when the request does not provide `Sorts`.
 
 The recommended validator adapter is Crabalidator. TurtlePath calls `IValidatorAdapter` from its command steps, so validators stay outside handlers:
 
@@ -558,9 +566,21 @@ public sealed class CommerceAutomationProfile : TurtlePathAutomationProfile
 Small or local cases can use attributes:
 
 ```csharp
-[CreateAutomation(typeof(CatalogItem), typeof(CatalogItemResponse))]
+[CreateAutomation(
+    typeof(CatalogItem),
+    typeof(CatalogItemResponse),
+    ValidateRequest = true,
+    ReloadBeforeResponse = true)]
 public sealed record CreateCatalogItemRequest(string Sku, string Name, decimal Price)
     : IRequest<CatalogItemResponse>;
+
+[GetManyAutomation(
+    typeof(CatalogItem),
+    typeof(CatalogItemResponse),
+    DefaultSort = "-Name")]
+public sealed class GetCatalogItemsQuery : GetManyQuery<CatalogItem, CatalogItemResponse>
+{
+}
 ```
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.

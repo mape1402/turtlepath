@@ -20,9 +20,14 @@ namespace TurtlePath.Automations.Profiles
         IMutationAutomationBuilder<TRequest, TEntity, TKey> NotFoundMessage(string message);
 
         /// <summary>
+        /// Configures whether the handler validates the request.
+        /// </summary>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> ValidateRequest(bool validateRequest = true);
+
+        /// <summary>
         /// Configures the handler to build the response by reading the entity again from storage.
         /// </summary>
-        IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse();
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse(bool reloadBeforeResponse = true);
 
         /// <summary>
         /// Includes a navigation when the response is read again from storage.

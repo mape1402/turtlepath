@@ -68,10 +68,13 @@ namespace TurtlePath.Automations.Generation.DynaBeeIntegration
             if (descriptor.OperationKind == AutomationOperationKind.Delete && descriptor.HasResponse)
                 OverrideBuildResponse(generatedClass, descriptor, baseType);
 
+            if (descriptor.ValidateRequest.HasValue)
+                OverrideValidateRequest(generatedClass, descriptor, baseType);
+
             if (descriptor.OperationKind == AutomationOperationKind.GetOne)
                 OverrideGetOneFilter(generatedClass, descriptor, baseType);
 
-            if (descriptor.OperationKind == AutomationOperationKind.GetPaged)
+            if (descriptor.OperationKind is AutomationOperationKind.GetMany or AutomationOperationKind.GetPaged)
                 OverrideDefaultSorts(generatedClass, descriptor, baseType);
         }
 
@@ -114,20 +117,33 @@ namespace TurtlePath.Automations.Generation.DynaBeeIntegration
                     body.Parameter("request")))));
         }
 
+        private static void OverrideValidateRequest(BeeClassBuilder generatedClass, AutomationDescriptor descriptor, Type baseType)
+        {
+            var property = GetVirtualProperty(baseType, "ValidateRequest");
+
+            generatedClass.OverrideProperty(property, propertyBuilder => propertyBuilder.Getter(getter =>
+                getter.ReturnsConstant(descriptor.ValidateRequest!.Value)));
+        }
+
         private static void OverrideDefaultSorts(BeeClassBuilder generatedClass, AutomationDescriptor descriptor, Type baseType)
         {
             var property = GetVirtualProperty(baseType, "DefaultSorts");
-            var optionsType = typeof(IGetPagedInfoQueryOptions<,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType);
-            var getDefaultSorts = optionsType.GetProperty(nameof(IGetPagedInfoQueryOptions<object, object>.DefaultSorts))?.GetMethod;
+            var optionsType = GetDefaultSortOptionsType(descriptor);
+            var getDefaultSorts = optionsType.GetProperty("DefaultSorts")?.GetMethod;
 
             if (getDefaultSorts == null)
-                throw new InvalidOperationException($"Query options property '{nameof(IGetPagedInfoQueryOptions<object, object>.DefaultSorts)}' could not be resolved.");
+                throw new InvalidOperationException("Query options property 'DefaultSorts' could not be resolved.");
 
             generatedClass.OverrideProperty(property, propertyBuilder => propertyBuilder.Getter(getter => getter.EmitsBody(body =>
                 body.Return(body.Call(
                     body.Property(body.Self(), "QueryOptions"),
                     getDefaultSorts)))));
         }
+
+        private static Type GetDefaultSortOptionsType(AutomationDescriptor descriptor)
+            => descriptor.OperationKind == AutomationOperationKind.GetMany
+                ? typeof(IGetManyQueryOptions<,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType)
+                : typeof(IGetPagedInfoQueryOptions<,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType);
 
         private static MethodInfo GetVirtualMethod(Type baseType, string name, params Type[] parameterTypes)
         {

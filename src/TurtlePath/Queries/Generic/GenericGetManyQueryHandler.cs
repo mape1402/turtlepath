@@ -54,6 +54,11 @@ namespace TurtlePath.Queries
         /// </summary>
         protected IStorageReaderAdapter StorageReaderAdapter { get; }
 
+        /// <summary>
+        /// Gets optional query-specific get-many options.
+        /// </summary>
+        protected IGetManyQueryOptions<TQuery, TEntity> QueryOptions { get; }
+
         private readonly IQueryHookStageRunner<TQuery, IEnumerable<TResponse>> hookStageRunner;
 
         /// <summary>
@@ -69,6 +74,7 @@ namespace TurtlePath.Queries
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
+            QueryOptions = Services.GetService<IGetManyQueryOptions<TQuery, TEntity>>();
             hookStageRunner = Services.GetRequiredService<IQueryHookStageRunner<TQuery, IEnumerable<TResponse>>>();
         }
 
@@ -91,7 +97,7 @@ namespace TurtlePath.Queries
                 .Where(GetFilterExpression(request))
                 .FilterBy(request.Filters)
                 .SortBy(GetSortingExpression(request))
-                .SortBy(request.Sorts)
+                .SortBy(string.IsNullOrWhiteSpace(request.Sorts) ? DefaultSorts : request.Sorts)
                 .ToBatchAsync<TResponse>(cancellationToken);
 
             var response = batch.AsEnumerable();
@@ -115,6 +121,11 @@ namespace TurtlePath.Queries
         /// <param name="query">The query request.</param>
         /// <returns>An expression for sorting entities, or null if not specified.</returns>
         protected virtual Expression<Func<TEntity, object>> GetSortingExpression(TQuery query) => null;
+
+        /// <summary>
+        /// Gets the default sorts to use if not specified in the query.
+        /// </summary>
+        protected virtual string DefaultSorts => QueryOptions?.DefaultSorts;
 
         /// <summary>
         /// Gets navigation expressions to include before mapping the entities.

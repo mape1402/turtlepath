@@ -35,11 +35,19 @@ namespace TurtlePath.Automations.Tests.Profiles
                     Assert.Equal(AutomationOperationKind.Delete, descriptor.OperationKind);
                     Assert.Equal(typeof(DeleteCustomerCommand), descriptor.RequestType);
                     Assert.Equal(AutomationReturnMode.None, descriptor.ReturnMode);
+                    Assert.True(descriptor.ValidateRequest);
                 },
                 descriptor =>
                 {
                     Assert.Equal(AutomationOperationKind.GetById, descriptor.OperationKind);
                     Assert.Equal(typeof(GetCustomerByIdQuery), descriptor.RequestType);
+                },
+                descriptor =>
+                {
+                    Assert.Equal(AutomationOperationKind.GetMany, descriptor.OperationKind);
+                    Assert.Equal(typeof(GetCustomersQuery), descriptor.RequestType);
+                    Assert.Equal(typeof(IEnumerable<CustomerResponse>), descriptor.ResponseType);
+                    Assert.Equal("Name", descriptor.DefaultSortProperty);
                 },
                 descriptor =>
                 {
@@ -80,6 +88,19 @@ namespace TurtlePath.Automations.Tests.Profiles
             var descriptor = Assert.Single(descriptors);
 
             Assert.True(descriptor.ReloadBeforeResponse);
+            Assert.False(descriptor.ValidateRequest);
+            var include = Assert.Single(descriptor.ResponseIncludeExpressions);
+            Assert.Equal("customer.Parent", include.Body.ToString());
+        }
+
+        [Fact]
+        public void Build_allows_disabling_response_projection_after_include()
+        {
+            var descriptors = AutomationProfileDescriptorBuilder.Build(new DisabledResponseProjectionAutomationProfile());
+
+            var descriptor = Assert.Single(descriptors);
+
+            Assert.False(descriptor.ReloadBeforeResponse);
             var include = Assert.Single(descriptor.ResponseIncludeExpressions);
             Assert.Equal("customer.Parent", include.Body.ToString());
         }
@@ -91,8 +112,9 @@ namespace TurtlePath.Automations.Tests.Profiles
                 builder.For<Customer>()
                     .ToCreate<CreateCustomerCommand, CustomerResponse>()
                     .ToUpdate<UpdateCustomerCommand, CustomerResponse>()
-                    .ToDelete<DeleteCustomerCommand>()
+                    .ToDelete<DeleteCustomerCommand>(mutation => mutation.ValidateRequest())
                     .ToGetById<GetCustomerByIdQuery, CustomerResponse>()
+                    .ToGetMany<GetCustomersQuery, CustomerResponse>(query => query.DefaultSort("Name"))
                     .ToGetPaged<SearchCustomersQuery, CustomerResponse>(query => query.DefaultSort("Name"));
             }
         }
@@ -124,7 +146,19 @@ namespace TurtlePath.Automations.Tests.Profiles
             {
                 builder.For<Customer>()
                     .ToCreate<CreateCustomerCommand, CustomerResponse>(mutation => mutation
+                        .ValidateRequest(false)
                         .Include(customer => customer.Parent));
+            }
+        }
+
+        private sealed class DisabledResponseProjectionAutomationProfile : TurtlePathAutomationProfile
+        {
+            public override void Configure(ITurtlePathAutomationBuilder builder)
+            {
+                builder.For<Customer>()
+                    .ToCreate<CreateCustomerCommand, CustomerResponse>(mutation => mutation
+                        .Include(customer => customer.Parent)
+                        .ReloadBeforeResponse(false));
             }
         }
 
@@ -167,6 +201,10 @@ namespace TurtlePath.Automations.Tests.Profiles
         }
 
         private sealed class GetCustomerByIdQuery : IRequest<CustomerResponse>
+        {
+        }
+
+        private sealed class GetCustomersQuery : IRequest<IEnumerable<CustomerResponse>>
         {
         }
 
