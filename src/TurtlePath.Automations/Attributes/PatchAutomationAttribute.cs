@@ -5,7 +5,7 @@ namespace TurtlePath.Automations.Attributes
     /// <summary>
     /// Declares a patch automation for a request type.
     /// </summary>
-    public sealed class PatchAutomationAttribute : AutomationAttribute
+    public sealed class PatchAutomationAttribute : MutationAutomationAttribute
     {
         /// <summary>
         /// Initializes a patch automation that does not return a response.

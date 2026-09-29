@@ -34,6 +34,17 @@ namespace TurtlePath.Automations.Options
                 services.TryAddScoped(serviceType, implementationType);
             }
 
+            if (descriptor.OperationKind == AutomationOperationKind.GetMany)
+            {
+                var serviceType = typeof(IGetManyQueryOptions<,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType);
+                var implementationType = typeof(DescriptorGetManyQueryOptions<,,>).MakeGenericType(
+                    descriptor.RequestType,
+                    descriptor.EntityType,
+                    ResolveCollectionItemType(descriptor.ResponseType));
+
+                services.TryAddScoped(serviceType, implementationType);
+            }
+
             if (descriptor.OperationKind == AutomationOperationKind.GetPaged)
             {
                 var serviceType = typeof(IGetPagedInfoQueryOptions<,>).MakeGenericType(descriptor.RequestType, descriptor.EntityType);
@@ -64,6 +75,14 @@ namespace TurtlePath.Automations.Options
             }
 
             return null;
+        }
+
+        private Type ResolveCollectionItemType(Type responseType)
+        {
+            if (responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                return responseType.GetGenericArguments()[0];
+
+            return responseType;
         }
 
         private Type ResolvePagedItemType(Type responseType)

@@ -16,6 +16,11 @@ namespace TurtlePath.Automations.Attributes
         {
         }
 
+        /// <summary>
+        /// Gets or sets the default sort expression when the request does not provide one.
+        /// </summary>
+        public string DefaultSort { get; set; }
+
         internal override AutomationOperationKind OperationKind => AutomationOperationKind.GetPaged;
     }
 }

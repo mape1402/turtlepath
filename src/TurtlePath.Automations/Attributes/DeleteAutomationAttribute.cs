@@ -5,7 +5,7 @@ namespace TurtlePath.Automations.Attributes
     /// <summary>
     /// Declares a delete automation for a request type.
     /// </summary>
-    public sealed class DeleteAutomationAttribute : AutomationAttribute
+    public sealed class DeleteAutomationAttribute : MutationAutomationAttribute
     {
         /// <summary>
         /// Initializes a delete automation that does not return a response.

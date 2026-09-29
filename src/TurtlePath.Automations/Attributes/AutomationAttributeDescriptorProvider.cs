@@ -36,8 +36,27 @@ namespace TurtlePath.Automations.Attributes
                 keyType,
                 returnMode,
                 responseType,
-                AutomationSourceKind.Attribute);
+                AutomationSourceKind.Attribute,
+                defaultSortProperty: ResolveDefaultSort(attribute),
+                validateRequest: ResolveValidateRequest(attribute),
+                reloadBeforeResponse: ResolveReloadBeforeResponse(attribute));
         }
+
+        private static string ResolveDefaultSort(AutomationAttribute attribute)
+            => attribute switch
+            {
+                GetManyAutomationAttribute many => many.DefaultSort,
+                GetPagedAutomationAttribute paged => paged.DefaultSort,
+                _ => null
+            };
+
+        private static bool? ResolveValidateRequest(AutomationAttribute attribute)
+            => attribute is MutationAutomationAttribute mutation ? mutation.ValidateRequest : null;
+
+        private static bool ResolveReloadBeforeResponse(AutomationAttribute attribute)
+            => attribute is MutationAutomationAttribute mutation &&
+                mutation.OperationKind is AutomationOperationKind.Create or AutomationOperationKind.Update or AutomationOperationKind.Patch &&
+                mutation.ReloadBeforeResponse;
 
         private static Type ResolveResponseType(AutomationAttribute attribute)
         {

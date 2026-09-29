@@ -155,6 +155,62 @@ namespace TurtlePath.Automations.Tests
         }
 
         [Fact]
+        public void Register_preserves_get_many_default_sort_for_generated_handlers()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.GetMany,
+                typeof(GetCustomersQuery),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(IEnumerable<CustomerResponse>),
+                defaultSortProperty: "-Name");
+
+            CreateRegistration().Register(services, [descriptor]);
+
+            var registry = services
+                .Select(service => service.ImplementationInstance)
+                .OfType<AutomationDescriptorRegistry>()
+                .Single();
+            var registeredDescriptor = registry.Find(typeof(GetCustomersQuery), typeof(IEnumerable<CustomerResponse>));
+
+            Assert.NotNull(registeredDescriptor);
+            Assert.Equal("-Name", registeredDescriptor.DefaultSortProperty);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<GetCustomersQuery, IEnumerable<CustomerResponse>>));
+
+            Assert.NotNull(handler);
+            AssertOverridesProperty(handler.ImplementationType!, "DefaultSorts");
+        }
+
+        [Fact]
+        public void Register_overrides_validation_when_descriptor_configures_it()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.Delete,
+                typeof(DeleteCustomerCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.None,
+                validateRequest: true);
+
+            CreateRegistration().Register(services, [descriptor]);
+
+            var handler = services.SingleOrDefault(descriptor =>
+                descriptor.ServiceType == typeof(IRequestHandler<DeleteCustomerCommand>));
+
+            Assert.NotNull(handler);
+            AssertOverridesProperty(handler.ImplementationType!, "ValidateRequest");
+        }
+
+        [Fact]
         public void Register_adds_closed_patch_handler_when_request_implements_patch_action()
         {
             var services = new ServiceCollection();
@@ -290,6 +346,10 @@ namespace TurtlePath.Automations.Tests
             public SearchCustomersQuery(PagedSettings pagedSettings) : base(pagedSettings)
             {
             }
+        }
+
+        public sealed class GetCustomersQuery : GenericGetManyQuery<Customer, CustomerResponse, CId>
+        {
         }
 
         public sealed class PatchCustomerCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>, IPatchAction<Customer>

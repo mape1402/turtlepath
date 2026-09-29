@@ -20,10 +20,13 @@ namespace TurtlePath.Automations.Tests.Attributes
             Assert.Equal(typeof(CId), create.KeyType);
             Assert.Equal(typeof(AttributedCustomerResponse), create.ResponseType);
             Assert.Equal(AutomationSourceKind.Attribute, create.SourceKind);
+            Assert.False(create.ValidateRequest);
+            Assert.True(create.ReloadBeforeResponse);
 
             var delete = Assert.Single(descriptors, descriptor => descriptor.RequestType == typeof(DeleteAttributedCustomerCommand));
             Assert.Equal(AutomationReturnMode.None, delete.ReturnMode);
             Assert.Null(delete.ResponseType);
+            Assert.True(delete.ValidateRequest);
         }
 
         [Fact]
@@ -33,9 +36,11 @@ namespace TurtlePath.Automations.Tests.Attributes
 
             var many = Assert.Single(descriptors, descriptor => descriptor.RequestType == typeof(GetManyAttributedCustomersQuery));
             Assert.Equal(typeof(IEnumerable<AttributedCustomerResponse>), many.ResponseType);
+            Assert.Equal("Name", many.DefaultSortProperty);
 
             var paged = Assert.Single(descriptors, descriptor => descriptor.RequestType == typeof(GetPagedAttributedCustomersQuery));
             Assert.Equal(typeof(PagedResponse<AttributedCustomerResponse>), paged.ResponseType);
+            Assert.Equal("-CreatedAt", paged.DefaultSortProperty);
         }
 
         [Fact]
@@ -67,22 +72,22 @@ namespace TurtlePath.Automations.Tests.Attributes
             public int Id { get; set; }
         }
 
-        [CreateAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse))]
+        [CreateAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse), ValidateRequest = false, ReloadBeforeResponse = true)]
         private sealed class CreateAttributedCustomerCommand : IRequest<AttributedCustomerResponse>
         {
         }
 
-        [DeleteAutomation(typeof(AttributedCustomer))]
+        [DeleteAutomation(typeof(AttributedCustomer), ValidateRequest = true)]
         private sealed class DeleteAttributedCustomerCommand : IRequest
         {
         }
 
-        [GetManyAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse))]
+        [GetManyAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse), DefaultSort = "Name")]
         private sealed class GetManyAttributedCustomersQuery : IRequest<IEnumerable<AttributedCustomerResponse>>
         {
         }
 
-        [GetPagedAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse))]
+        [GetPagedAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse), DefaultSort = "-CreatedAt")]
         private sealed class GetPagedAttributedCustomersQuery : IRequest<PagedResponse<AttributedCustomerResponse>>
         {
         }
