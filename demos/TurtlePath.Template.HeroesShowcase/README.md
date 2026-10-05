@@ -21,10 +21,12 @@ By default, the generated demo uses the TurtlePath package version tested with t
 To generate the demo with a specific TurtlePath package version, pass:
 
 ```powershell
-dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.9.0
+dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.9.1
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
+
+The current demo template release has been validated against TurtlePath `1.9.1`.
 
 The generated solution demonstrates:
 
