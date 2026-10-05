@@ -37,7 +37,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 // Pigeon is ready but intentionally opt-in because Azure Service Bus requires a real connection string.
                 // Uncomment this line when the service needs consumers, producers, or the EF Core outbox.
                 // .AddMessagingDefaults(configuration)
-                .AddPipelineDefaults(configuration)
+                .AddPipelineDefaults(configuration, environment)
                 .AddCustomContainer(configuration);
         }
 
@@ -52,7 +52,7 @@ namespace Microsoft.Extensions.DependencyInjection
             app.UseLoggingDefaults(environment);
             app.UseOpenApiDefaults(environment);
             app.UseRoutingDefaults();
-            app.UseEndpointDefaults();
+            app.UseEndpointDefaults(environment);
 
             return app;
         }
@@ -74,12 +74,13 @@ namespace Microsoft.Extensions.DependencyInjection
             return app;
         }
 
-        private static IApplicationBuilder UseEndpointDefaults(this IApplicationBuilder app)
+        private static IApplicationBuilder UseEndpointDefaults(this IApplicationBuilder app, IWebHostEnvironment environment)
         {
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHealthCheckEndPoints();
                 endpoints.MapControllers();
+                endpoints.MapSpiderDevelopmentEndpoints(environment);
             });
 
             return app;
@@ -99,7 +100,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services
                 .AddPersistenceDefaults(configuration)
                 .AddApplicationDefaults()
-                .AddPipelineDefaults(configuration)
+                .AddPipelineDefaults(configuration, environment)
                 .AddJobExceptionHandlingDefaults()
                 .AddCustomContainer(configuration);
 

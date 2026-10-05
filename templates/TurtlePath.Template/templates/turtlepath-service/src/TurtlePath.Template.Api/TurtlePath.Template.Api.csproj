@@ -17,6 +17,7 @@
     <PackageReference Include="Pigeon.Messaging.Outbox.EntityFrameworkCore" />
     <PackageReference Include="Krackend.EventSourcing.EntityFrameworkCore" />
     <PackageReference Include="Spider.Pipelines" />
+    <PackageReference Include="Spider.Pipelines.Web" />
     <PackageReference Include="TurtlePath" />
     <PackageReference Include="TurtlePath.Automations" />
     <PackageReference Include="TurtlePath.Crabalidator" />
