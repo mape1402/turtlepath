@@ -1,5 +1,11 @@
 # TurtlePath Studio Changelog
 
+## 1.0.12
+
+### Changed
+
+- Prepared a Studio release aligned with the TurtlePath `1.9.1`, template `1.9.1`, demo `1.6.1`, and documentation `1.5.1` patch releases.
+
 ## 1.0.11
 
 ### Changed

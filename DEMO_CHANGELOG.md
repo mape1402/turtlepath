@@ -1,5 +1,13 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.6.1] - 2026-10-05
+
+### Changed
+
+- Updated the generated Heroes Showcase TurtlePath package fallback and README examples to `1.9.1`.
+- Prepared the Heroes Showcase demo template release aligned with the TurtlePath `1.9.1` testing and coverage update.
+- Updated demo release validation to restore generated projects against locally packed TurtlePath runtime packages before NuGet publication.
+
 ## [demo-v1.6.0] - 2026-10-05
 
 ### Added

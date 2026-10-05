@@ -1,8 +1,12 @@
 # TurtlePath
 
+[![Coverage](https://img.shields.io/badge/coverage-99.03%25-brightgreen)](#)
+
 TurtlePath is a reusable .NET library for building Pelican-based application handlers, automations, jobs, exception boundaries, templates, and testing helpers.
 
 It packages the template's base command/query handlers, handler hook pipeline, validation and mapping adapters, storage abstractions, response/request primitives, custom identifier support, and Entity Framework helper configuration into a standalone library.
+
+The current release is validated with 99.03% consolidated line coverage across the runtime libraries, adapters, templates, demos, Studio infrastructure, and testing helpers.
 
 ## Packages
 

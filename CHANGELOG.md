@@ -4,6 +4,17 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.9.1] - 2026-10-05
+
+### Fixed
+
+- Fixed `TurtlePath.Testing` no-response request dispatch so `TurtlePathTestHost.SendAsync(IRequest)` preserves the concrete request type when sending through Pelican.
+
+### Changed
+
+- Raised solution line coverage to 99.03% and added focused regression coverage across automations, event sourcing, exception handling, jobs, Spider integrations, Studio infrastructure, analyzers, DataScorpio, Entity Framework Core, testing helpers, and core handler flows.
+- Added the current coverage badge to the root README.
+
 ## [v1.9.0] - 2026-10-05
 
 ### Added
