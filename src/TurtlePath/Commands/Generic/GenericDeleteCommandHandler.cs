@@ -2,6 +2,7 @@ namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using Spider.Pipelines.Core;
     using TurtlePath.Commands.Steps;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Exceptions;
@@ -27,6 +28,11 @@ namespace TurtlePath.Commands
         /// Gets the service provider used to resolve dependencies.
         /// </summary>
         protected IServiceProvider Services { get; }
+
+        /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
 
         /// <summary>
         /// Gets the storage adapter for deleting entities.
@@ -82,14 +88,15 @@ namespace TurtlePath.Commands
         protected GenericDeleteCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            StorageWriterAdapter = serviceProvider.GetRequiredService<IStorageWriterAdapter>();
-            StorageReaderAdapter = serviceProvider.GetRequiredService<IStorageReaderAdapter>();
-            ValidatorAdapter = serviceProvider.GetRequiredService<IValidatorAdapter>();
-            MapperAdapter = serviceProvider.GetRequiredService<IMapperAdapter>();
-            EntityLookupStep = serviceProvider.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
-            ValidationStep = serviceProvider.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
-            EntityDeleteStep = serviceProvider.GetRequiredService<IEntityDeleteStep<TRequest, TEntity>>();
-            hookStageRunner = serviceProvider.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
+            Spider = Services.GetService<ISpider>();
+            StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
+            StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
+            ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
+            MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
+            EntityLookupStep = Services.GetRequiredService<IEntityLookupStep<TRequest, TEntity, TKey>>();
+            ValidationStep = Services.GetRequiredService<IRequestValidationStep<TRequest, TEntity>>();
+            EntityDeleteStep = Services.GetRequiredService<IEntityDeleteStep<TRequest, TEntity>>();
+            hookStageRunner = Services.GetRequiredService<ICommandHookStageRunner<TRequest, TEntity, TResponse>>();
         }
 
         /// <summary>
@@ -102,24 +109,70 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
+            if (Spider != null)
+            {
+                return await Spider
+                    .ComposeFlow<TRequest, TResponse>("Delete command")
+                    .Describe("Loads an existing entity, optionally validates the delete request, deletes the entity, and maps a response.")
+                    .Tags("turtlepath", "command", "delete")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(LoadDeleteEntityAsync, step => step
+                        .Named("Load entity")
+                        .Describe("Runs before/after get entity hooks and loads the entity targeted by the delete request.")
+                        .Tags("lookup", "hooks"))
+                    .Then(ValidateDeleteRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the delete request when validation is enabled.")
+                        .Tags("validation", "hooks"))
+                    .Then(DeleteLoadedEntityAsync, step => step
+                        .Named("Delete entity")
+                        .Describe("Runs before/after delete hooks and removes the loaded entity from storage.")
+                        .Tags("delete", "persistence", "hooks"))
+                    .Then(BuildDeleteResponseAsync, step => step
+                        .Named("Map response")
+                        .Describe("Runs before/after response hooks and maps the deleted entity to the command response.")
+                        .Tags("response", "hooks"))
+                    .RunAsync(request, cancellationToken);
+            }
+
+            var entity = await LoadDeleteEntityAsync(request, cancellationToken);
+            await ValidateDeleteRequestAsync(entity, cancellationToken);
+            await DeleteLoadedEntityAsync(entity, cancellationToken);
+            return await BuildDeleteResponseAsync(entity, cancellationToken);
+        }
+
+        private async Task<TEntity> LoadDeleteEntityAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
             await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> ValidateDeleteRequestAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
-            await ValidateAsync(request, entity, cancellationToken);
+            await ValidateAsync(Context.Request, entity, cancellationToken);
 
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> DeleteLoadedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeDeleteAsync(Context, cancellationToken);
             await DeleteEntityAsync(entity, cancellationToken);
 
             await hookStageRunner.AfterDeleteAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TResponse> BuildDeleteResponseAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeResponseAsync(Context, cancellationToken);
-            var response = await BuildResponseAsync(request, entity, cancellationToken);
+            var response = await BuildResponseAsync(Context.Request, entity, cancellationToken);
             Context.Response = response;
 
             await hookStageRunner.AfterResponseAsync(Context, cancellationToken);
@@ -187,6 +240,11 @@ namespace TurtlePath.Commands
         protected IServiceProvider Services { get; }
 
         /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
+
+        /// <summary>
         /// Gets the storage adapter for deleting entities.
         /// </summary>
         protected IStorageWriterAdapter StorageWriterAdapter { get; }
@@ -240,6 +298,7 @@ namespace TurtlePath.Commands
         protected GenericDeleteCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Spider = Services.GetService<ISpider>();
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
@@ -260,18 +319,58 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity>(request);
 
+            if (Spider != null)
+            {
+                await Spider
+                    .ComposeFlow<TRequest>("Delete command")
+                    .Describe("Loads an existing entity, optionally validates the delete request, and deletes the entity.")
+                    .Tags("turtlepath", "command", "delete")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(LoadDeleteEntityAsync, step => step
+                        .Named("Load entity")
+                        .Describe("Runs before/after get entity hooks and loads the entity targeted by the delete request.")
+                        .Tags("lookup", "hooks"))
+                    .Then(ValidateDeleteRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the delete request when validation is enabled.")
+                        .Tags("validation", "hooks"))
+                    .Then(DeleteLoadedEntityAsync, step => step
+                        .Named("Delete entity")
+                        .Describe("Runs before/after delete hooks and removes the loaded entity from storage.")
+                        .Tags("delete", "persistence", "hooks"))
+                    .RunAsync(request, cancellationToken);
+
+                return;
+            }
+
+            var entity = await LoadDeleteEntityAsync(request, cancellationToken);
+            await ValidateDeleteRequestAsync(entity, cancellationToken);
+            await DeleteLoadedEntityAsync(entity, cancellationToken);
+        }
+
+        private async Task<TEntity> LoadDeleteEntityAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
             await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> ValidateDeleteRequestAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
-            await ValidateAsync(request, entity, cancellationToken);
+            await ValidateAsync(Context.Request, entity, cancellationToken);
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> DeleteLoadedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeDeleteAsync(Context, cancellationToken);
             await DeleteEntityAsync(entity, cancellationToken);
             await hookStageRunner.AfterDeleteAsync(Context, cancellationToken);
+            return entity;
         }
 
         /// <summary>

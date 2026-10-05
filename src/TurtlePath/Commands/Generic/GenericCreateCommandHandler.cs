@@ -2,6 +2,7 @@ namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using Spider.Pipelines.Core;
     using System;
     using System.Linq.Expressions;
     using TurtlePath.Commands.Steps;
@@ -28,6 +29,11 @@ namespace TurtlePath.Commands
         /// Gets the service provider used to resolve dependencies.
         /// </summary>
         protected IServiceProvider Services { get; }
+
+        /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
 
         /// <summary>
         /// Gets the storage adapter for saving entities.
@@ -98,6 +104,7 @@ namespace TurtlePath.Commands
         protected GenericCreateCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Spider = Services.GetService<ISpider>();
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
@@ -120,24 +127,69 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
+            if (Spider != null)
+            {
+                return await Spider
+                    .ComposeFlow<TRequest, TResponse>("Create command")
+                    .Describe("Validates a create request, maps it to a new entity, saves it, and maps the persisted entity to a response.")
+                    .Tags("turtlepath", "command", "create")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(ValidateCreateRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the incoming create request.")
+                        .Tags("validation", "hooks"))
+                    .Then(MapCreateRequestAsync, step => step
+                        .Named("Map entity")
+                        .Describe("Runs before/after map hooks and creates the entity from the request.")
+                        .Tags("mapping", "hooks"))
+                    .Then(SaveCreatedEntityAsync, step => step
+                        .Named("Save entity")
+                        .Describe("Runs before/after save hooks and persists the created entity.")
+                        .Tags("persistence", "hooks"))
+                    .Then(BuildCreateResponseAsync, step => step
+                        .Named("Map response")
+                        .Describe("Runs before/after response hooks and maps the saved entity to the command response.")
+                        .Tags("response", "projection", "hooks"))
+                    .RunAsync(request, cancellationToken);
+            }
+
+            await ValidateCreateRequestAsync(request, cancellationToken);
+            var entity = await MapCreateRequestAsync(request, cancellationToken);
+            await SaveCreatedEntityAsync(entity, cancellationToken);
+            return await BuildCreateResponseAsync(entity, cancellationToken);
+        }
+
+        private async Task<TRequest> ValidateCreateRequestAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
             await ValidateAsync(request, cancellationToken);
 
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return request;
+        }
 
+        private async Task<TEntity> MapCreateRequestAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeMapAsync(Context, cancellationToken);
             var entity = await MapToEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
             await hookStageRunner.AfterMapAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task SaveCreatedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeSaveAsync(Context, cancellationToken);
-            await SaveEntityAsync(request, entity, cancellationToken);
+            await SaveEntityAsync(Context.Request, entity, cancellationToken);
 
             await hookStageRunner.AfterSaveAsync(Context, cancellationToken);
+        }
 
+        private async Task<TResponse> BuildCreateResponseAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeResponseAsync(Context, cancellationToken);
-            var response = await MapToResponseAsync(request, entity, cancellationToken);
+            var response = await MapToResponseAsync(Context.Request, entity, cancellationToken);
             Context.Response = response;
 
             await hookStageRunner.AfterResponseAsync(Context, cancellationToken);
@@ -216,6 +268,11 @@ namespace TurtlePath.Commands
         protected IServiceProvider Services { get; }
 
         /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
+
+        /// <summary>
         /// Gets the storage adapter for saving entities.
         /// </summary>
         protected IStorageWriterAdapter StorageWriterAdapter { get; }
@@ -264,6 +321,7 @@ namespace TurtlePath.Commands
         protected GenericCreateCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Spider = Services.GetService<ISpider>();
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
             MapperAdapter = Services.GetRequiredService<IMapperAdapter>();
@@ -283,17 +341,56 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity>(request);
 
+            if (Spider != null)
+            {
+                await Spider
+                    .ComposeFlow<TRequest>("Create command")
+                    .Describe("Validates a create request, maps it to a new entity, and saves it.")
+                    .Tags("turtlepath", "command", "create")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(ValidateCreateRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the incoming create request.")
+                        .Tags("validation", "hooks"))
+                    .Then(MapCreateRequestAsync, step => step
+                        .Named("Map entity")
+                        .Describe("Runs before/after map hooks and creates the entity from the request.")
+                        .Tags("mapping", "hooks"))
+                    .Then(SaveCreatedEntityAsync, step => step
+                        .Named("Save entity")
+                        .Describe("Runs before/after save hooks and persists the created entity.")
+                        .Tags("persistence", "hooks"))
+                    .RunAsync(request, cancellationToken);
+
+                return;
+            }
+
+            await ValidateCreateRequestAsync(request, cancellationToken);
+            var entity = await MapCreateRequestAsync(request, cancellationToken);
+            await SaveCreatedEntityAsync(entity, cancellationToken);
+        }
+
+        private async Task<TRequest> ValidateCreateRequestAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
             await ValidateAsync(request, cancellationToken);
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return request;
+        }
 
+        private async Task<TEntity> MapCreateRequestAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeMapAsync(Context, cancellationToken);
             var entity = await MapToEntityAsync(request, cancellationToken);
             Context.Entity = entity;
             await hookStageRunner.AfterMapAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task SaveCreatedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeSaveAsync(Context, cancellationToken);
-            await SaveEntityAsync(request, entity, cancellationToken);
+            await SaveEntityAsync(Context.Request, entity, cancellationToken);
             await hookStageRunner.AfterSaveAsync(Context, cancellationToken);
         }
 
