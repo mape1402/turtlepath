@@ -4,6 +4,20 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.9.0] - 2026-10-05
+
+### Added
+
+- Integrated Spider.Pipelines 2.2.1 flows into TurtlePath base command handlers so create, update, patch, and delete handlers emit documented runtime flow traces when `ISpider` is registered.
+- Added default TurtlePath Spider architecture metadata for command flows and the transaction boundary.
+- Added Spider architecture metadata generation for concrete TurtlePath automation operations discovered from automation profiles and attributes.
+- Added Spider flow profiles and descriptive transaction boundary metadata to `TurtlePath.Spider.Transactions`.
+
+### Changed
+
+- Updated `TurtlePath`, `TurtlePath.Spider`, and `TurtlePath.Spider.Transactions` to Spider.Pipelines 2.2.1.
+- Added descriptive metadata to the TurtlePath.Spider Pelican dispatch bridge.
+
 ## [v1.8.0] - 2026-09-29
 
 ### Added

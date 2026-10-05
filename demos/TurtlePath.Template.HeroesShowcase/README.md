@@ -21,7 +21,7 @@ By default, the generated demo uses the TurtlePath package version tested with t
 To generate the demo with a specific TurtlePath package version, pass:
 
 ```powershell
-dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.6.3
+dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.9.0
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
@@ -36,6 +36,8 @@ The generated solution demonstrates:
 - OctoMap mapping profiles.
 - Crabalidator validators.
 - Spider pipeline calls to Pelican handlers through TurtlePath.Spider.
+- Spider architecture UI and runtime traces at `/_spider` in Development, including concrete Heroes automation operations.
+- A custom Spider `ComposeFlow` example for the Heroes operations report handler.
 - One-shot and recurring jobs.
 - Exception handling setup.
 - Optional Pigeon and EventSourcing extension points.
