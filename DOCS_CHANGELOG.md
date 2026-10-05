@@ -4,6 +4,14 @@ All notable changes to TurtlePath versioned documentation will be documented in 
 
 Documentation has its own release marker in `.docs.release` and its own GitHub Actions workflow. A documentation version can support multiple `TurtlePath.Template` versions through `docs/guides/template/guide-manifest.json`.
 
+## [docs-v1.5.0] - 2026-10-05
+
+### Changed
+
+- Added the English and Spanish guide package version `1.5.0`.
+- Documented Spider.Pipelines 2.2.1 flows, the Development-only `/_spider` UI, runtime traces, and custom `ComposeFlow` usage.
+- Updated the template-to-guide map so template version `1.9.0` uses guide version `1.5.0`.
+
 ## [docs-v1.4.0] - 2026-09-29
 
 ### Changed

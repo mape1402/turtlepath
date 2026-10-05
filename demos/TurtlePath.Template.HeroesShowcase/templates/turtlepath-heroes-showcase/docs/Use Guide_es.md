@@ -27,7 +27,7 @@ Guía de uso para servicios ASP.NET Core construidos con TurtlePath.
 - `TurtlePath.DataScorpio` para filtros, ordenamiento y paginación.
 - `TurtlePath.Analyzers` en Domain y Business para detectar comparaciones y asignaciones inseguras de `CId`.
 - `Pigeon.Messaging` con Azure Service Bus como broker predeterminado y Outbox con EF Core habilitado por defecto.
-- `Spider.Pipelines` para boundaries de mensajería y el boundary transaccional.
+- `Spider.Pipelines` para boundaries de mensajería, el boundary transaccional, flows documentados y trazas runtime en desarrollo.
 
 ## Primeros Pasos
 
@@ -908,6 +908,10 @@ Por defecto:
   "MyService.Features.Health.Commands.PingExternalDependencyCommand"
 ]
 ```
+
+En Development, el API generado expone el UI de arquitectura de Spider en `/_spider`. La pagina incluye los flows base de comandos de TurtlePath, las operaciones concretas de automation de los profiles de Heroes, el transaction boundary y las trazas runtime capturadas mientras se ejecutan handlers.
+
+El showcase tambien demuestra un flow custom en `GetHeroOperationsReportQueryHandler`. Ese handler envuelve su read model especializado de ADO.NET con `ComposeFlow`, usa el perfil `Heroes.Report` y emite pasos de traza que aparecen junto a los flows de automation y los flows base de TurtlePath.
 
 ## Checklist De Migración
 

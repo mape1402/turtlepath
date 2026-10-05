@@ -1,5 +1,19 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.6.0] - 2026-10-05
+
+### Added
+
+- Added Spider.Pipelines.Web to the Heroes Showcase API.
+- Added the Development-only Spider architecture UI and runtime trace endpoints to the Heroes Showcase, including concrete automation operations from the demo profiles.
+- Added a custom `ComposeFlow` example to `GetHeroOperationsReportQueryHandler` using the `Heroes.Report` flow profile.
+
+### Changed
+
+- Updated generated Spider.Pipelines references to 2.2.1.
+- Updated the generated Heroes Showcase TurtlePath package fallback to `1.9.0`.
+- Updated Heroes Showcase documentation for Spider flows, traces, and the custom operations report flow.
+
 ## [demo-v1.5.0] - 2026-09-28
 
 ### Changed
