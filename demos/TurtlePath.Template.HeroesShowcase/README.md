@@ -42,5 +42,5 @@ The generated solution demonstrates:
 - Exception handling setup.
 - Optional Pigeon and EventSourcing extension points.
 - EventSourcing post-append observer support for capturing newly generated Krackend event metadata.
-- Pigeon 4.0.0 consumer throughput configuration with `MaxConcurrency` and `QueueCapacity` examples.
+- Pigeon 4.0.2 consumer throughput configuration with `MaxConcurrency` and `QueueCapacity` examples.
 - Unit and integration tests using TurtlePath testing helpers.
