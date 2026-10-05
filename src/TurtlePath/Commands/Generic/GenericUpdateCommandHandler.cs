@@ -2,6 +2,7 @@ namespace TurtlePath.Commands
 {
     using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
+    using Spider.Pipelines.Core;
     using System;
     using System.Linq.Expressions;
     using System.Threading;
@@ -32,6 +33,11 @@ namespace TurtlePath.Commands
         /// Gets the service provider used to resolve dependencies.
         /// </summary>
         protected IServiceProvider Services { get; }
+
+        /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
 
         /// <summary>
         /// Gets the storage adapter for saving and updating entities.
@@ -107,6 +113,7 @@ namespace TurtlePath.Commands
         protected GenericUpdateCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Spider = Services.GetService<ISpider>();
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
@@ -130,29 +137,83 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity, TResponse>(request);
 
+            if (Spider != null)
+            {
+                return await Spider
+                    .ComposeFlow<TRequest, TResponse>("Update command")
+                    .Describe("Loads an existing entity, validates the update request, maps changes, saves the entity, and maps the response.")
+                    .Tags("turtlepath", "command", "update")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(LoadUpdateEntityAsync, step => step
+                        .Named("Load entity")
+                        .Describe("Runs before/after get entity hooks and loads the entity targeted by the request.")
+                        .Tags("lookup", "hooks"))
+                    .Then(ValidateUpdateRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the request against the loaded entity.")
+                        .Tags("validation", "hooks"))
+                    .Then(MapUpdateEntityAsync, step => step
+                        .Named("Map entity")
+                        .Describe("Runs before/after map hooks and applies request values to the loaded entity.")
+                        .Tags("mapping", "hooks"))
+                    .Then(SaveUpdatedEntityAsync, step => step
+                        .Named("Save entity")
+                        .Describe("Runs before/after save hooks and persists the updated entity.")
+                        .Tags("persistence", "hooks"))
+                    .Then(BuildUpdateResponseAsync, step => step
+                        .Named("Map response")
+                        .Describe("Runs before/after response hooks and maps the updated entity to the command response.")
+                        .Tags("response", "projection", "hooks"))
+                    .RunAsync(request, cancellationToken);
+            }
+
+            var entity = await LoadUpdateEntityAsync(request, cancellationToken);
+            await ValidateUpdateRequestAsync(entity, cancellationToken);
+            await MapUpdateEntityAsync(entity, cancellationToken);
+            await SaveUpdatedEntityAsync(entity, cancellationToken);
+            return await BuildUpdateResponseAsync(entity, cancellationToken);
+        }
+
+        private async Task<TEntity> LoadUpdateEntityAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
 
             await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> ValidateUpdateRequestAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
-            await ValidateAsync(request, entity, cancellationToken);
+            await ValidateAsync(Context.Request, entity, cancellationToken);
 
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> MapUpdateEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeMapAsync(Context, cancellationToken);
-            await MapEntityAsync(request, entity, cancellationToken);
+            await MapEntityAsync(Context.Request, entity, cancellationToken);
 
             await hookStageRunner.AfterMapAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task SaveUpdatedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeSaveAsync(Context, cancellationToken);
-            await UpdateEntityAsync(request, entity, cancellationToken);
+            await UpdateEntityAsync(Context.Request, entity, cancellationToken);
 
             await hookStageRunner.AfterSaveAsync(Context, cancellationToken);
+        }
 
+        private async Task<TResponse> BuildUpdateResponseAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeResponseAsync(Context, cancellationToken);
-            var response = await MapToResponseAsync(request, entity, cancellationToken);
+            var response = await MapToResponseAsync(Context.Request, entity, cancellationToken);
             Context.Response = response;
 
             await hookStageRunner.AfterResponseAsync(Context, cancellationToken);
@@ -251,6 +312,11 @@ namespace TurtlePath.Commands
         protected IServiceProvider Services { get; }
 
         /// <summary>
+        /// Gets the Spider pipeline instance used to describe and trace the handler flow when available.
+        /// </summary>
+        protected ISpider Spider { get; }
+
+        /// <summary>
         /// Gets the storage adapter for saving entities.
         /// </summary>
         protected IStorageWriterAdapter StorageWriterAdapter { get; }
@@ -309,6 +375,7 @@ namespace TurtlePath.Commands
         protected GenericUpdateCommandHandler(IServiceProvider serviceProvider)
         {
             Services = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            Spider = Services.GetService<ISpider>();
             StorageWriterAdapter = Services.GetRequiredService<IStorageWriterAdapter>();
             StorageReaderAdapter = Services.GetRequiredService<IStorageReaderAdapter>();
             ValidatorAdapter = Services.GetRequiredService<IValidatorAdapter>();
@@ -330,21 +397,69 @@ namespace TurtlePath.Commands
         {
             Context = new CommandHookContext<TRequest, TEntity>(request);
 
+            if (Spider != null)
+            {
+                await Spider
+                    .ComposeFlow<TRequest>("Update command")
+                    .Describe("Loads an existing entity, validates the update request, maps changes, and saves the entity.")
+                    .Tags("turtlepath", "command", "update")
+                    .UsingProfile(TurtlePathCommandFlowProfiles.Command)
+                    .Then(LoadUpdateEntityAsync, step => step
+                        .Named("Load entity")
+                        .Describe("Runs before/after get entity hooks and loads the entity targeted by the request.")
+                        .Tags("lookup", "hooks"))
+                    .Then(ValidateUpdateRequestAsync, step => step
+                        .Named("Validate request")
+                        .Describe("Runs before/after validation hooks and validates the request against the loaded entity.")
+                        .Tags("validation", "hooks"))
+                    .Then(MapUpdateEntityAsync, step => step
+                        .Named("Map entity")
+                        .Describe("Runs before/after map hooks and applies request values to the loaded entity.")
+                        .Tags("mapping", "hooks"))
+                    .Then(SaveUpdatedEntityAsync, step => step
+                        .Named("Save entity")
+                        .Describe("Runs before/after save hooks and persists the updated entity.")
+                        .Tags("persistence", "hooks"))
+                    .RunAsync(request, cancellationToken);
+
+                return;
+            }
+
+            var entity = await LoadUpdateEntityAsync(request, cancellationToken);
+            await ValidateUpdateRequestAsync(entity, cancellationToken);
+            await MapUpdateEntityAsync(entity, cancellationToken);
+            await SaveUpdatedEntityAsync(entity, cancellationToken);
+        }
+
+        private async Task<TEntity> LoadUpdateEntityAsync(TRequest request, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeGetEntityAsync(Context, cancellationToken);
             var entity = await GetEntityAsync(request, cancellationToken);
             Context.Entity = entity;
             await hookStageRunner.AfterGetEntityAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> ValidateUpdateRequestAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeValidationAsync(Context, cancellationToken);
-            await ValidateAsync(request, entity, cancellationToken);
+            await ValidateAsync(Context.Request, entity, cancellationToken);
             await hookStageRunner.AfterValidationAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task<TEntity> MapUpdateEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeMapAsync(Context, cancellationToken);
-            await MapEntityAsync(request, entity, cancellationToken);
+            await MapEntityAsync(Context.Request, entity, cancellationToken);
             await hookStageRunner.AfterMapAsync(Context, cancellationToken);
+            return entity;
+        }
 
+        private async Task SaveUpdatedEntityAsync(TEntity entity, CancellationToken cancellationToken)
+        {
             await hookStageRunner.BeforeSaveAsync(Context, cancellationToken);
-            await UpdateEntityAsync(request, entity, cancellationToken);
+            await UpdateEntityAsync(Context.Request, entity, cancellationToken);
             await hookStageRunner.AfterSaveAsync(Context, cancellationToken);
         }
 

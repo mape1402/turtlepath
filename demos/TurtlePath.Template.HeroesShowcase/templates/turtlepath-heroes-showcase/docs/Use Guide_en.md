@@ -28,7 +28,7 @@ Usage guide for ASP.NET Core services built with TurtlePath.
 - `TurtlePath.DataScorpio` for filtering, sorting, and paging.
 - `TurtlePath.Analyzers` in Domain and Business to catch unsafe `CId` comparisons and assignments.
 - `Pigeon.Messaging` with Azure Service Bus as the default broker and EF Core outbox enabled by default.
-- `Spider.Pipelines` for messaging boundaries and the transaction boundary.
+- `Spider.Pipelines` for messaging boundaries, the transaction boundary, documented flows, and development runtime traces.
 
 ## Getting Started
 
@@ -91,7 +91,7 @@ Outbox settings are configurable from `Pigeon:Outbox`. The template defaults to 
 
 ### Control consumer throughput and concurrency
 
-Pigeon 4.0.0 lets the Heroes consumers limit parallel handler execution:
+Pigeon 4.0.2 lets the Heroes consumers limit parallel handler execution:
 
 ```csharp
 services.AddPigeon(configuration, builder =>
@@ -910,6 +910,10 @@ By default:
   "MyService.Features.Health.Commands.PingExternalDependencyCommand"
 ]
 ```
+
+In Development, the generated API exposes the Spider architecture UI at `/_spider`. The page includes TurtlePath base command flows, concrete automation operations from the Heroes profiles, the transaction boundary, and runtime traces captured while handlers execute.
+
+The showcase also demonstrates a custom flow in `GetHeroOperationsReportQueryHandler`. That handler wraps its specialized ADO.NET read model with `ComposeFlow`, uses the `Heroes.Report` profile, and emits trace steps that appear beside the TurtlePath automation and base flows.
 
 ## Migration Checklist
 

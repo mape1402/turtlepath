@@ -1,28 +1,29 @@
 <Project>
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
-    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.6.3</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.9.0</TurtlePathVersion>
   </PropertyGroup>
 
 	<ItemGroup>
-    <PackageReference Update="Scalar.AspNetCore" Version="2.16.18"/>
+    <PackageReference Update="Scalar.AspNetCore" Version="2.17.13"/>
     <PackageReference Update="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Update="Pelican.Mediator" Version="2.0.0" />
-    <PackageReference Update="Pigeon.Messaging" Version="4.0.0" />
-    <PackageReference Update="Pigeon.Messaging.Azure.ServiceBus" Version="4.0.0" />
-    <PackageReference Update="Pigeon.Messaging.Outbox.EntityFrameworkCore" Version="4.0.0" />
-    <PackageReference Update="Krackend.EventSourcing.EntityFrameworkCore" Version="1.2.1" />
-    <PackageReference Update="Spider.Pipelines" Version="2.1.0" />
-    <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
-    <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
-    <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <PackageReference Update="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageReference Update="Pigeon.Messaging" Version="4.0.2" />
+    <PackageReference Update="Pigeon.Messaging.Azure.ServiceBus" Version="4.0.2" />
+    <PackageReference Update="Pigeon.Messaging.Outbox.EntityFrameworkCore" Version="4.0.2" />
+    <PackageReference Update="Krackend.EventSourcing.EntityFrameworkCore" Version="4.0.3" />
+    <PackageReference Update="Spider.Pipelines" Version="2.2.1" />
+    <PackageReference Update="Spider.Pipelines.Web" Version="2.2.1" />
+    <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+    <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+    <PackageReference Update="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageReference Update="Crabalidator" Version="1.0.4" />
     <PackageReference Update="OctoMap" Version="1.1.1" />
     <PackageReference Update="OctoMap.Analyzers" Version="1.1.1" />
     <PackageReference Update="Ulid" Version="1.4.1" />
-    <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10"/>
+    <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12"/>
 	<PackageReference Update="Asp.Versioning.Mvc" Version="10.2.1" />
 	<PackageReference Update="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
     <PackageReference Update="TurtlePath" Version="$(TurtlePathVersion)" />

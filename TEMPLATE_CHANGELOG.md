@@ -4,6 +4,20 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 
 `TurtlePath.Template` has its own release marker in `.template.release` and its own GitHub Actions workflow. Runtime libraries continue to use `CHANGELOG.md`; TurtlePath Studio continues to use `STUDIO_CHANGELOG.md`.
 
+## [template-v1.9.0] - 2026-10-05
+
+### Added
+
+- Added Spider.Pipelines.Web to generated API/consumer services.
+- Added a Development-only Spider architecture UI at `/_spider` with in-memory runtime traces at `/_spider/runtime/traces`.
+- Added generated documentation for TurtlePath command flows, discovered automation operations, transaction boundary metadata, runtime traces, and custom `ComposeFlow` usage.
+
+### Changed
+
+- Updated generated Spider.Pipelines references to 2.2.1.
+- Updated generated dependency versions, including Pigeon 4.0.2, Krackend.EventSourcing.EntityFrameworkCore 4.0.3, Scalar.AspNetCore 2.17.13, Microsoft.Extensions 10.0.12, EF Core 10.0.12, and current test tooling.
+- Updated the generated TurtlePath package fallback to `1.9.0`.
+
 ## [template-v1.8.0] - 2026-09-29
 
 ### Changed

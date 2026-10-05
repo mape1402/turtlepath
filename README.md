@@ -96,7 +96,7 @@ turtlepath-studio update --version studio-v1.0.0
 
 Generated API/consumer services start with Scalar OpenAPI UI, Spider pipeline boundaries, TurtlePath exception handling, DataScorpio filtering, OctoMap mapping, Crabalidator validation, EF Core storage adapters, jobs, and testing foundations.
 
-Pigeon messaging 4.0.0 and EventSourcing are included as opt-in template surfaces. Pigeon 4.0.0 supports configurable consumer throughput through `MaxConcurrency` and `QueueCapacity`; they stay disabled by default so a new service can start without broker or event-store settings. Enable them from the API dependency registration when the service actually needs messaging or append-only event history.
+Pigeon messaging 4.0.2 and EventSourcing are included as opt-in template surfaces. Pigeon 4.0.2 supports configurable consumer throughput through `MaxConcurrency` and `QueueCapacity`; they stay disabled by default so a new service can start without broker or event-store settings. Enable them from the API dependency registration when the service actually needs messaging or append-only event history.
 
 The generated project keeps layer ownership explicit: Business references Domain and TurtlePath abstractions, API owns host composition, and Persistence owns the concrete EF Core `DbContext`. Business code that needs persistence should depend on `IDbContext`, not the concrete `AppDbContext`.
 
@@ -202,6 +202,8 @@ services.AddTurtlePathSpiderTransactions(
 ```
 
 The registration does not scan the entire `AppDomain`; test hosts and unrelated dependencies are never included. Feature-specific transaction profiles can remain in the Business assembly and are discovered automatically from the assemblies supplied here.
+
+TurtlePath command handlers now describe their default `Create`, `Update`, `Patch`, and `Delete` processing with Spider flows when `ISpider` is registered. `TurtlePath.Automations` can also generate Spider architecture metadata for each concrete automation discovered from profiles or attributes. `TurtlePath.Spider.Transactions` registers default flow profiles and boundary metadata, and the service template exposes the Spider UI at `/_spider` in Development with in-memory runtime traces.
 
 `UseCId<TValue, TDbValue>()` configures the default identifier used by every entity. Put legacy or mixed-schema overrides in a profile:
 

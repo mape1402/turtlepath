@@ -81,7 +81,25 @@ public static class TransactionServiceCollectionExtensions
 
         services.AddSpider(spider =>
         {
-            spider.AddExecutionBoundary<TransactionExecutionBoundary>();
+            spider
+                .AddFlowProfile("TurtlePath.Command", options =>
+                {
+                    options.TelemetryEnabled = true;
+                    options.MetricsEnabled = true;
+                })
+                .AddFlowProfile("TurtlePath.Boundary", options =>
+                {
+                    options.TelemetryEnabled = true;
+                    options.MetricsEnabled = true;
+                })
+                .AddExecutionBoundary<TransactionExecutionBoundary>()
+                .Named("TurtlePath transaction boundary")
+                .Describe("Wraps TurtlePath command execution in a transaction when the request matches the configured transaction profile.")
+                .Tags("turtlepath", "boundary", "transaction")
+                .BoundaryType("transaction")
+                .Purpose("Protects persistence changes made by command handlers.")
+                .Observability("spider-runtime-tracing")
+                .FailureBehavior("Rolls back the active transaction when the pipeline faults.");
         });
     }
 
