@@ -1,5 +1,6 @@
 using Pelican.Mediator;
 using Spider.Pipelines.Core;
+using Spider.Pipelines.Extensions;
 
 namespace TurtlePath.Spider;
 
@@ -81,7 +82,10 @@ public static class SpiderPelicanExtensions
 
         return spider
             .AsMediator()
-            .Attach<TRequest, TResponse>(_ => { })
+            .Attach<TRequest, TResponse>(pipeline => pipeline
+                .Named("Pelican request dispatch")
+                .Describe("Dispatches a Pelican request through the configured Spider pipeline.")
+                .Tags("turtlepath", "pelican", "dispatch"))
             .Send(request, cancellationToken);
     }
 
@@ -104,7 +108,10 @@ public static class SpiderPelicanExtensions
 
         return spider
             .AsMediator()
-            .Attach<TRequest>(_ => { })
+            .Attach<TRequest>(pipeline => pipeline
+                .Named("Pelican request dispatch")
+                .Describe("Dispatches a no-response Pelican request through the configured Spider pipeline.")
+                .Tags("turtlepath", "pelican", "dispatch"))
             .Send(request, cancellationToken);
     }
 }
