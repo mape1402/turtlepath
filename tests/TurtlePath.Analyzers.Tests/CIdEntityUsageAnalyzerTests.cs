@@ -125,6 +125,50 @@ public class CIdEntityUsageAnalyzerTests
         Assert.Empty(diagnostics);
     }
 
+    [Fact]
+    public async Task Does_not_report_for_non_entity_id_or_unconfigured_identifier_expressions()
+    {
+        var diagnostics = await AnalyzeAsync("""
+            using System;
+            using TurtlePath.Domain.Contracts;
+            using TurtlePath.Domain.Identifier;
+
+            public sealed class Customer : BaseEntity
+            {
+                public string Name { get; set; }
+
+                public bool MatchesOwnId(Invoice invoice)
+                    => Id == invoice.Id;
+            }
+
+            public sealed class Invoice : BaseEntity
+            {
+                public string Name { get; set; }
+            }
+
+            public sealed class External
+            {
+                public int Id { get; set; }
+            }
+
+            public sealed class Service
+            {
+                public bool MatchesNames(Customer customer, Invoice invoice)
+                    => customer.Name == invoice.Name;
+
+                public bool MatchesEmpty(Customer customer)
+                    => customer.Id == CId.Empty;
+
+                public void AssignExternal(Customer customer, External external)
+                {
+                    external.Id = 42;
+                }
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeAsync(string source)
     {
         var compilation = CSharpCompilation.Create(

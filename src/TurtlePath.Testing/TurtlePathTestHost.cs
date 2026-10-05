@@ -66,7 +66,7 @@ namespace TurtlePath.Testing
         /// Sends a Pelican request that does not return a response.
         /// </summary>
         public Task SendAsync(IRequest request, CancellationToken cancellationToken = default)
-            => Resolve<IMediator>().Send(request, cancellationToken);
+            => Resolve<IMediator>().Send((dynamic)request, cancellationToken);
 
         /// <inheritdoc />
         public void Dispose()

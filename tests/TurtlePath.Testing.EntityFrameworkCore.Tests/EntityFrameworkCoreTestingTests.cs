@@ -76,6 +76,47 @@ namespace TurtlePath.Testing.EntityFrameworkCore.Tests
             Assert.Equal("Grace", persisted.Name);
         }
 
+        [Fact]
+        public async Task Sqlite_helpers_reset_and_seed_database()
+        {
+            var configured = false;
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .UseSqliteDbContext<CommerceTestDbContext>(
+                    options => options with
+                    {
+                        ConfigurationAssemblies = [typeof(EntityFrameworkCoreTestingTests).Assembly]
+                    },
+                    (_, options) =>
+                    {
+                        configured = true;
+                        options.EnableSensitiveDataLogging();
+                    })
+                .BuildAsync();
+
+            await host.CreateSchemaAsync<CommerceTestDbContext>();
+            await host.SeedAsync<CommerceTestDbContext, Customer>(new Customer { Id = 30, Name = "Seeded" });
+
+            Assert.True(configured);
+            Assert.Equal("Seeded", await host.Resolve<CommerceTestDbContext>().Customers.Select(customer => customer.Name).SingleAsync());
+
+            await host.ResetDatabaseAsync<CommerceTestDbContext>();
+
+            Assert.Empty(await host.Resolve<CommerceTestDbContext>().Customers.ToArrayAsync());
+        }
+
+        [Fact]
+        public async Task Sqlite_testing_extensions_validate_arguments()
+        {
+            TurtlePathTestHostBuilder builder = null;
+            TurtlePathTestHost host = null;
+
+            Assert.Throws<ArgumentNullException>(() => builder.UseSqliteDbContext<CommerceTestDbContext>());
+            await Assert.ThrowsAsync<ArgumentNullException>(() => host.CreateSchemaAsync<CommerceTestDbContext>());
+            await Assert.ThrowsAsync<ArgumentNullException>(() => host.ResetDatabaseAsync<CommerceTestDbContext>());
+            await Assert.ThrowsAsync<ArgumentNullException>(() => host.SeedAsync<CommerceTestDbContext, Customer>());
+        }
+
         public sealed record CreateCustomerRequest(int Id, string Name) : IRequest<CustomerResponse>;
 
         public sealed record CreateAutomatedCustomerRequest(int Id, string Name) : IRequest<CustomerResponse>;

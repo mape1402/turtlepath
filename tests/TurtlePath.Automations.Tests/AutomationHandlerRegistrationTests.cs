@@ -66,6 +66,38 @@ namespace TurtlePath.Automations.Tests
         }
 
         [Fact]
+        public void Register_adds_closed_delete_handler_with_response_projection_override()
+        {
+            var services = new ServiceCollection();
+            services.AddTurtlePath();
+
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.Delete,
+                typeof(DeleteCustomerWithResponseCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse));
+
+            CreateRegistration().Register(services, [descriptor]);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<DeleteCustomerWithResponseCommand, CustomerResponse>));
+
+            Assert.NotNull(handler);
+            Assert.NotNull(handler.ImplementationType);
+            AssertGeneratedHandler(
+                handler.ImplementationType,
+                typeof(GenericDeleteCommandHandler<DeleteCustomerWithResponseCommand, CustomerResponse, Customer, CId>));
+            AssertOverrides(
+                handler.ImplementationType,
+                "BuildResponseAsync",
+                typeof(DeleteCustomerWithResponseCommand),
+                typeof(Customer),
+                typeof(CancellationToken));
+        }
+
+        [Fact]
         public void Register_adds_closed_get_by_id_query_handler_for_pelican_request()
         {
             var services = new ServiceCollection();
@@ -311,6 +343,65 @@ namespace TurtlePath.Automations.Tests
             Assert.Same(descriptor, generator.Descriptor);
         }
 
+        [Fact]
+        public void DynaBee_generator_validates_arguments_and_base_type_contracts()
+        {
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.GetOne,
+                typeof(GetCustomerByEmailQuery),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse));
+            var services = new ServiceCollection();
+
+            Assert.Throws<ArgumentNullException>(() => new DynaBeeAutomationHandlerTypeGenerator(
+                null!,
+                new AutomationHandlerGenerationOptions(),
+                new AutomationHandlerBaseTypeResolver(),
+                new DefaultAutomationHandlerTypeNamePolicy()));
+            Assert.Throws<ArgumentNullException>(() => new DynaBeeAutomationHandlerTypeGenerator(
+                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
+                null!,
+                new AutomationHandlerBaseTypeResolver(),
+                new DefaultAutomationHandlerTypeNamePolicy()));
+            Assert.Throws<ArgumentNullException>(() => new DynaBeeAutomationHandlerTypeGenerator(
+                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
+                new AutomationHandlerGenerationOptions(),
+                null!,
+                new DefaultAutomationHandlerTypeNamePolicy()));
+            Assert.Throws<ArgumentNullException>(() => new DynaBeeAutomationHandlerTypeGenerator(
+                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
+                new AutomationHandlerGenerationOptions(),
+                new AutomationHandlerBaseTypeResolver(),
+                null!));
+            Assert.Throws<ArgumentNullException>(() => CreateGenerator().Generate(null!));
+            Assert.Throws<ArgumentNullException>(() => new DynaBeeAutomationHandlerTypeGeneratorFactory().Create(null!));
+            Assert.NotNull(new DynaBeeAutomationHandlerTypeGeneratorFactory().Create(services));
+            Assert.Throws<ArgumentNullException>(() => new AutomationHandlerGenerationResult(null!));
+            Assert.Throws<ArgumentNullException>(() => new AutomationHandlerGenerationResult([]).Find(null!));
+            Assert.Throws<ArgumentNullException>(() => new AutomationHandlerServiceTypeResolver().Resolve(null!));
+            Assert.Throws<ArgumentNullException>(() => new DefaultAutomationHandlerTypeNamePolicy().CreateName(null!, 1));
+            Assert.Throws<ArgumentNullException>(() => new AutomationGeneratedHandler(null!, "Handler", typeof(ConfiguredCreateCustomerHandler)));
+            Assert.Throws<ArgumentException>(() => new AutomationGeneratedHandler(descriptor, " ", typeof(ConfiguredCreateCustomerHandler)));
+            Assert.Throws<ArgumentNullException>(() => new AutomationGeneratedHandler(descriptor, "Handler", null!));
+            Assert.Contains("constructor", Assert.Throws<InvalidOperationException>(() =>
+                CreateGenerator(new StubBaseTypeResolver(typeof(MissingServiceProviderConstructorBase))).Generate([descriptor])).Message);
+            Assert.Contains("GetFilterExpression", Assert.Throws<InvalidOperationException>(() =>
+                CreateGenerator(new StubBaseTypeResolver(typeof(MissingVirtualMethodBase))).Generate([descriptor])).Message);
+
+            var pagedDescriptor = new AutomationDescriptor(
+                AutomationOperationKind.GetPaged,
+                typeof(SearchCustomersQuery),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(PagedResponse<CustomerResponse>));
+
+            Assert.Contains("DefaultSorts", Assert.Throws<InvalidOperationException>(() =>
+                CreateGenerator(new StubBaseTypeResolver(typeof(MissingVirtualPropertyBase))).Generate([pagedDescriptor])).Message);
+        }
+
         public sealed class Customer : BaseEntity
         {
             public Customer Parent { get; set; }
@@ -326,6 +417,11 @@ namespace TurtlePath.Automations.Tests
         }
 
         public sealed class DeleteCustomerCommand : IRequest, TurtlePath.Models.Requests.IBaseRequest<CId>
+        {
+            public CId Id { get; set; }
+        }
+
+        public sealed class DeleteCustomerWithResponseCommand : IRequest<CustomerResponse>, TurtlePath.Models.Requests.IBaseRequest<CId>
         {
             public CId Id { get; set; }
         }
@@ -372,14 +468,18 @@ namespace TurtlePath.Automations.Tests
         }
 
         private static AutomationHandlerRegistration CreateRegistration()
-            => new(new DynaBeeAutomationHandlerTypeGenerator(
-                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
-                new AutomationHandlerGenerationOptions(),
-                new AutomationHandlerBaseTypeResolver(),
-                new DefaultAutomationHandlerTypeNamePolicy()),
+            => new(CreateGenerator(),
                 new AutomationHandlerServiceTypeResolver(),
                 new Options.AutomationQueryOptionsRegistration(),
                 new Options.AutomationCommandResponseOptionsRegistration());
+
+        private static DynaBeeAutomationHandlerTypeGenerator CreateGenerator(
+            IAutomationHandlerBaseTypeResolver baseTypeResolver = null)
+            => new(
+                new DynaBee.FluentApi.DependencyInjection.DynaBeeAssemblyBuilderFactory(),
+                new AutomationHandlerGenerationOptions(),
+                baseTypeResolver ?? new AutomationHandlerBaseTypeResolver(),
+                new DefaultAutomationHandlerTypeNamePolicy());
 
         private static System.Linq.Expressions.Expression<Func<Customer, object>> Expression(System.Linq.Expressions.Expression<Func<Customer, object>> expression)
             => expression;
@@ -431,6 +531,30 @@ namespace TurtlePath.Automations.Tests
 
                 return new AutomationHandlerGenerationResult(
                     [new AutomationGeneratedHandler(Descriptor, "ConfiguredCreateCustomerHandler", implementationType)]);
+            }
+        }
+
+        private sealed class StubBaseTypeResolver(Type baseType) : IAutomationHandlerBaseTypeResolver
+        {
+            public Type Resolve(AutomationDescriptor descriptor)
+                => baseType;
+        }
+
+        private sealed class MissingServiceProviderConstructorBase
+        {
+        }
+
+        private abstract class MissingVirtualMethodBase
+        {
+            protected MissingVirtualMethodBase(IServiceProvider serviceProvider)
+            {
+            }
+        }
+
+        private abstract class MissingVirtualPropertyBase
+        {
+            protected MissingVirtualPropertyBase(IServiceProvider serviceProvider)
+            {
             }
         }
 

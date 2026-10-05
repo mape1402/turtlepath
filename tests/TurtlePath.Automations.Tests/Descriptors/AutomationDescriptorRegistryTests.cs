@@ -103,6 +103,55 @@ namespace TurtlePath.Automations.Tests.Descriptors
             Assert.Throws<ArgumentException>(() => registry.Add(descriptor));
         }
 
+        [Fact]
+        public void Registry_and_conflict_exception_validate_arguments()
+        {
+            var registry = new AutomationDescriptorRegistry();
+            var descriptor = CreateCustomerCreateDescriptor();
+
+            registry.Add(descriptor);
+
+            Assert.Throws<ArgumentNullException>(() => new AutomationDescriptorRegistry(null));
+            Assert.Throws<ArgumentNullException>(() => registry.Add(null));
+            Assert.Throws<ArgumentNullException>(() => registry.Find(null, typeof(CustomerResponse)));
+            Assert.Throws<ArgumentNullException>(() => registry.Find(typeof(CreateCustomerCommand), null));
+            Assert.Null(registry.Find(typeof(GetCustomerByIdQuery), typeof(CustomerResponse)));
+            Assert.Throws<ArgumentNullException>(() => AutomationDescriptorValidator.Validate(null));
+            Assert.Throws<ArgumentNullException>(() => new AutomationDescriptorConflictException(null, descriptor));
+            Assert.Throws<ArgumentNullException>(() => new AutomationDescriptorConflictException(descriptor, null));
+            var conflict = new AutomationDescriptorConflictException(descriptor, CreateCustomerCreateDescriptor());
+
+            Assert.Same(descriptor, conflict.Current);
+            Assert.NotNull(conflict.Candidate);
+            Assert.False(descriptor.IsEquivalentTo(null));
+
+            var key = new AutomationDescriptorKey(typeof(CreateCustomerCommand), AutomationReturnMode.Response, typeof(CustomerResponse));
+
+            Assert.Equal(typeof(CreateCustomerCommand), key.RequestType);
+            Assert.Equal(AutomationReturnMode.Response, key.ReturnMode);
+            Assert.Equal(typeof(CustomerResponse), key.ResponseType);
+        }
+
+        [Fact]
+        public void Add_rejects_invalid_response_mode_combinations()
+        {
+            var registry = new AutomationDescriptorRegistry();
+
+            Assert.Throws<ArgumentException>(() => registry.Add(new AutomationDescriptor(
+                AutomationOperationKind.Create,
+                typeof(CreateCustomerCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response)));
+            Assert.Throws<ArgumentException>(() => registry.Add(new AutomationDescriptor(
+                AutomationOperationKind.Create,
+                typeof(CreateCustomerCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.None,
+                typeof(CustomerResponse))));
+        }
+
         private static AutomationDescriptor CreateCustomerCreateDescriptor()
             => new(
                 AutomationOperationKind.Create,
