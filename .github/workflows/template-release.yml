@@ -23,7 +23,9 @@ env:
   CHANGELOG_PATH: TEMPLATE_CHANGELOG.md
   CONFIGURATION: Release
   DOTNET_VERSION: 10.0.x
+  LOCAL_TURTLEPATH_PACKAGES: ./local-turtlepath-packages
   NUGET_OUTPUT: ./nupkgs
+  NUGET_RELEASE_CONFIG: ./NuGet.release.config
   NUGET_SOURCE: https://api.nuget.org/v3/index.json
   NUGET_USER: ${{ vars.NUGET_USER }}
   RELEASE_BRANCH_PREFIX: template-releases/
@@ -53,8 +55,42 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Pack local TurtlePath packages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="$(grep -ve '^[[:space:]]*$' .release | tr -d '[:space:]')"
+          VERSION="${TAG#v}"
+
+          mkdir -p "$LOCAL_TURTLEPATH_PACKAGES"
+
+          while IFS= read -r project; do
+            dotnet pack "$project" \
+              --configuration "$CONFIGURATION" \
+              --output "$LOCAL_TURTLEPATH_PACKAGES" \
+              /p:Version="$VERSION" \
+              /p:PackageVersion="$VERSION" \
+              /p:MinVerVersionOverride="$VERSION"
+          done < <(find src -name '*.csproj' | sort)
+
+      - name: Write release NuGet config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<configuration>' \
+            '  <packageSources>' \
+            "    <add key=\"turtlepath-local\" value=\"$LOCAL_TURTLEPATH_PACKAGES\" />" \
+            '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' \
+            '  </packageSources>' \
+            '</configuration>' \
+            > "$NUGET_RELEASE_CONFIG"
+
       - name: Restore generated template solution
-        run: dotnet restore "$TEMPLATE_SOLUTION"
+        run: dotnet restore "$TEMPLATE_SOLUTION" --configfile "$NUGET_RELEASE_CONFIG"
 
       - name: Build generated template solution
         run: dotnet build "$TEMPLATE_SOLUTION" --no-restore --configuration "$CONFIGURATION"
