@@ -3,6 +3,7 @@ namespace TurtlePath.Automations.Tests.Profiles
     using Pelican.Mediator;
     using TurtlePath.Automations.Descriptors;
     using TurtlePath.Automations.Profiles;
+    using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Domain.Identifier;
     using TurtlePath.Models.Requests;
@@ -105,6 +106,49 @@ namespace TurtlePath.Automations.Tests.Profiles
             Assert.Equal("customer.Parent", include.Body.ToString());
         }
 
+        [Fact]
+        public void Build_supports_all_mutation_and_query_builder_variants()
+        {
+            var descriptors = AutomationProfileDescriptorBuilder.Build(new VariantAutomationProfile());
+
+            Assert.Contains(descriptors, descriptor =>
+                descriptor.OperationKind == AutomationOperationKind.Create &&
+                descriptor.RequestType == typeof(CreateCustomerWithoutResponseCommand) &&
+                descriptor.ReturnMode == AutomationReturnMode.None);
+            Assert.Contains(descriptors, descriptor =>
+                descriptor.OperationKind == AutomationOperationKind.Update &&
+                descriptor.RequestType == typeof(UpdateCustomerWithoutResponseCommand) &&
+                descriptor.ReturnMode == AutomationReturnMode.None);
+            Assert.Contains(descriptors, descriptor =>
+                descriptor.OperationKind == AutomationOperationKind.Delete &&
+                descriptor.RequestType == typeof(DeleteCustomerWithResponseCommand) &&
+                descriptor.ResponseType == typeof(CustomerResponse));
+            Assert.Contains(descriptors, descriptor =>
+                descriptor.OperationKind == AutomationOperationKind.Patch &&
+                descriptor.RequestType == typeof(PatchCustomerCommand) &&
+                descriptor.ResponseType == typeof(CustomerResponse));
+            Assert.Contains(descriptors, descriptor =>
+                descriptor.OperationKind == AutomationOperationKind.Patch &&
+                descriptor.RequestType == typeof(PatchCustomerWithoutResponseCommand) &&
+                descriptor.ReturnMode == AutomationReturnMode.None);
+
+            var getOne = Assert.Single(descriptors, descriptor => descriptor.OperationKind == AutomationOperationKind.GetOne);
+            Assert.Equal(typeof(GetCustomerByNameQuery), getOne.RequestType);
+            Assert.NotNull(getOne.KeySelector);
+            Assert.Equal("-Name", getOne.DefaultSortProperty);
+            Assert.Equal("Customer not found.", getOne.NotFoundMessage);
+        }
+
+        [Fact]
+        public void Query_builder_validates_key_selector()
+        {
+            var builder = new QueryAutomationBuilder<GetCustomerByNameQuery, Customer, CId>();
+
+            var descriptors = Assert.Throws<ArgumentNullException>(() => builder.GetKeyFrom(null));
+
+            Assert.Equal("keySelector", descriptors.ParamName);
+        }
+
         private sealed class CustomerAutomationProfile : TurtlePathAutomationProfile
         {
             public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -162,6 +206,23 @@ namespace TurtlePath.Automations.Tests.Profiles
             }
         }
 
+        private sealed class VariantAutomationProfile : TurtlePathAutomationProfile
+        {
+            public override void Configure(ITurtlePathAutomationBuilder builder)
+            {
+                builder.For<Customer>()
+                    .ToCreate<CreateCustomerWithoutResponseCommand>()
+                    .ToUpdate<UpdateCustomerWithoutResponseCommand>()
+                    .ToDelete<DeleteCustomerWithResponseCommand, CustomerResponse>()
+                    .ToPatch<PatchCustomerCommand, CustomerResponse>()
+                    .ToPatch<PatchCustomerWithoutResponseCommand>()
+                    .ToGetOne<GetCustomerByNameQuery, CustomerResponse>(query => query
+                        .GetKeyFrom(request => request.Id)
+                        .DefaultSort("-Name")
+                        .NotFoundMessage("Customer not found."));
+            }
+        }
+
         private sealed class Customer : BaseEntity
         {
             public Customer Parent { get; set; }
@@ -186,6 +247,10 @@ namespace TurtlePath.Automations.Tests.Profiles
         {
         }
 
+        private sealed class CreateCustomerWithoutResponseCommand : IRequest
+        {
+        }
+
         private sealed class ImportCustomerCommand : IRequest<CustomerResponse>
         {
         }
@@ -195,13 +260,44 @@ namespace TurtlePath.Automations.Tests.Profiles
             public CId Id { get; set; }
         }
 
+        private sealed class UpdateCustomerWithoutResponseCommand : IBaseRequest<CId>, IRequest
+        {
+            public CId Id { get; set; }
+        }
+
         private sealed class DeleteCustomerCommand : IBaseRequest<CId>, IRequest
         {
             public CId Id { get; set; }
         }
 
+        private sealed class DeleteCustomerWithResponseCommand : IBaseRequest<CId>, IRequest<CustomerResponse>
+        {
+            public CId Id { get; set; }
+        }
+
+        private sealed class PatchCustomerCommand : IBaseRequest<CId>, IRequest<CustomerResponse>, IPatchAction<Customer>
+        {
+            public CId Id { get; set; }
+
+            public ValueTask PatchAsync(Customer entity, CancellationToken cancellationToken = default)
+                => ValueTask.CompletedTask;
+        }
+
+        private sealed class PatchCustomerWithoutResponseCommand : IBaseRequest<CId>, IRequest, IPatchAction<Customer>
+        {
+            public CId Id { get; set; }
+
+            public ValueTask PatchAsync(Customer entity, CancellationToken cancellationToken = default)
+                => ValueTask.CompletedTask;
+        }
+
         private sealed class GetCustomerByIdQuery : IRequest<CustomerResponse>
         {
+        }
+
+        private sealed class GetCustomerByNameQuery : IRequest<CustomerResponse>
+        {
+            public CId Id { get; set; }
         }
 
         private sealed class GetCustomersQuery : IRequest<IEnumerable<CustomerResponse>>

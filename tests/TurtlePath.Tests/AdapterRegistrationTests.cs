@@ -32,6 +32,7 @@ public class AdapterRegistrationTests
 
         Assert.IsType<TurtlePath.AutoMapper.AutoMapperAdapter>(adapter);
         Assert.Equal("Ada", result.Name);
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseAutoMapper());
     }
 
     [Fact]
@@ -85,6 +86,18 @@ public class AdapterRegistrationTests
             async () => await adapter.ValidateAsync(new ValidationModel()));
 
         Assert.Contains("Name:", exception.Errors.Single());
+    }
+
+    [Fact]
+    public async Task FluentValidation_adapter_validates_registration_and_missing_validator()
+    {
+        ITurtlePathBuilder builder = null;
+        using var provider = new ServiceCollection().BuildServiceProvider();
+        var adapter = new TurtlePath.FluentValidation.FluentValidationAdapter(provider);
+
+        Assert.Throws<ArgumentNullException>(() => builder.UseFluentValidation());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await adapter.ValidateAsync(new ValidationModel { Name = "Ada" }));
     }
 
     private sealed class SourceModel

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TurtlePath;
 using TurtlePath.Domain.Identifier;
 using TurtlePath.Hooks;
 
@@ -38,6 +39,8 @@ public class HookRegistrationTests
             hook => hook.BeforeValidationAsync(context));
 
         Assert.Equal(["first", "second"], calls);
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+            await runner.RunAsync<IBeforeValidationHook<SampleRequest, SampleEntity>>(null));
     }
 
     [Fact]
@@ -67,6 +70,35 @@ public class HookRegistrationTests
         Assert.Contains(hooks, hook => hook is SampleBeforeValidationHook);
     }
 
+    [Fact]
+    public void Registration_extensions_validate_arguments_and_support_cid_profiles()
+    {
+        IServiceCollection services = null;
+        var validServices = new ServiceCollection();
+        ITurtlePathBuilder builder = validServices.AddTurtlePath();
+
+        Assert.Throws<ArgumentNullException>(() => services.AddTurtlePath());
+        Assert.Throws<ArgumentNullException>(() => services.AddTurtlePath<Guid, string>(_ => { }));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseCId<Guid, string>(_ => { }));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseCIdProfile(new SampleCIdProfile()));
+        Assert.Throws<ArgumentNullException>(() => builder.UseCIdProfile(null));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseCIdProfiles(typeof(SampleCIdProfile).Assembly));
+        Assert.Same(builder, builder.UseCIdProfiles());
+        Assert.Same(builder, builder.UseCIdProfiles(null));
+        Assert.Throws<ArgumentNullException>(() => services.AddHandlerHook<SampleBeforeValidationHook>());
+        Assert.Throws<ArgumentNullException>(() => validServices.AddHandlerHook(null));
+        Assert.Throws<ArgumentException>(() => validServices.AddHandlerHook(typeof(AbstractHook)));
+        Assert.Throws<ArgumentException>(() => validServices.AddHandlerHook(typeof(IBeforeValidationHook<SampleRequest, SampleEntity>)));
+        Assert.Throws<ArgumentNullException>(() => services.AddHandlerHooksFromAssemblies(typeof(SampleBeforeValidationHook).Assembly));
+        Assert.Throws<ArgumentNullException>(() => validServices.AddHandlerHooksFromAssemblies(null));
+
+        new ServiceCollection()
+            .AddTurtlePath<Guid, string>(ConfigureCId, typeof(SampleBeforeValidationHook).Assembly)
+            .UseCIdProfile<SampleCIdProfile>()
+            .UseCIdProfile(new SampleCIdProfile())
+            .UseCIdProfiles(typeof(SampleCIdProfile).Assembly);
+    }
+
     private sealed class SampleRequest
     {
     }
@@ -79,6 +111,29 @@ public class HookRegistrationTests
     {
         public ValueTask BeforeValidationAsync(CommandHookContext<SampleRequest, SampleEntity> context, CancellationToken cancellationToken = default)
             => ValueTask.CompletedTask;
+    }
+
+    private abstract class AbstractHook : IBeforeValidationHook<SampleRequest, SampleEntity>
+    {
+        public ValueTask BeforeValidationAsync(CommandHookContext<SampleRequest, SampleEntity> context, CancellationToken cancellationToken = default)
+            => ValueTask.CompletedTask;
+    }
+
+    private sealed class SampleCIdProfile : ICIdProfile
+    {
+        public void Configure(CIdProfileBuilder builder)
+            => builder.UseCId<Guid, string>(ConfigureCId);
+    }
+
+    private static void ConfigureCId(CIdConfiguration<Guid, string> config)
+    {
+        config.DefaultFactory = () => CId.From(Guid.Parse("f8cb21f2-35d7-419b-9f58-90d1c82154f0"));
+        config.ConvertToDb = id => id.ToString();
+        config.ConvertFromDb = value => CId.Parse(value);
+        config.JsonConverter = value => CId.Parse(value);
+        config.NullableJsonConverter = value => string.IsNullOrWhiteSpace(value) ? null : CId.Parse(value);
+        config.ParseFunction = value => CId.From(Guid.Parse(value));
+        config.ToByteArrayFunction = value => value.ToByteArray();
     }
 
     private sealed class FirstOrderedBeforeValidationHook(List<string> calls) : IBeforeValidationHook<SampleRequest, SampleEntity>, IOrderedHook

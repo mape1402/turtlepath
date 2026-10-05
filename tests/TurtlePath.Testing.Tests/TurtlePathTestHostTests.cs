@@ -6,9 +6,11 @@ namespace TurtlePath.Testing.Tests
     using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
     using TurtlePath.Models.Responses;
+    using TurtlePath.Mapping;
     using TurtlePath.Persistence;
     using TurtlePath.Testing.Hooks;
     using TurtlePath.Testing.Persistence;
+    using TurtlePath.Validation;
 
     public class TurtlePathTestHostTests
     {
@@ -65,6 +67,31 @@ namespace TurtlePath.Testing.Tests
 
             Assert.Equal(2, response.Id);
             Assert.True(host.Store<Customer>().Contains(customer => customer.Name == "Grace"));
+        }
+
+        [Fact]
+        public async Task Host_sends_no_response_request_and_supports_sync_dispose()
+        {
+            var host = await TurtlePathTestHost
+                .Create()
+                .UsePelican(typeof(TurtlePathTestHostTests).Assembly)
+                .WithMap<CreateCustomerCommand, Customer>(request => new Customer
+                {
+                    Id = 5,
+                    Name = request.Name
+                })
+                .BuildAsync();
+
+            try
+            {
+                await host.SendAsync(new CreateCustomerCommand("No response"));
+
+                Assert.True(host.Store<Customer>().Contains(customer => customer.Name == "No response"));
+            }
+            finally
+            {
+                host.Dispose();
+            }
         }
 
         [Fact]
@@ -150,7 +177,73 @@ namespace TurtlePath.Testing.Tests
             Assert.Equal("Margaret", response.Name);
         }
 
+        [Fact]
+        public async Task Builder_registers_custom_services_and_validation_delegates()
+        {
+            var validated = false;
+
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .UseTurtlePath(null)
+                .UseInMemoryStorage()
+                .WithSingleton<ICustomService>(new CustomService("singleton"))
+                .WithTransient<ITransientService, TransientService>()
+                .WithScoped<IScopedService, ScopedService>()
+                .WithMap<CreateCustomerRequest, Customer>(request => new Customer
+                {
+                    Id = 55,
+                    Name = request.Name
+                })
+                .WithUpdateMap<CreateCustomerRequest, Customer>((request, customer) => customer.Name = request.Name)
+                .WithValidRequest<CreateAutomatedCustomerRequest>()
+                .WithValidator<CreateCustomerRequest>((request, _) =>
+                {
+                    validated = request.Name == "Validated";
+                    return ValueTask.CompletedTask;
+                })
+                .BuildAsync();
+
+            var mapper = host.Resolve<IMapperAdapter>();
+            var validator = host.Resolve<IValidatorAdapter>();
+            var customer = await mapper.MapAsync<CreateCustomerRequest, Customer>(new CreateCustomerRequest("Validated"));
+            await mapper.UpdateMapAsync(new CreateCustomerRequest("Updated"), customer);
+            await validator.ValidateAsync(new CreateCustomerRequest("Validated"));
+            await validator.ValidateAsync(new CreateAutomatedCustomerRequest("Ignored"));
+
+            Assert.Equal("singleton", host.Resolve<ICustomService>().Name);
+            Assert.NotSame(host.Resolve<ITransientService>(), host.Resolve<ITransientService>());
+            Assert.Same(host.Resolve<IScopedService>(), host.Resolve<IScopedService>());
+            Assert.Equal("Updated", customer.Name);
+            Assert.True(validated);
+        }
+
+        [Fact]
+        public async Task Builder_can_disable_default_storage()
+        {
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .WithoutInMemoryStorage()
+                .BuildAsync();
+
+            Assert.Null(host.Services.GetService<InMemoryTurtlePathStorage>());
+        }
+
+        [Fact]
+        public void Builder_validates_required_delegates()
+        {
+            var builder = TurtlePathTestHost.Create();
+
+            Assert.Throws<ArgumentNullException>(() => builder.UseApplicationServices(null));
+            Assert.Throws<ArgumentNullException>(() => builder.ConfigureServices(null));
+            Assert.Throws<ArgumentNullException>(() => TurtlePathTestHost.CreateFromServices(null));
+            Assert.Throws<ArgumentNullException>(() => builder.WithMap<CreateCustomerRequest, Customer>(null));
+            Assert.Throws<ArgumentNullException>(() => builder.WithUpdateMap<CreateCustomerRequest, Customer>(null));
+            Assert.Throws<ArgumentNullException>(() => builder.WithValidator<CreateCustomerRequest>(null));
+        }
+
         public sealed record CreateCustomerRequest(string Name) : IRequest<CustomerResponse>;
+
+        public sealed record CreateCustomerCommand(string Name) : IRequest;
 
         public sealed record CreateAutomatedCustomerRequest(string Name) : IRequest<CustomerResponse>;
 
@@ -176,6 +269,14 @@ namespace TurtlePath.Testing.Tests
             }
         }
 
+        public sealed class CreateCustomerNoResponseCommandHandler
+            : GenericCreateCommandHandler<CreateCustomerCommand, Customer, int>
+        {
+            public CreateCustomerNoResponseCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+            {
+            }
+        }
+
         private sealed class CustomerAutomationProfile : TurtlePathAutomationProfile
         {
             public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -184,6 +285,32 @@ namespace TurtlePath.Testing.Tests
                     .For<Customer, int>()
                     .ToCreate<CreateAutomatedCustomerRequest, CustomerResponse>();
             }
+        }
+
+        private interface ICustomService
+        {
+            string Name { get; }
+        }
+
+        private sealed class CustomService(string name) : ICustomService
+        {
+            public string Name { get; } = name;
+        }
+
+        private interface ITransientService
+        {
+        }
+
+        private sealed class TransientService : ITransientService
+        {
+        }
+
+        private interface IScopedService
+        {
+        }
+
+        private sealed class ScopedService : IScopedService
+        {
         }
     }
 }

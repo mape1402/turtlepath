@@ -1,5 +1,6 @@
 namespace TurtlePath.Testing.Tests
 {
+    using Microsoft.Extensions.DependencyInjection;
     using Pelican.Mediator;
     using TurtlePath.Commands;
     using TurtlePath.Domain.Contracts;
@@ -8,6 +9,7 @@ namespace TurtlePath.Testing.Tests
     using TurtlePath.Models.Requests;
     using TurtlePath.Models.Responses;
     using TurtlePath.Queries;
+    using TurtlePath.Testing.Hooks;
 
     public sealed class TurtlePathTestingScenarioTests
     {
@@ -17,6 +19,7 @@ namespace TurtlePath.Testing.Tests
             await using var host = await TurtlePathTestHost
                 .Create()
                 .UsePelican(typeof(TurtlePathTestingScenarioTests).Assembly)
+                .TraceHooks()
                 .WithSeed(
                     new Product { Id = 1, Name = "One" },
                     new Product { Id = 2, Name = "Two" },
@@ -30,13 +33,27 @@ namespace TurtlePath.Testing.Tests
                 .BuildAsync();
 
             var updated = await host.SendAsync(new UpdateProductRequest { Id = 2, Name = "Updated" });
+            var patched = await host.SendAsync(new PatchProductRequest { Id = 3, Name = "Patched" });
             var page = await host.SendAsync(new GetProductsPageQuery(new PagedSettings { PageNumber = 1, PageSize = 2 }));
             var deleted = await host.SendAsync(new DeleteProductRequest { Id = 1 });
 
             Assert.Equal("Updated", updated.Name);
+            Assert.Equal("Patched", patched.Name);
             Assert.Equal(2, page.Results.Count());
             Assert.Equal("One", deleted.Name);
             Assert.False(host.Store<Product>().Contains(product => product.Id == 1));
+            Assert.Contains(host.Resolve<HookTrace>().Entries, entry =>
+                entry.Stage == "BeforeQuery" &&
+                entry.RequestType == typeof(GetProductsPageQuery) &&
+                entry.ResponseType == typeof(PagedResponse<ProductResponse>));
+            Assert.Contains(host.Resolve<HookTrace>().Entries, entry =>
+                entry.Stage == "AfterQuery" &&
+                entry.Response is PagedResponse<ProductResponse>);
+            Assert.Contains(host.Resolve<HookTrace>().Entries, entry =>
+                entry.Stage == "BeforePatch" &&
+                entry.Request is PatchProductRequest &&
+                entry.Entity is Product);
+            Assert.Contains(host.Resolve<HookTrace>().Entries, entry => entry.Stage == "AfterPatch");
         }
 
         [Fact]
@@ -74,6 +91,21 @@ namespace TurtlePath.Testing.Tests
 
             Assert.True(result.Succeeded);
             Assert.Equal(1, CountingJob.Executions);
+        }
+
+        [Fact]
+        public async Task Host_registers_cron_jobs_for_testing()
+        {
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .UseExceptionHandling()
+                .WithCronJob<CountingJob>(options => options.EveryHours(1), "counting-cron")
+                .BuildAsync();
+
+            var definition = Assert.Single(host.Services.GetServices<TurtlePathCronJobDefinition>());
+
+            Assert.Equal("counting-cron", definition.Name);
+            Assert.Equal(TimeSpan.FromHours(1), definition.Options.Interval);
         }
 
         [Fact]
@@ -121,6 +153,19 @@ namespace TurtlePath.Testing.Tests
             public int Id { get; set; }
         }
 
+        public sealed class PatchProductRequest : IBaseRequest<int>, IRequest<ProductResponse>, IPatchAction<Product>
+        {
+            public int Id { get; set; }
+
+            public string Name { get; set; }
+
+            public ValueTask PatchAsync(Product entity, CancellationToken cancellationToken)
+            {
+                entity.Name = Name;
+                return ValueTask.CompletedTask;
+            }
+        }
+
         public sealed record CreateProductNoResponseRequest(int Id, string Name) : IRequest;
 
         public sealed class GetProductsPageQuery : GenericGetPagedInfoQuery<Product, ProductResponse, int>
@@ -142,6 +187,14 @@ namespace TurtlePath.Testing.Tests
             : GenericDeleteCommandHandler<DeleteProductRequest, ProductResponse, Product, int>
         {
             public DeleteProductCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
+            {
+            }
+        }
+
+        public sealed class PatchProductCommandHandler
+            : GenericPatchCommandHandler<PatchProductRequest, ProductResponse, Product, int>
+        {
+            public PatchProductCommandHandler(IServiceProvider serviceProvider) : base(serviceProvider)
             {
             }
         }

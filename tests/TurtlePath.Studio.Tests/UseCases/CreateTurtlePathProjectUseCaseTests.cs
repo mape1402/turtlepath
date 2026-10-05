@@ -23,10 +23,15 @@ public class CreateTurtlePathProjectUseCaseTests
             TestAfterCreation: true));
 
         Assert.True(result.Succeeded);
+        Assert.Equal("Billing", result.Creation.ProjectName);
+        Assert.Equal("C:\\work\\Billing", result.Creation.ProjectDirectory);
+        Assert.Equal(ProjectHostMode.ApiConsumer, result.Creation.HostMode);
+        Assert.Equal("dotnet ", result.Creation.Generation.Command.DisplayText);
         Assert.NotNull(validator.Request);
         Assert.True(validator.Request.Restore);
         Assert.False(validator.Request.Build);
         Assert.True(validator.Request.Test);
+        Assert.Equal("C:\\work\\Billing", result.Validation.ProjectDirectory);
     }
 
     private sealed class StubProjectGenerator : IProjectGenerator

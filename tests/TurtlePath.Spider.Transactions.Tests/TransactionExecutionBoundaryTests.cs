@@ -71,6 +71,43 @@ public sealed class TransactionExecutionBoundaryTests
     }
 
     [Fact]
+    public async Task FaultAsync_and_CancelAsync_dispose_open_transaction_scope()
+    {
+        var options = Options.Create(new TransactionBoundaryOptions
+        {
+            IsolationLevel = IsolationLevel.ReadCommitted,
+            TimeoutSeconds = 30
+        });
+        var boundary = new TransactionExecutionBoundary(options, new TransactionBoundaryRequestFilter(options));
+        var faultContext = CreateContext(typeof(SampleCommand));
+        var cancelContext = CreateContext(typeof(SampleCommand));
+
+        await boundary.BeginAsync(faultContext, CancellationToken.None);
+        Assert.NotNull(Transaction.Current);
+        await boundary.FaultAsync(faultContext, new InvalidOperationException("boom"), CancellationToken.None);
+        Assert.Null(Transaction.Current);
+
+        await boundary.BeginAsync(cancelContext, CancellationToken.None);
+        Assert.NotNull(Transaction.Current);
+        await boundary.CancelAsync(cancelContext, CancellationToken.None);
+        Assert.Null(Transaction.Current);
+    }
+
+    [Fact]
+    public async Task Boundary_handles_missing_scope_and_validates_filter()
+    {
+        var options = Options.Create(new TransactionBoundaryOptions());
+        var boundary = new TransactionExecutionBoundary(null, new NeverOpenFilter());
+        var context = CreateContext(typeof(SampleCommand));
+
+        Assert.Throws<ArgumentNullException>(() => new TransactionExecutionBoundary(options, null));
+        await boundary.BeginAsync(context, CancellationToken.None);
+        await boundary.CompleteAsync(context, CancellationToken.None);
+        await boundary.FaultAsync(context, new InvalidOperationException(), CancellationToken.None);
+        await boundary.CancelAsync(context, CancellationToken.None);
+    }
+
+    [Fact]
     public void RequestFilter_discovers_and_caches_boundary_decisions()
     {
         var options = Options.Create(new TransactionBoundaryOptions
@@ -86,6 +123,28 @@ public sealed class TransactionExecutionBoundaryTests
         Assert.False(filter.ShouldOpenTransaction(typeof(SampleQuery)));
         Assert.False(filter.ShouldOpenTransaction(typeof(SampleSkippedCommand)));
         Assert.False(filter.ShouldOpenTransaction(typeof(SampleExcludedCommand)));
+    }
+
+    [Fact]
+    public void RequestFilter_handles_empty_disabled_and_partially_loadable_inputs()
+    {
+        var disabled = new TransactionBoundaryRequestFilter(Options.Create(new TransactionBoundaryOptions
+        {
+            Enabled = false
+        }));
+        var includeQueries = new TransactionBoundaryRequestFilter(Options.Create(new TransactionBoundaryOptions
+        {
+            IncludeQueries = true
+        }));
+
+        disabled.Discover();
+        disabled.Discover(null);
+        includeQueries.Discover(new PartiallyLoadableAssembly());
+
+        Assert.False(disabled.ShouldOpenTransaction(typeof(SampleCommand)));
+        Assert.False(includeQueries.ShouldOpenTransaction(null));
+        Assert.True(includeQueries.ShouldOpenTransaction(typeof(SampleQuery)));
+        Assert.True(includeQueries.ShouldOpenTransaction(typeof(SampleCommand)));
     }
 
     [Fact]
@@ -126,6 +185,21 @@ public sealed class TransactionExecutionBoundaryTests
 
     private sealed class SampleExcludedCommand
     {
+    }
+
+    private sealed class PartiallyLoadableAssembly : System.Reflection.Assembly
+    {
+        public override Type[] GetTypes()
+            => throw new System.Reflection.ReflectionTypeLoadException([typeof(SampleCommand), null], []);
+    }
+
+    private sealed class NeverOpenFilter : ITransactionBoundaryRequestFilter
+    {
+        public void Discover(params System.Reflection.Assembly[] assemblies)
+        {
+        }
+
+        public bool ShouldOpenTransaction(Type requestType) => false;
     }
 
     private sealed class ThrowingTestProfile : ITransactionBoundaryProfile

@@ -4,6 +4,7 @@ namespace TurtlePath.Testing.EventSourcing.Tests
     using Krackend.EventSourcing.Stores;
     using Krackend.EventSourcing.Streams;
     using Microsoft.Extensions.DependencyInjection;
+    using System.Reflection;
     using TurtlePath.EventSourcing;
     using TurtlePath.Hooks;
     using TurtlePath.Mapping;
@@ -39,6 +40,27 @@ namespace TurtlePath.Testing.EventSourcing.Tests
             Assert.Single(events);
             Assert.Equal("customer-created", events.Single().EventType);
             Assert.True(await host.StreamContainsEventAsync("customers", "customer-001", "customer-created"));
+        }
+
+        [Fact]
+        public async Task Event_sourcing_assertions_validate_host_and_project_missing_values()
+        {
+            TurtlePathTestHost host = null;
+            var getValue = typeof(TurtlePathEventSourcingTestingExtensions)
+                .GetMethod("GetValue", BindingFlags.Static | BindingFlags.NonPublic)!
+                .MakeGenericMethod(typeof(string));
+            var projected = new EventSourcingTestEvent("type", 3, "{}", new Dictionary<string, object>());
+
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                host.ReadEventStreamAsync("stream", "id"));
+
+            Assert.Equal("type", projected.EventType);
+            Assert.Equal(3, projected.StreamVersion);
+            Assert.Equal("{}", projected.Payload);
+            Assert.Empty(projected.Metadata);
+            Assert.Null(getValue.Invoke(null, [null, "Missing"]));
+            Assert.Null(getValue.Invoke(null, [new { EventType = 5 }, "EventType"]));
+            Assert.Null(getValue.Invoke(null, [new { EventType = "event" }, "Missing"]));
         }
 
         [EventStream("customers")]

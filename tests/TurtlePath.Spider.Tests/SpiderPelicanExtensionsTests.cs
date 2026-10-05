@@ -8,6 +8,25 @@ namespace TurtlePath.Spider.Tests;
 public sealed class SpiderPelicanExtensionsTests
 {
     [Fact]
+    public async Task Extensions_validate_required_arguments()
+    {
+        Assert.Throws<ArgumentNullException>(() => ((ISpider)null).AsMediator());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => ((ISpider)null).DefaultSend<PingRequest, PingResponse>(new PingRequest("alive")));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => ((ISpider)null).DefaultSend(new TrackPingRequest("tracked")));
+
+        var services = new ServiceCollection();
+
+        services.AddPelican(typeof(SpiderPelicanExtensionsTests).Assembly);
+        services.AddSpider();
+
+        using var provider = services.BuildServiceProvider();
+        var spider = provider.GetRequiredService<ISpider>();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => spider.DefaultSend<PingRequest, PingResponse>(null));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => spider.DefaultSend<TrackPingRequest>(null));
+    }
+
+    [Fact]
     public async Task DefaultSend_dispatches_response_request_through_pelican()
     {
         var services = new ServiceCollection();

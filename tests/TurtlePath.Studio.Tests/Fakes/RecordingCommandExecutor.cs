@@ -21,6 +21,19 @@ internal sealed class RecordingCommandExecutor : ICommandExecutor
             lines));
     }
 
+    public void EnqueueFailure(params string[] errors)
+    {
+        var lines = errors
+            .Select(text => new CommandOutputLine(CommandOutputKind.StandardError, text, DateTimeOffset.Now))
+            .ToArray();
+
+        results.Enqueue(new CommandExecutionResult(
+            new CommandSpec("fake", [], global::System.Environment.CurrentDirectory),
+            1,
+            TimeSpan.Zero,
+            lines));
+    }
+
     public Task<CommandExecutionResult> ExecuteAsync(
         CommandSpec command,
         CancellationToken cancellationToken = default)

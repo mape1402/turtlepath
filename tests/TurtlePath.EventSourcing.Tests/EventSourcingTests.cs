@@ -2,6 +2,7 @@ using Krackend.EventSourcing.Contracts;
 using Krackend.EventSourcing.Stores;
 using Krackend.EventSourcing.Streams;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 using TurtlePath.EventSourcing;
 using TurtlePath.Hooks;
 using TurtlePath.Mapping;
@@ -98,6 +99,100 @@ public class EventSourcingTests
     }
 
     [Fact]
+    public void EventSourcing_registration_helpers_validate_arguments_and_are_idempotent()
+    {
+        var services = new ServiceCollection();
+        var builder = services.AddTurtlePath();
+
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseEventSourcing());
+        Assert.Throws<ArgumentNullException>(() => builder.UseEventSourcing(null, _ => { }));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseEventSourcing(_ => { }));
+        Assert.Throws<ArgumentNullException>(() => builder.UseEventSourcingProfile((IEventSourcingProfile)null));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseEventSourcingProfile(new CustomerEventSourcingProfile()));
+        Assert.Throws<ArgumentNullException>(() => ((ITurtlePathBuilder)null).UseEventSourcingProfiles(typeof(CustomerEventSourcingProfile).Assembly));
+
+        builder.UseEventSourcing();
+        builder.UseEventSourcing(options => { });
+        builder.UseEventSourcingProfiles();
+        builder.UseEventSourcingProfiles(null, typeof(CustomerEventSourcingProfile).Assembly);
+        Assert.Throws<ArgumentException>(() => builder.UseEventSourcing(mappings =>
+            mappings.For<CreateCustomerRequest, Customer>().UseStream(" ", _ => "id")));
+        Assert.Throws<ArgumentNullException>(() => builder.UseEventSourcing(mappings =>
+            mappings.For<CreateCustomerRequest, Customer>().UseStream("customers", null)));
+        Assert.Throws<ArgumentNullException>(() => builder.UseEventSourcing(mappings =>
+            mappings.For<CreateCustomerRequest, Customer>().ToEvent<CustomerEventSource, CustomerCreated>(null)));
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetService<Krackend.EventSourcing.Stores.IEventStore>());
+        Assert.Single(provider.GetServices<IAfterSaveHook<CreateCustomerRequest, Customer>>());
+    }
+
+    [Fact]
+    public void EventSourcing_profile_generic_and_inline_mapping_register_hooks()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePath()
+            .UseEventSourcingProfile<CustomerEventSourcingProfile>(options => { })
+            .UseEventSourcing(builder =>
+            {
+                builder.For<EntityStreamCreateCustomerRequest, Customer>()
+                    .UseStream("inline-customers", context => context.Entity.Id)
+                    .ToEvent<CustomerEventSource, CustomerCreated>(
+                        context => new CustomerEventSource(context.Entity.Id, context.Entity.Name));
+            });
+        services.AddSingleton<IMapperAdapter, TestMapperAdapter>();
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Single(provider.GetServices<IAfterSaveHook<CreateCustomerRequest, Customer>>());
+        Assert.Single(provider.GetServices<IAfterSaveHook<EntityStreamCreateCustomerRequest, Customer>>());
+    }
+
+    [Fact]
+    public void EventSourcing_registration_validates_mapping_arguments()
+    {
+        var options = new EventSourcingEventOptions<CreateCustomerRequest, Customer>();
+        var registrationType = typeof(IEventSourcingProfile)
+            .Assembly
+            .GetType("TurtlePath.EventSourcing.Internal.EventSourcingRegistration`2")
+            .MakeGenericType(typeof(CreateCustomerRequest), typeof(Customer));
+        var createEvent = registrationType
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Create" && method.GetGenericArguments().Length == 1)
+            .MakeGenericMethod(typeof(CustomerCreated));
+        var createSourceEvent = registrationType
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Single(method => method.Name == "Create" && method.GetGenericArguments().Length == 2)
+            .MakeGenericMethod(typeof(CustomerEventSource), typeof(CustomerCreated));
+
+        var registration = createEvent.Invoke(null, [options]);
+
+        Assert.Equal(typeof(CustomerCreated), registrationType.GetProperty("EventType").GetValue(registration));
+        AssertInvocationThrows<ArgumentNullException>(() => createEvent.Invoke(null, [null]));
+        AssertInvocationThrows<ArgumentNullException>(() => createSourceEvent.Invoke(null, [null, options]));
+        AssertInvocationThrows<ArgumentNullException>(() => createSourceEvent.Invoke(
+            null,
+            [(Func<CommandHookContext<CreateCustomerRequest, Customer>, CustomerEventSource>)(_ => new CustomerEventSource("id", "name")), null]));
+
+        var registryType = typeof(IEventSourcingProfile)
+            .Assembly
+            .GetType("TurtlePath.EventSourcing.Internal.EventSourcingRegistrationRegistry");
+        var registry = Activator.CreateInstance(registryType);
+
+        AssertInvocationThrows<ArgumentNullException>(() =>
+            registryType.GetMethod("SetStream")!
+                .MakeGenericMethod(typeof(CreateCustomerRequest), typeof(Customer))
+                .Invoke(registry, [null]));
+        AssertInvocationThrows<ArgumentNullException>(() =>
+            registryType.GetMethod("Add")!
+                .MakeGenericMethod(typeof(CreateCustomerRequest), typeof(Customer))
+                .Invoke(registry, [null]));
+    }
+
+    [Fact]
     public async Task EventSourcingProfile_can_resolve_stream_from_entity_and_map_from_custom_source()
     {
         var services = new ServiceCollection();
@@ -126,6 +221,96 @@ public class EventSourcingTests
 
         Assert.Single(envelopes);
         Assert.Contains(envelopes, envelope => envelope.EventType == "customer-created");
+    }
+
+    [Fact]
+    public async Task EventSourcingAfterSaveHook_validates_context_and_entity()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePath()
+            .UseEventSourcingProfile<CustomerEventSourcingProfile>();
+        services.AddSingleton<IMapperAdapter, TestMapperAdapter>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var hook = scope.ServiceProvider
+            .GetRequiredService<IAfterSaveHook<CreateCustomerRequest, Customer>>();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+            await hook.AfterSaveAsync(null));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await hook.AfterSaveAsync(new CommandHookContext<CreateCustomerRequest, Customer>(
+                new CreateCustomerRequest("missing-entity", "Missing"))));
+    }
+
+    [Fact]
+    public async Task EventSourcingAfterSaveHook_returns_when_no_registrations_are_configured()
+    {
+        var services = new ServiceCollection();
+
+        services.AddTurtlePath().UseEventSourcing();
+        services.AddSingleton<IMapperAdapter, TestMapperAdapter>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var registryType = typeof(IEventSourcingProfile)
+            .Assembly
+            .GetType("TurtlePath.EventSourcing.Internal.EventSourcingRegistrationRegistry");
+        var hookType = typeof(IEventSourcingProfile)
+            .Assembly
+            .GetType("TurtlePath.EventSourcing.EventSourcingAfterSaveHook`2")
+            .MakeGenericType(typeof(CreateCustomerRequest), typeof(Customer));
+        var hook = (IAfterSaveHook<CreateCustomerRequest, Customer>)Activator.CreateInstance(
+            hookType,
+            scope.ServiceProvider,
+            scope.ServiceProvider.GetRequiredService<ICommandStreamResolver<CreateCustomerRequest>>(),
+            scope.ServiceProvider.GetRequiredService<IEventStore>(),
+            scope.ServiceProvider.GetRequiredService(registryType),
+            Array.Empty<IEventSourcingAppendObserver>(),
+            Array.Empty<IEventSourcingAppendObserver<CreateCustomerRequest, Customer>>());
+
+        await hook.AfterSaveAsync(new CommandHookContext<CreateCustomerRequest, Customer>(
+            new CreateCustomerRequest("no-registration", "No registration"))
+        {
+            Entity = new Customer("no-registration", "No registration")
+        });
+    }
+
+    [Fact]
+    public async Task EventSourcingAfterSaveHook_skips_null_mapped_payloads()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddTurtlePath()
+            .UseEventSourcingProfile<NullPayloadEventSourcingProfile>();
+        services.AddSingleton<IMapperAdapter, TestMapperAdapter>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var hook = scope.ServiceProvider
+            .GetRequiredService<IAfterSaveHook<CreateCustomerRequest, Customer>>();
+
+        await hook.AfterSaveAsync(new CommandHookContext<CreateCustomerRequest, Customer>(
+            new CreateCustomerRequest("null-payload", "Null payload"))
+        {
+            Entity = new Customer("null-payload", "Null payload")
+        });
+
+        var eventStore = scope.ServiceProvider.GetRequiredService<IEventStore>();
+        var envelopes = await eventStore.ReadStreamAsync("customers", "null-payload", 1, 10);
+
+        Assert.Empty(envelopes);
+    }
+
+    private static void AssertInvocationThrows<TException>(Action action)
+        where TException : Exception
+    {
+        var exception = Assert.Throws<TargetInvocationException>(action);
+
+        Assert.IsType<TException>(exception.InnerException);
     }
 
     [Fact]
@@ -206,6 +391,9 @@ public class EventSourcingTests
     [EventSchema("customer-audited")]
     private sealed record CustomerAudited(string Id);
 
+    [EventSchema("customer-null")]
+    private sealed record NullMappedEvent(string Id);
+
     private sealed record CustomerEventSource(string Id, string Name);
 
     private sealed class CustomerEventSourcingProfile : IEventSourcingProfile
@@ -249,6 +437,15 @@ public class EventSourcingTests
         }
     }
 
+    private sealed class NullPayloadEventSourcingProfile : IEventSourcingProfile
+    {
+        public void Configure(IEventSourcingProfileBuilder builder)
+        {
+            builder.For<CreateCustomerRequest, Customer>()
+                .ToEvent<NullMappedEvent>();
+        }
+    }
+
     private sealed class RecordingAppendObserver :
         IEventSourcingAppendObserver,
         IEventSourcingAppendObserver<CreateCustomerRequest, Customer>
@@ -284,6 +481,9 @@ public class EventSourcingTests
         {
             if (source is EventSourcingMapContext<CreateCustomerRequest, Customer> context)
             {
+                if (typeof(TDestination) == typeof(NullMappedEvent))
+                    return ValueTask.FromResult<TDestination>(null);
+
                 object mapped = typeof(TDestination) == typeof(CustomerCreated)
                     ? new CustomerCreated(context.Entity.Id, context.Entity.Name)
                     : new CustomerAudited(context.Entity.Id);

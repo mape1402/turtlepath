@@ -19,8 +19,10 @@ namespace TurtlePath.Testing.Integration.Tests
                 .Create()
                 .UsePelicanTesting()
                 .UseOctoMapTesting()
+                .UseOctoMapTesting(_ => { })
                 .UseCrabalidatorTesting()
                 .UsePigeonTesting()
+                .UseSpiderTesting(typeof(TurtlePathTestingIntegrationTests).Assembly)
                 .UseDynaBeeTesting()
                 .UseKrackendTesting()
                 .UseDataScorpioTesting(profiles => profiles.AddProfile<CustomerQueryProfile>())
@@ -33,6 +35,35 @@ namespace TurtlePath.Testing.Integration.Tests
             Assert.NotNull(host.Resolve<IEventSourcingTestingAdapter>());
             Assert.NotNull(host.Resolve<IEventSourcingTestEventStore>());
             Assert.NotNull(host.Resolve<IDataScorpioTesting<Customer>>());
+        }
+
+        [Fact]
+        public async Task Integration_extensions_register_sqlite_datascorpio_testing()
+        {
+            await using var host = await TurtlePathTestHost
+                .Create()
+                .UseDataScorpioSqliteTesting(profiles => profiles.AddProfile<CustomerQueryProfile>())
+                .BuildAsync();
+
+            Assert.NotNull(host.Resolve<IDataScorpioTesting<Customer>>());
+        }
+
+        [Fact]
+        public void Integration_extensions_validate_builder_arguments()
+        {
+            TurtlePathTestHostBuilder builder = null;
+
+            Assert.Throws<ArgumentNullException>(() => builder.UsePelicanTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseOctoMapTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseOctoMapTesting(_ => { }));
+            Assert.Throws<ArgumentNullException>(() => builder.UseCrabalidatorTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UsePigeonTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseSpiderTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseDynaBeeTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseKrackendTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseKrackendEventSourcingTesting());
+            Assert.Throws<ArgumentNullException>(() => builder.UseDataScorpioTesting(_ => { }));
+            Assert.Throws<ArgumentNullException>(() => builder.UseDataScorpioSqliteTesting(_ => { }));
         }
 
         private sealed class CustomerQueryProfile : QueryProfile<Customer>
