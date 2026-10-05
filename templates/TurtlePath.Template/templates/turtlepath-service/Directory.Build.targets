@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
-    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.6.3</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.9.0</TurtlePathVersion>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -12,7 +12,8 @@
     <PackageReference Update="Pigeon.Messaging.Azure.ServiceBus" Version="4.0.0" />
     <PackageReference Update="Pigeon.Messaging.Outbox.EntityFrameworkCore" Version="4.0.0" />
     <PackageReference Update="Krackend.EventSourcing.EntityFrameworkCore" Version="1.2.1" />
-    <PackageReference Update="Spider.Pipelines" Version="2.1.0" />
+    <PackageReference Update="Spider.Pipelines" Version="2.2.1" />
+    <PackageReference Update="Spider.Pipelines.Web" Version="2.2.1" />
     <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
