@@ -90,7 +90,7 @@ La configuracion de Outbox se puede ajustar desde `Pigeon:Outbox`. El template u
 
 ### Controlar throughput y concurrencia de consumers
 
-Pigeon 4.0.0 permite limitar la ejecucion paralela de los consumers de Heroes:
+Pigeon 4.0.2 permite limitar la ejecucion paralela de los consumers de Heroes:
 
 ```csharp
 services.AddPigeon(configuration, builder =>

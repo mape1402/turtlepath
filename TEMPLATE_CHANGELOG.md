@@ -15,6 +15,7 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 ### Changed
 
 - Updated generated Spider.Pipelines references to 2.2.1.
+- Updated generated dependency versions, including Pigeon 4.0.2, Krackend.EventSourcing.EntityFrameworkCore 4.0.3, Scalar.AspNetCore 2.17.13, Microsoft.Extensions 10.0.12, EF Core 10.0.12, and current test tooling.
 - Updated the generated TurtlePath package fallback to `1.9.0`.
 
 ## [template-v1.8.0] - 2026-09-29

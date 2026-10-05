@@ -48,7 +48,7 @@ Transaction boundaries are registered through `TurtlePath.Spider.Transactions` u
 
 API/consumer services expose Spider architecture docs and runtime traces at `/_spider` in Development, including TurtlePath base command flows, concrete automation operations, and the transaction boundary.
 
-The optional Pigeon integration uses Pigeon 4.0.0. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
+The optional Pigeon integration uses Pigeon 4.0.2. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
 
 The optional EventSourcing integration supports post-append observers so services can capture newly generated Krackend `EventEnvelope` metadata, such as `EventId`, before publishing follow-up messages.
 

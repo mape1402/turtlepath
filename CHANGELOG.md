@@ -16,6 +16,7 @@ Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath 
 ### Changed
 
 - Updated `TurtlePath`, `TurtlePath.Spider`, and `TurtlePath.Spider.Transactions` to Spider.Pipelines 2.2.1.
+- Updated runtime and testing dependencies, including Krackend.EventSourcing 4.0.3, Pelican.Mediator 2.0.0, DynaBee 1.4.0, OctoMap 1.1.1, Crabalidator 1.0.4, DataScorpio 1.0.1, Microsoft.Extensions 10.0.12, EF Core 9.0.20 for `net9.0` library compatibility, and current test tooling.
 - Added descriptive metadata to the TurtlePath.Spider Pelican dispatch bridge.
 
 ## [v1.8.0] - 2026-09-29

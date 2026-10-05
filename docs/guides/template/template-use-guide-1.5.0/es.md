@@ -1813,7 +1813,7 @@ services.AddPigeon(configuration, builder =>
 
 ### Controlar throughput y concurrencia de consumers
 
-Pigeon 4.0.0 permite proteger dependencias externas configurando la ejecucion de los consumers. `MaxConcurrency` es el maximo de mensajes que Pigeon puede despachar a los handlers al mismo tiempo. `QueueCapacity` es la cantidad de mensajes que pueden esperar en la cola interna mientras los handlers estan ocupados:
+Pigeon 4.0.2 permite proteger dependencias externas configurando la ejecucion de los consumers. `MaxConcurrency` es el maximo de mensajes que Pigeon puede despachar a los handlers al mismo tiempo. `QueueCapacity` es la cantidad de mensajes que pueden esperar en la cola interna mientras los handlers estan ocupados:
 
 ```csharp
 services.AddPigeon(configuration, builder =>

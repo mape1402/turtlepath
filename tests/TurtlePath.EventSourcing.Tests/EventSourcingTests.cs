@@ -172,7 +172,7 @@ public class EventSourcingTests
         Assert.Single(firstTypedContext.Payloads);
         Assert.IsType<CustomerCreated>(firstTypedContext.Payloads.Single());
         Assert.Single(firstTypedContext.Envelopes);
-        Assert.NotEqual(Guid.Empty, firstTypedContext.Envelopes.Single().EventId);
+        Assert.False(string.IsNullOrWhiteSpace(firstTypedContext.Envelopes.Single().EventId));
         Assert.Equal("customer-created", firstTypedContext.Envelopes.Single().EventType);
         Assert.Equal(1, firstTypedContext.Envelopes.Single().StreamVersion);
 

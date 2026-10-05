@@ -11,6 +11,7 @@
 ### Changed
 
 - Updated generated Spider.Pipelines references to 2.2.1.
+- Updated generated Heroes dependency versions, including Pigeon 4.0.2, Krackend.EventSourcing.EntityFrameworkCore 4.0.3, Scalar.AspNetCore 2.17.13, Microsoft.Extensions 10.0.12, EF Core 10.0.12, Microsoft.Data.Sqlite 10.0.12, and current test tooling.
 - Updated the generated Heroes Showcase TurtlePath package fallback to `1.9.0`.
 - Updated Heroes Showcase documentation for Spider flows, traces, and the custom operations report flow.
 

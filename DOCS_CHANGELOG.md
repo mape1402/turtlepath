@@ -10,6 +10,7 @@ Documentation has its own release marker in `.docs.release` and its own GitHub A
 
 - Added the English and Spanish guide package version `1.5.0`.
 - Documented Spider.Pipelines 2.2.1 flows, the Development-only `/_spider` UI, runtime traces, and custom `ComposeFlow` usage.
+- Updated current template guidance to reference Pigeon 4.0.2.
 - Updated the template-to-guide map so template version `1.9.0` uses guide version `1.5.0`.
 
 ## [docs-v1.4.0] - 2026-09-29

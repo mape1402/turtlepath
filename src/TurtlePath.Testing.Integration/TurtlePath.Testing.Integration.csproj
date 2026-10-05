@@ -12,20 +12,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Crabalidator.Testing" Version="1.0.3" />
-    <PackageReference Include="DataScorpio.Testing" Version="1.0.0" />
-    <PackageReference Include="DataScorpio.Testing.Sqlite" Version="1.0.0" />
+    <PackageReference Include="Crabalidator.Testing" Version="1.0.4" />
+    <PackageReference Include="DataScorpio.Testing" Version="1.0.1" />
+    <PackageReference Include="DataScorpio.Testing.Sqlite" Version="1.0.1" />
     <PackageReference Include="DynaBee.Testing" Version="1.4.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
-    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
-    <PackageReference Include="OctoMap.Testing" Version="1.1.0" />
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="OctoMap.Testing" Version="1.1.1" />
     <PackageReference Include="Pelican.Testing" Version="2.0.0" />
-    <PackageReference Include="Pigeon.Testing" Version="4.0.0" />
-    <PackageReference Include="Spider.Testing" Version="2.1.0" />
+    <PackageReference Include="Pigeon.Testing" Version="4.0.2" />
+    <PackageReference Include="Spider.Testing" Version="2.2.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Krackend.EventSourcing.Testing" Version="1.2.1" />
+    <PackageReference Include="Krackend.EventSourcing.Testing" Version="4.0.3" />
   </ItemGroup>
 </Project>
