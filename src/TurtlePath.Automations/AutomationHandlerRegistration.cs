@@ -33,9 +33,18 @@ namespace TurtlePath.Automations
             queryOptionsRegistration.Register(services, registry.Descriptors);
             commandResponseOptionsRegistration.Register(services, registry.Descriptors);
 
-            var generationResult = handlerTypeGenerator.Generate(registry.Descriptors);
+            var generatedDescriptors = registry.Descriptors
+                .Where(descriptor => descriptor.HandlerType == null)
+                .ToArray();
+
+            var generationResult = generatedDescriptors.Length == 0
+                ? new AutomationHandlerGenerationResult([])
+                : handlerTypeGenerator.Generate(generatedDescriptors);
             foreach (var descriptor in registry.Descriptors)
-                Register(services, descriptor, generationResult.Find(descriptor).ImplementationType);
+                Register(
+                    services,
+                    descriptor,
+                    descriptor.HandlerType ?? generationResult.Find(descriptor).ImplementationType);
         }
 
         private void Register(IServiceCollection services, AutomationDescriptor descriptor, Type implementationType)

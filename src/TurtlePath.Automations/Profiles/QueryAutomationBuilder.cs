@@ -10,6 +10,8 @@ namespace TurtlePath.Automations.Profiles
         private Expression<Func<TQuery, TKey>> keySelector;
         private string defaultSortProperty;
         private string notFoundMessage;
+        private Type handlerType;
+        private readonly Dictionary<string, object> metadata = new(StringComparer.Ordinal);
 
         public IQueryAutomationBuilder<TQuery, TEntity, TKey> GetKeyFrom(Expression<Func<TQuery, TKey>> keySelector)
         {
@@ -29,6 +31,20 @@ namespace TurtlePath.Automations.Profiles
             return this;
         }
 
+        public IQueryAutomationBuilder<TQuery, TEntity, TKey> UseHandler<THandler>() where THandler : class
+        {
+            handlerType = typeof(THandler);
+            return this;
+        }
+
+        public void SetMetadata(string key, object value)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentNullException(nameof(key));
+
+            metadata[key] = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
         public AutomationDescriptor CreateDescriptor(
             AutomationOperationKind operationKind,
             Type requestType,
@@ -45,6 +61,8 @@ namespace TurtlePath.Automations.Profiles
                 AutomationSourceKind.Profile,
                 keySelector,
                 defaultSortProperty,
-                notFoundMessage);
+                notFoundMessage,
+                handlerType: handlerType,
+                metadata: metadata);
     }
 }

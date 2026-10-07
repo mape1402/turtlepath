@@ -38,8 +38,8 @@ namespace TurtlePath.Automations.Attributes
                 responseType,
                 AutomationSourceKind.Attribute,
                 defaultSortProperty: ResolveDefaultSort(attribute),
-                validateRequest: ResolveValidateRequest(attribute),
-                reloadBeforeResponse: ResolveReloadBeforeResponse(attribute));
+                validateRequest: ResolveValidateRequest(requestType, attribute),
+                reloadBeforeResponse: ResolveReloadBeforeResponse(requestType, attribute));
         }
 
         private static string ResolveDefaultSort(AutomationAttribute attribute)
@@ -50,13 +50,24 @@ namespace TurtlePath.Automations.Attributes
                 _ => null
             };
 
-        private static bool? ResolveValidateRequest(AutomationAttribute attribute)
-            => attribute is MutationAutomationAttribute mutation ? mutation.ValidateRequest : null;
+        private static bool? ResolveValidateRequest(Type requestType, AutomationAttribute attribute)
+        {
+            var validation = requestType.GetCustomAttribute<AutomationValidationAttribute>(false);
+            if (validation != null)
+                return validation.Enabled;
 
-        private static bool ResolveReloadBeforeResponse(AutomationAttribute attribute)
-            => attribute is MutationAutomationAttribute mutation &&
-                mutation.OperationKind is AutomationOperationKind.Create or AutomationOperationKind.Update or AutomationOperationKind.Patch &&
-                mutation.ReloadBeforeResponse;
+            return attribute is MutationAutomationAttribute mutation ? mutation.ValidateRequest : null;
+        }
+
+        private static bool ResolveReloadBeforeResponse(Type requestType, AutomationAttribute attribute)
+        {
+            if (attribute is not MutationAutomationAttribute mutation ||
+                mutation.OperationKind is not (AutomationOperationKind.Create or AutomationOperationKind.Update or AutomationOperationKind.Patch))
+                return false;
+
+            var projection = requestType.GetCustomAttribute<AutomationProjectionAttribute>(false);
+            return projection?.Enabled ?? mutation.ReloadBeforeResponse;
+        }
 
         private static Type ResolveResponseType(AutomationAttribute attribute)
         {

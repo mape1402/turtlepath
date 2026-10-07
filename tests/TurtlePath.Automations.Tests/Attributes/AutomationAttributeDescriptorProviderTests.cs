@@ -61,6 +61,17 @@ namespace TurtlePath.Automations.Tests.Attributes
         }
 
         [Fact]
+        public void GetDescriptors_supports_validation_and_projection_attributes()
+        {
+            var descriptors = AutomationAttributeDescriptorProvider.GetDescriptors(typeof(AutomationAttributeDescriptorProviderTests).Assembly);
+
+            var descriptor = Assert.Single(descriptors, x => x.RequestType == typeof(ProjectedAttributedCustomerCommand));
+
+            Assert.False(descriptor.ValidateRequest);
+            Assert.True(descriptor.ReloadBeforeResponse);
+        }
+
+        [Fact]
         public void Automation_attributes_expose_constructor_options()
         {
             var create = new CreateAutomationAttribute(typeof(AttributedCustomer));
@@ -133,6 +144,13 @@ namespace TurtlePath.Automations.Tests.Attributes
 
         [UpdateAutomation(typeof(AttributedLegacyCustomer), typeof(AttributedLegacyCustomerResponse))]
         private sealed class UpdateAttributedLegacyCustomerCommand : IRequest<AttributedLegacyCustomerResponse>
+        {
+        }
+
+        [AutomationValidation(false)]
+        [AutomationProjection(true)]
+        [UpdateAutomation(typeof(AttributedCustomer), typeof(AttributedCustomerResponse), ValidateRequest = true)]
+        private sealed class ProjectedAttributedCustomerCommand : IRequest<AttributedCustomerResponse>
         {
         }
     }

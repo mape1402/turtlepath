@@ -11,7 +11,9 @@ namespace TurtlePath.Automations.Profiles
         private string notFoundMessage;
         private bool? validateRequest;
         private bool? reloadBeforeResponse;
+        private Type handlerType;
         private readonly List<Expression<Func<TEntity, object>>> responseIncludeExpressions = [];
+        private readonly Dictionary<string, object> metadata = new(StringComparer.Ordinal);
 
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> GetKeyFrom(Expression<Func<TRequest, TKey>> keySelector)
         {
@@ -31,11 +33,17 @@ namespace TurtlePath.Automations.Profiles
             return this;
         }
 
+        public IMutationAutomationBuilder<TRequest, TEntity, TKey> Validate(bool validateRequest = true)
+            => ValidateRequest(validateRequest);
+
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse(bool reloadBeforeResponse = true)
         {
             this.reloadBeforeResponse = reloadBeforeResponse;
             return this;
         }
+
+        public IMutationAutomationBuilder<TRequest, TEntity, TKey> Projection(bool enabled = true)
+            => ReloadBeforeResponse(enabled);
 
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> Include(Expression<Func<TEntity, object>> includeExpression)
         {
@@ -45,6 +53,20 @@ namespace TurtlePath.Automations.Profiles
             reloadBeforeResponse ??= true;
             responseIncludeExpressions.Add(includeExpression);
             return this;
+        }
+
+        public IMutationAutomationBuilder<TRequest, TEntity, TKey> UseHandler<THandler>() where THandler : class
+        {
+            handlerType = typeof(THandler);
+            return this;
+        }
+
+        public void SetMetadata(string key, object value)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentNullException(nameof(key));
+
+            metadata[key] = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public AutomationDescriptor CreateDescriptor(
@@ -66,6 +88,8 @@ namespace TurtlePath.Automations.Profiles
                 notFoundMessage: notFoundMessage,
                 validateRequest: validateRequest,
                 reloadBeforeResponse: reloadBeforeResponse ?? false,
-                responseIncludeExpressions: responseIncludeExpressions);
+                responseIncludeExpressions: responseIncludeExpressions,
+                handlerType: handlerType,
+                metadata: metadata);
     }
 }

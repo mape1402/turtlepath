@@ -6,7 +6,7 @@ namespace TurtlePath.Automations.Profiles
     /// <summary>
     /// Configures mutation automation behavior for one request/entity pair.
     /// </summary>
-    public interface IMutationAutomationBuilder<TRequest, TEntity, TKey>
+    public interface IMutationAutomationBuilder<TRequest, TEntity, TKey> : IAutomationOperationMetadataBuilder
         where TEntity : class, IEntity<TKey>
     {
         /// <summary>
@@ -25,14 +25,29 @@ namespace TurtlePath.Automations.Profiles
         IMutationAutomationBuilder<TRequest, TEntity, TKey> ValidateRequest(bool validateRequest = true);
 
         /// <summary>
+        /// Configures whether the handler validates the request.
+        /// </summary>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> Validate(bool validateRequest = true);
+
+        /// <summary>
         /// Configures the handler to build the response by reading the entity again from storage.
         /// </summary>
         IMutationAutomationBuilder<TRequest, TEntity, TKey> ReloadBeforeResponse(bool reloadBeforeResponse = true);
+
+        /// <summary>
+        /// Configures whether the response is projected from storage before mapping.
+        /// </summary>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> Projection(bool enabled = true);
 
         /// <summary>
         /// Includes a navigation when the response is read again from storage.
         /// </summary>
         /// <param name="includeExpression">The navigation expression to include.</param>
         IMutationAutomationBuilder<TRequest, TEntity, TKey> Include(Expression<Func<TEntity, object>> includeExpression);
+
+        /// <summary>
+        /// Uses an explicitly implemented request handler instead of a generated handler.
+        /// </summary>
+        IMutationAutomationBuilder<TRequest, TEntity, TKey> UseHandler<THandler>() where THandler : class;
     }
 }
