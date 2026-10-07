@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.Automations.Pigeon</PackageId>
+    <Description>Pigeon consumer integration for TurtlePath automation profiles.</Description>
+    <PackageTags>application cqrs handlers automation pigeon messaging turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Automations\TurtlePath.Automations.csproj" />
+    <ProjectReference Include="..\TurtlePath.Spider\TurtlePath.Spider.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Pelican.Mediator" Version="2.0.0" />
+    <PackageReference Include="Pigeon.Messaging" Version="4.0.2" />
+  </ItemGroup>
+</Project>

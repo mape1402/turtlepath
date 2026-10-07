@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TurtlePath.Automations.AspNetCore</PackageId>
+    <Description>ASP.NET Core endpoint integration for TurtlePath automation profiles.</Description>
+    <PackageTags>application cqrs handlers automation aspnetcore endpoints turtlepath elysium</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TurtlePath.Automations\TurtlePath.Automations.csproj" />
+    <ProjectReference Include="..\TurtlePath.Spider\TurtlePath.Spider.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" Condition="'$(CI)' == 'true'" />
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Pelican.Mediator" Version="2.0.0" />
+  </ItemGroup>
+</Project>
