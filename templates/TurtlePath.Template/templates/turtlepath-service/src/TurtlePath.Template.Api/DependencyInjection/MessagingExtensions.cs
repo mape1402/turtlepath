@@ -3,6 +3,7 @@ using Pigeon.Messaging.Azure.ServiceBus;
 using Pigeon.Messaging.Outbox;
 using Pigeon.Messaging.Producing;
 using System.Diagnostics.CodeAnalysis;
+using BusinessConstants = TurtlePath.Template.Business.Constants;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -39,7 +40,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     configuration.GetSection("Pigeon:Outbox").Bind(outbox);
                 });
-            });
+            })
+            .AddAutomationConsumers(typeof(BusinessConstants).Assembly);
 
             return services;
         }

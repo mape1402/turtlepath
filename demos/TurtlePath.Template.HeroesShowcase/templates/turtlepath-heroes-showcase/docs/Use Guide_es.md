@@ -446,6 +446,17 @@ public sealed class CustomerAutomationProfile : AutomationProfile
 
 Registra los automation profiles desde la composición de API cuando el servicio empiece a usar automations.
 
+El demo de Heroes tambien muestra puntos de entrada declarados desde automation. `IncidentAutomationProfile` expone reportar incidente como endpoint HTTP bajo `api/v{version}/automation/incidents/report` y como consumer de Pigeon en `heroes.incidents.report`:
+
+```csharp
+builder.For<Incident>()
+    .ToCreate<ReportIncidentRequest, IncidentResponse>(operation => operation
+        .Endpoint("automation/incidents/report", name: "ReportIncidentAutomation")
+        .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"));
+```
+
+El host API mapea endpoints de automation con `MapTurtlePathAutomationEndpoints(...)`. Cuando messaging esta habilitado, `AddAutomationConsumers(...)` registra consume handlers de Pigeon que despachan por Spider cuando esta disponible.
+
 ### Attributes
 
 Los attributes son útiles para features pequeños donde el request puede declarar la intención de automation.

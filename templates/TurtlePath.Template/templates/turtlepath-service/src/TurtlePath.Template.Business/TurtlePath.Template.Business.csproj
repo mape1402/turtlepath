@@ -14,6 +14,8 @@
     <PackageReference Include="Pelican.Mediator" />
     <PackageReference Include="TurtlePath" />
     <PackageReference Include="TurtlePath.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="TurtlePath.Automations.AspNetCore" />
+    <PackageReference Include="TurtlePath.Automations.Pigeon" />
     <PackageReference Include="TurtlePath.EntityFrameworkCore" />
   </ItemGroup>
 

@@ -48,6 +48,13 @@ namespace Microsoft.Extensions.DependencyInjection
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
+            services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opts =>
+            {
+                opts.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                opts.SerializerOptions.AddTurtlePathCIdConverters();
+                opts.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
             return services.AddExceptionHandlingDefaults();
         }
     }

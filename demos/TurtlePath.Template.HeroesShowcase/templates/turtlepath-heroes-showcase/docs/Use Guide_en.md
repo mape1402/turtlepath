@@ -447,6 +447,17 @@ public sealed class CustomerAutomationProfile : AutomationProfile
 
 Register automation profiles from the API composition root when the service starts using automations.
 
+The Heroes demo also shows automation-declared entry points. `IncidentAutomationProfile` exposes the report incident operation as an HTTP endpoint under `api/v{version}/automation/incidents/report` and as a Pigeon consumer on `heroes.incidents.report`:
+
+```csharp
+builder.For<Incident>()
+    .ToCreate<ReportIncidentRequest, IncidentResponse>(operation => operation
+        .Endpoint("automation/incidents/report", name: "ReportIncidentAutomation")
+        .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"));
+```
+
+The API host maps automation endpoints with `MapTurtlePathAutomationEndpoints(...)`. When messaging is enabled, `AddAutomationConsumers(...)` registers Pigeon consume handlers that dispatch through Spider when available.
+
 ### Attributes
 
 Attributes are useful for very small features where the request itself can declare the automation intent.

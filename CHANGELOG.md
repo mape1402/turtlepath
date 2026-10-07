@@ -4,6 +4,18 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
+## [v1.10.0] - 2026-10-07
+
+### Added
+
+- Added `TurtlePath.Automations.AspNetCore` for automation-declared HTTP endpoints that dispatch through Spider when available and copy route `id` values into request models.
+- Added `TurtlePath.Automations.Pigeon` for automation-declared Pigeon consumers that register consume handlers and dispatch automation requests through Spider or Pelican.
+- Added public automation descriptor discovery and metadata extension points so integration packages can enrich automation operations without coupling those integrations to the automation core.
+
+### Changed
+
+- Automation architecture metadata now includes integration metadata contributed by extension packages.
+
 ## [v1.9.1] - 2026-10-05
 
 ### Fixed

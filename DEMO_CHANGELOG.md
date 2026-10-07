@@ -1,5 +1,18 @@
 # TurtlePath Demo Templates Changelog
 
+## [demo-v1.7.0] - 2026-10-07
+
+### Added
+
+- Added Heroes Showcase references for `TurtlePath.Automations.AspNetCore` and `TurtlePath.Automations.Pigeon`.
+- Added an incident report automation example that exposes both an HTTP endpoint and a Pigeon consumer from the automation profile.
+- Wired the Heroes API host to map automation-declared endpoints and register automation-declared Pigeon consumers.
+
+### Changed
+
+- Updated the generated Heroes Showcase TurtlePath package fallback and README examples to `1.10.0`.
+- Updated Heroes Showcase documentation for automation-declared entry points.
+
 ## [demo-v1.6.1] - 2026-10-05
 
 ### Changed

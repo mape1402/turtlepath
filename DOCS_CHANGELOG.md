@@ -4,6 +4,14 @@ All notable changes to TurtlePath versioned documentation will be documented in 
 
 Documentation has its own release marker in `.docs.release` and its own GitHub Actions workflow. A documentation version can support multiple `TurtlePath.Template` versions through `docs/guides/template/guide-manifest.json`.
 
+## [docs-v1.6.0] - 2026-10-07
+
+### Changed
+
+- Added the English and Spanish guide package version `1.6.0`.
+- Documented automation-declared ASP.NET Core endpoints and Pigeon consumers.
+- Updated the template-to-guide map so template version `1.10.0` uses guide version `1.6.0`.
+
 ## [docs-v1.5.1] - 2026-10-05
 
 ### Changed

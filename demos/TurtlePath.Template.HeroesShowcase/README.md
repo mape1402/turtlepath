@@ -21,16 +21,17 @@ By default, the generated demo uses the TurtlePath package version tested with t
 To generate the demo with a specific TurtlePath package version, pass:
 
 ```powershell
-dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.9.1
+dotnet new turtlepath-heroes-showcase -n Heroes.Service --turtlepath-version 1.10.0
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
 
-The current demo template release has been validated against TurtlePath `1.9.1`.
+The current demo template release has been validated against TurtlePath `1.10.0`.
 
 The generated solution demonstrates:
 
 - TurtlePath automations for happy-path commands and queries.
+- Automation-declared HTTP endpoint and Pigeon consumer examples for the incident report flow.
 - Custom command and query handlers for specialized workflows.
 - CId identifiers backed by ULID values.
 - Entity Framework Core with SQLite.

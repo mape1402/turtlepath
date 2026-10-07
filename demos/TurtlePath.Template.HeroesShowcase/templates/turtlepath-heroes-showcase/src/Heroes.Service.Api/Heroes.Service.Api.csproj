@@ -21,6 +21,8 @@
     <PackageReference Include="Spider.Pipelines" />
     <PackageReference Include="Spider.Pipelines.Web" />
     <PackageReference Include="TurtlePath" />
+    <PackageReference Include="TurtlePath.Automations.AspNetCore" />
+    <PackageReference Include="TurtlePath.Automations.Pigeon" />
     <PackageReference Include="TurtlePath.Crabalidator" />
     <PackageReference Include="TurtlePath.DataScorpio" />
     <PackageReference Include="TurtlePath.Domain" />
