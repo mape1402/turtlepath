@@ -1,5 +1,7 @@
 using Serilog;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Routing;
+using BusinessConstants = TurtlePath.Template.Business.Constants;
 #if (!JobHost)
 using TurtlePath.Template.Api.DependencyInjection;
 #endif
@@ -80,6 +82,9 @@ namespace Microsoft.Extensions.DependencyInjection
             {
                 endpoints.MapHealthCheckEndPoints();
                 endpoints.MapControllers();
+                endpoints.MapTurtlePathAutomationEndpoints(
+                    options => options.RoutePrefix = "api/v{version:apiVersion}",
+                    typeof(BusinessConstants).Assembly);
                 endpoints.MapSpiderDevelopmentEndpoints(environment);
             });
 

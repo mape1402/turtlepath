@@ -18,6 +18,8 @@ The recommended package set is:
 
 - `TurtlePath`: Pelican command/query handlers, hooks, request/response models, and application exceptions.
 - `TurtlePath.Automations`: profile and attribute driven handler automation for standard TurtlePath flows.
+- `TurtlePath.Automations.AspNetCore`: endpoint metadata and route mapping for automation operations that should be exposed by an ASP.NET Core host.
+- `TurtlePath.Automations.Pigeon`: Pigeon consumer metadata and registration for automation operations that should be triggered by messages.
 - `TurtlePath.Domain`: `BaseEntity`, `IEntity<TKey>`, and configurable `CId` identifiers.
 - `TurtlePath.EntityFrameworkCore`: `BaseDbContext`, model conventions, `IDbContext`, and EF-backed storage adapters.
 - `TurtlePath.ExceptionHandling`: transport-neutral exception mapping to descriptors.
@@ -105,6 +107,8 @@ turtlepath-studio update --version studio-v1.0.0
 Generated API/consumer services start with Scalar OpenAPI UI, Spider pipeline boundaries, TurtlePath exception handling, DataScorpio filtering, OctoMap mapping, Crabalidator validation, EF Core storage adapters, jobs, and testing foundations.
 
 Pigeon messaging 4.0.2 and EventSourcing are included as opt-in template surfaces. Pigeon 4.0.2 supports configurable consumer throughput through `MaxConcurrency` and `QueueCapacity`; they stay disabled by default so a new service can start without broker or event-store settings. Enable them from the API dependency registration when the service actually needs messaging or append-only event history.
+
+Automation profiles can now expose the same request as generated handlers, HTTP endpoints, or Pigeon consumers. Use `Endpoint("customers/{id}")` to map ASP.NET Core routes with route `id` copied into the request model, and `Consume("topic", "1.0.0", "subscription")` to register a Pigeon consumer that dispatches through Spider when available.
 
 The generated project keeps layer ownership explicit: Business references Domain and TurtlePath abstractions, API owns host composition, and Persistence owns the concrete EF Core `DbContext`. Business code that needs persistence should depend on `IDbContext`, not the concrete `AppDbContext`.
 

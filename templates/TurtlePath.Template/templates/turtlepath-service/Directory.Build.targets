@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
-    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.9.1</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.10.0</TurtlePathVersion>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -30,6 +30,8 @@
     <PackageReference Update="TurtlePath.Abstractions" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Analyzers" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Automations" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Automations.AspNetCore" Version="$(TurtlePathVersion)" />
+    <PackageReference Update="TurtlePath.Automations.Pigeon" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Crabalidator" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.DataScorpio" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Domain" Version="$(TurtlePathVersion)" />

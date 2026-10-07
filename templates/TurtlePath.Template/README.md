@@ -27,12 +27,12 @@ By default, the generated project uses the TurtlePath package version tested wit
 To generate a project with a specific TurtlePath package version, pass:
 
 ```bash
-dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.9.1
+dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.10.0
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
 
-The current template release has been validated against TurtlePath `1.9.1`.
+The current template release has been validated against TurtlePath `1.10.0`.
 
 ## Validate A Generated Project
 
@@ -47,6 +47,8 @@ The generated project includes TurtlePath defaults for handlers, automations, ex
 Transaction boundaries are registered through `TurtlePath.Spider.Transactions` using the generated Business and API assemblies explicitly, so test assemblies and unrelated loaded assemblies are not scanned.
 
 API/consumer services expose Spider architecture docs and runtime traces at `/_spider` in Development, including TurtlePath base command flows, concrete automation operations, and the transaction boundary.
+
+Automation profiles can declare HTTP endpoints with `Endpoint(...)` and Pigeon consumers with `Consume(...)`. The generated API maps endpoint declarations under the versioned API prefix and registers automation consumers when messaging is enabled.
 
 The optional Pigeon integration uses Pigeon 4.0.2. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
 
