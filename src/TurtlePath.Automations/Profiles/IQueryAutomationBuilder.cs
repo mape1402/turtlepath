@@ -6,7 +6,7 @@ namespace TurtlePath.Automations.Profiles
     /// <summary>
     /// Configures query automation behavior for one query/entity pair.
     /// </summary>
-    public interface IQueryAutomationBuilder<TQuery, TEntity, TKey>
+    public interface IQueryAutomationBuilder<TQuery, TEntity, TKey> : IAutomationOperationMetadataBuilder
         where TEntity : class, IEntity<TKey>
     {
         /// <summary>
@@ -23,5 +23,10 @@ namespace TurtlePath.Automations.Profiles
         /// Configures the not-found message for entity lookup queries.
         /// </summary>
         IQueryAutomationBuilder<TQuery, TEntity, TKey> NotFoundMessage(string message);
+
+        /// <summary>
+        /// Uses an explicitly implemented request handler instead of a generated handler.
+        /// </summary>
+        IQueryAutomationBuilder<TQuery, TEntity, TKey> UseHandler<THandler>() where THandler : class;
     }
 }

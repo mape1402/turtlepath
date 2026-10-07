@@ -344,6 +344,32 @@ namespace TurtlePath.Automations.Tests
         }
 
         [Fact]
+        public void Register_uses_explicit_handler_without_generating_handler_type()
+        {
+            var services = new ServiceCollection();
+            var descriptor = new AutomationDescriptor(
+                AutomationOperationKind.Create,
+                typeof(CreateCustomerCommand),
+                typeof(Customer),
+                typeof(CId),
+                AutomationReturnMode.Response,
+                typeof(CustomerResponse),
+                handlerType: typeof(ConfiguredCreateCustomerHandler));
+
+            new AutomationHandlerRegistration(
+                new ThrowingHandlerTypeGenerator(),
+                new AutomationHandlerServiceTypeResolver(),
+                new Options.AutomationQueryOptionsRegistration(),
+                new Options.AutomationCommandResponseOptionsRegistration()).Register(services, [descriptor]);
+
+            var handler = services.SingleOrDefault(service =>
+                service.ServiceType == typeof(IRequestHandler<CreateCustomerCommand, CustomerResponse>));
+
+            Assert.NotNull(handler);
+            Assert.Equal(typeof(ConfiguredCreateCustomerHandler), handler.ImplementationType);
+        }
+
+        [Fact]
         public void DynaBee_generator_validates_arguments_and_base_type_contracts()
         {
             var descriptor = new AutomationDescriptor(
@@ -532,6 +558,12 @@ namespace TurtlePath.Automations.Tests
                 return new AutomationHandlerGenerationResult(
                     [new AutomationGeneratedHandler(Descriptor, "ConfiguredCreateCustomerHandler", implementationType)]);
             }
+        }
+
+        private sealed class ThrowingHandlerTypeGenerator : IAutomationHandlerTypeGenerator
+        {
+            public AutomationHandlerGenerationResult Generate(IReadOnlyCollection<AutomationDescriptor> descriptors)
+                => throw new InvalidOperationException("Handler generation should not run.");
         }
 
         private sealed class StubBaseTypeResolver(Type baseType) : IAutomationHandlerBaseTypeResolver

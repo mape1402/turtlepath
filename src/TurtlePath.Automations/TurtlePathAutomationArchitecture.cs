@@ -76,6 +76,9 @@ namespace TurtlePath.Automations
             if (descriptor.ResponseIncludeExpressions.Count > 0)
                 flowMetadata["projection.includes"] = descriptor.ResponseIncludeExpressions.Count.ToString();
 
+            foreach (var metadata in descriptor.Metadata)
+                flowMetadata[$"automation.metadata.{metadata.Key}"] = metadata.Value?.ToString() ?? string.Empty;
+
             components.Add(Component(flowId, "spider.flow", CreateDisplayName(descriptor), flowMetadata));
             relations.Add(Relation($"{flowId}.uses-profile", flowId, AutomationProfileId, "uses-profile"));
 

@@ -95,6 +95,32 @@ namespace TurtlePath.Automations.Tests.Profiles
         }
 
         [Fact]
+        public void Build_supports_validation_projection_aliases_handler_and_metadata()
+        {
+            var descriptors = AutomationProfileDescriptorBuilder.Build(new ExtendedMutationAutomationProfile());
+
+            var descriptor = Assert.Single(descriptors);
+
+            Assert.True(descriptor.ValidateRequest);
+            Assert.True(descriptor.ReloadBeforeResponse);
+            Assert.Equal(typeof(CustomCreateCustomerCommandHandler), descriptor.HandlerType);
+            var metadata = Assert.IsType<TestAutomationMetadata>(descriptor.Metadata["test.metadata"]);
+            Assert.Equal("enabled", metadata.Value);
+        }
+
+        [Fact]
+        public void Build_supports_query_handler_and_metadata()
+        {
+            var descriptors = AutomationProfileDescriptorBuilder.Build(new ExtendedQueryAutomationProfile());
+
+            var descriptor = Assert.Single(descriptors);
+
+            Assert.Equal(typeof(CustomGetCustomerByIdQueryHandler), descriptor.HandlerType);
+            var metadata = Assert.IsType<TestAutomationMetadata>(descriptor.Metadata["test.metadata"]);
+            Assert.Equal("query", metadata.Value);
+        }
+
+        [Fact]
         public void Build_allows_disabling_response_projection_after_include()
         {
             var descriptors = AutomationProfileDescriptorBuilder.Build(new DisabledResponseProjectionAutomationProfile());
@@ -206,6 +232,35 @@ namespace TurtlePath.Automations.Tests.Profiles
             }
         }
 
+        private sealed class ExtendedMutationAutomationProfile : TurtlePathAutomationProfile
+        {
+            public override void Configure(ITurtlePathAutomationBuilder builder)
+            {
+                builder.For<Customer>()
+                    .ToCreate<CreateCustomerCommand, CustomerResponse>(mutation =>
+                    {
+                        mutation
+                            .Validate()
+                            .Projection()
+                            .UseHandler<CustomCreateCustomerCommandHandler>();
+                        mutation.SetMetadata("test.metadata", new TestAutomationMetadata("enabled"));
+                    });
+            }
+        }
+
+        private sealed class ExtendedQueryAutomationProfile : TurtlePathAutomationProfile
+        {
+            public override void Configure(ITurtlePathAutomationBuilder builder)
+            {
+                builder.For<Customer>()
+                    .ToGetById<GetCustomerByIdQuery, CustomerResponse>(query =>
+                    {
+                        query.UseHandler<CustomGetCustomerByIdQueryHandler>();
+                        query.SetMetadata("test.metadata", new TestAutomationMetadata("query"));
+                    });
+            }
+        }
+
         private sealed class VariantAutomationProfile : TurtlePathAutomationProfile
         {
             public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -313,6 +368,20 @@ namespace TurtlePath.Automations.Tests.Profiles
             public int Id { get; set; }
 
             public int LegacyId { get; set; }
+        }
+
+        private sealed record TestAutomationMetadata(string Value);
+
+        private sealed class CustomCreateCustomerCommandHandler : IRequestHandler<CreateCustomerCommand, CustomerResponse>
+        {
+            public Task<CustomerResponse> Handle(CreateCustomerCommand request, CancellationToken cancellationToken = default)
+                => Task.FromResult(new CustomerResponse());
+        }
+
+        private sealed class CustomGetCustomerByIdQueryHandler : IRequestHandler<GetCustomerByIdQuery, CustomerResponse>
+        {
+            public Task<CustomerResponse> Handle(GetCustomerByIdQuery request, CancellationToken cancellationToken = default)
+                => Task.FromResult(new CustomerResponse());
         }
     }
 }

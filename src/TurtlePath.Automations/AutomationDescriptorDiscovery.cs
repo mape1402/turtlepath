@@ -5,8 +5,16 @@ namespace TurtlePath.Automations
     using TurtlePath.Automations.Descriptors;
     using TurtlePath.Automations.Profiles;
 
-    internal static class AutomationDescriptorDiscovery
+    /// <summary>
+    /// Discovers TurtlePath automation descriptors from attributes and automation profiles.
+    /// </summary>
+    public static class AutomationDescriptorDiscovery
     {
+        /// <summary>
+        /// Discovers automation descriptors from the supplied assemblies.
+        /// </summary>
+        /// <param name="assemblies">Assemblies that contain automation attributes or profiles.</param>
+        /// <returns>The normalized automation descriptors.</returns>
         public static IReadOnlyCollection<AutomationDescriptor> Discover(params Assembly[] assemblies)
         {
             var registry = new AutomationDescriptorRegistry();

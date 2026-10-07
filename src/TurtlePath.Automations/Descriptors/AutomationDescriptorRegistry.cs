@@ -3,14 +3,21 @@ namespace TurtlePath.Automations.Descriptors
     /// <summary>
     /// Collects automation descriptors and resolves precedence between declaration sources.
     /// </summary>
-    internal sealed class AutomationDescriptorRegistry
+    public sealed class AutomationDescriptorRegistry
     {
         private readonly Dictionary<AutomationDescriptorKey, AutomationDescriptor> descriptors = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutomationDescriptorRegistry"/> class.
+        /// </summary>
         public AutomationDescriptorRegistry()
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutomationDescriptorRegistry"/> class.
+        /// </summary>
+        /// <param name="descriptors">The descriptors to add to the registry.</param>
         public AutomationDescriptorRegistry(IEnumerable<AutomationDescriptor> descriptors)
         {
             if (descriptors == null)
@@ -20,8 +27,15 @@ namespace TurtlePath.Automations.Descriptors
                 Add(descriptor);
         }
 
+        /// <summary>
+        /// Gets the descriptors currently registered.
+        /// </summary>
         public IReadOnlyCollection<AutomationDescriptor> Descriptors => descriptors.Values.ToArray();
 
+        /// <summary>
+        /// Adds a descriptor and applies source precedence rules.
+        /// </summary>
+        /// <param name="descriptor">The descriptor to add.</param>
         public void Add(AutomationDescriptor descriptor)
         {
             if (descriptor == null)
@@ -50,6 +64,12 @@ namespace TurtlePath.Automations.Descriptors
             throw new AutomationDescriptorConflictException(current, descriptor);
         }
 
+        /// <summary>
+        /// Finds a response-based descriptor for the supplied request and response type.
+        /// </summary>
+        /// <param name="requestType">The request type.</param>
+        /// <param name="responseType">The response type.</param>
+        /// <returns>The matching descriptor, or <c>null</c> when no descriptor exists.</returns>
         public AutomationDescriptor Find(Type requestType, Type responseType)
         {
             if (requestType == null)
