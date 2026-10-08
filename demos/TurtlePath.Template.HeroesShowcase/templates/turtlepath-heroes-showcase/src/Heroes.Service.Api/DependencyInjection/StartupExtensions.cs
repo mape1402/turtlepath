@@ -73,7 +73,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 endpoints.MapHealthCheckEndPoints();
                 endpoints.MapControllers();
                 endpoints.MapTurtlePathAutomationEndpoints(
-                    options => options.RoutePrefix = "api/v{version:apiVersion}",
+                    options => options.RoutePrefix = "api/v1",
                     typeof(BusinessConstants).Assembly);
                 endpoints.MapSpiderDevelopmentEndpoints(environment);
             });
