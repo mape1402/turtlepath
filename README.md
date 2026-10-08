@@ -610,7 +610,8 @@ builder.For<Customer>()
         .Endpoint("customers", endpoint => endpoint
             .Name("CreateCustomer")
             .Authorize("customers.write")
-            .UseAttribute(() => new ProducesResponseTypeAttribute(StatusCodes.Status201Created))));
+            .ProducesResponseType<CustomerResponse>(StatusCodes.Status201Created)
+            .UseAttribute<MyCustomEndpointAttribute>()));
 ```
 
 ## Event Sourcing

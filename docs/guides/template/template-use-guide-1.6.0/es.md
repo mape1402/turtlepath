@@ -1327,7 +1327,8 @@ builder.For<Invoice>()
             endpoint => endpoint
                 .Name("CreateInvoice")
                 .Authorize("invoices.write")
-                .UseAttribute(() => new ProducesResponseTypeAttribute(StatusCodes.Status201Created))))
+                .ProducesResponseType<InvoiceResponse>(StatusCodes.Status201Created)
+                .UseAttribute<MyCustomEndpointAttribute>()))
     .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
         .Endpoint(
             "invoices/{invoiceId}",
@@ -1339,7 +1340,7 @@ builder.For<Invoice>()
                 })));
 ```
 
-Usa `UseAttribute<T>()` o `UseAttribute(() => new MyAttribute(...))` para attributes custom de ASP.NET Core, `Authorize(...)` para attributes de autorizacion y `AllowAnonymous()` cuando un endpoint generado deba salir del default. Esa configuracion solo aplica a endpoints generados por automation; los controllers escritos a mano conservan sus propios attributes.
+Usa `ProducesResponseType(...)` para declarar responses, `UseAttribute<T>()` o `UseAttribute(() => new MyAttribute(...))` para attributes custom de ASP.NET Core, `Authorize(...)` para attributes de autorizacion y `AllowAnonymous()` cuando un endpoint generado deba salir del default. Esa configuracion solo aplica a endpoints generados por automation; los controllers escritos a mano conservan sus propios attributes.
 
 Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom o comportamiento mas claro en codigo.
 

@@ -1,6 +1,8 @@
 namespace TurtlePath.Automations.AspNetCore;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 
 /// <summary>
 /// Configures ASP.NET Core endpoint defaults inherited by automation endpoints for one entity.
@@ -39,6 +41,42 @@ public sealed class AutomationEndpointDefaultsBuilder
     }
 
     /// <summary>
+    /// Adds a response type declaration inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder ProducesResponseType(int statusCode)
+    {
+        metadata.Add(new ProducesResponseTypeMetadata(statusCode, null, []));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a response type declaration inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder ProducesResponseType<TResponse>(params string[] contentTypes)
+        => ProducesResponseType(typeof(TResponse), StatusCodes.Status200OK, contentTypes);
+
+    /// <summary>
+    /// Adds a response type declaration inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder ProducesResponseType<TResponse>(int statusCode, params string[] contentTypes)
+        => ProducesResponseType(typeof(TResponse), statusCode, contentTypes);
+
+    /// <summary>
+    /// Adds a response type declaration inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder ProducesResponseType(Type responseType, int statusCode, params string[] contentTypes)
+    {
+        ArgumentNullException.ThrowIfNull(responseType);
+
+        metadata.Add(new ProducesResponseTypeMetadata(
+            statusCode,
+            responseType,
+            ResolveContentTypes(contentTypes)));
+
+        return this;
+    }
+
+    /// <summary>
     /// Requires authorization for every generated endpoint for the entity.
     /// </summary>
     public AutomationEndpointDefaultsBuilder Authorize(params string[] policies)
@@ -66,4 +104,9 @@ public sealed class AutomationEndpointDefaultsBuilder
 
     internal AutomationEndpointDefaults Build()
         => new(metadata);
+
+    private static string[] ResolveContentTypes(string[] contentTypes)
+        => contentTypes is { Length: > 0 }
+            ? contentTypes
+            : [ "application/json" ];
 }

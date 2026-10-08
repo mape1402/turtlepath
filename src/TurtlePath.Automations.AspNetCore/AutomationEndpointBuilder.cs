@@ -1,6 +1,8 @@
 namespace TurtlePath.Automations.AspNetCore;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 
 /// <summary>
 /// Configures ASP.NET Core endpoint metadata for a TurtlePath automation request.
@@ -90,6 +92,42 @@ public sealed class AutomationEndpointBuilder<TRequest>
     }
 
     /// <summary>
+    /// Adds a response type declaration to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> ProducesResponseType(int statusCode)
+    {
+        metadata.Add(new ProducesResponseTypeMetadata(statusCode, null, []));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a response type declaration to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> ProducesResponseType<TResponse>(params string[] contentTypes)
+        => ProducesResponseType(typeof(TResponse), StatusCodes.Status200OK, contentTypes);
+
+    /// <summary>
+    /// Adds a response type declaration to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> ProducesResponseType<TResponse>(int statusCode, params string[] contentTypes)
+        => ProducesResponseType(typeof(TResponse), statusCode, contentTypes);
+
+    /// <summary>
+    /// Adds a response type declaration to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> ProducesResponseType(Type responseType, int statusCode, params string[] contentTypes)
+    {
+        ArgumentNullException.ThrowIfNull(responseType);
+
+        metadata.Add(new ProducesResponseTypeMetadata(
+            statusCode,
+            responseType,
+            ResolveContentTypes(contentTypes)));
+
+        return this;
+    }
+
+    /// <summary>
     /// Requires authorization for the generated endpoint.
     /// </summary>
     public AutomationEndpointBuilder<TRequest> Authorize(params string[] policies)
@@ -117,4 +155,9 @@ public sealed class AutomationEndpointBuilder<TRequest>
 
     internal AutomationEndpointOptions Build()
         => new(route, method, name, bindingFactory, requestBinder, metadata);
+
+    private static string[] ResolveContentTypes(string[] contentTypes)
+        => contentTypes is { Length: > 0 }
+            ? contentTypes
+            : [ "application/json" ];
 }
