@@ -1,6 +1,6 @@
 # TurtlePath Demo Templates Changelog
 
-## [demo-v1.7.0] - 2026-10-07
+## [demo-v1.8.0] - 2026-10-07
 
 ### Added
 
@@ -11,7 +11,7 @@
 
 ### Changed
 
-- Updated the generated Heroes Showcase TurtlePath package fallback and README examples to `1.10.0`.
+- Updated the generated Heroes Showcase TurtlePath package fallback and README examples to `1.11.0`.
 - Updated Heroes Showcase documentation for automation-declared entry points.
 
 ## [demo-v1.6.1] - 2026-10-05

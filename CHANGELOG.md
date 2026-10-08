@@ -4,7 +4,7 @@ All notable changes to TurtlePath will be documented in this file.
 
 Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath Studio changes are documented in `STUDIO_CHANGELOG.md`.
 
-## [v1.10.0] - 2026-10-07
+## [v1.11.0] - 2026-10-07
 
 ### Added
 
