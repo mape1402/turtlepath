@@ -12,6 +12,7 @@ Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath 
 - Added `TurtlePath.Automations.Pigeon` for automation-declared Pigeon consumers that register consume handlers and dispatch automation requests through Spider or Pelican.
 - Added public automation descriptor discovery and metadata extension points so integration packages can enrich automation operations without coupling those integrations to the automation core.
 - Added automation endpoint bindings so routes can map custom route, query, and header values without exposing ASP.NET Core `HttpContext`.
+- Added automation endpoint metadata configuration with `Authorize`, `AllowAnonymous`, and custom metadata support at the entity default and individual endpoint levels.
 
 ### Changed
 

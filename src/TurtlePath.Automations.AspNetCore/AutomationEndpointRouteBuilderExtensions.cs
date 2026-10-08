@@ -79,6 +79,9 @@ public static class AutomationEndpointRouteBuilderExtensions
 
             if (!string.IsNullOrWhiteSpace(endpointOptions.Name))
                 builder.WithName(endpointOptions.Name);
+
+            foreach (var item in GetEndpointMetadata(descriptor, endpointOptions))
+                builder.WithMetadata(item);
         }
 
         return endpoints;
@@ -98,6 +101,23 @@ public static class AutomationEndpointRouteBuilderExtensions
             throw new InvalidOperationException($"Automation metadata '{AutomationEndpointMetadata.Endpoint}' must be an {nameof(AutomationEndpointOptions)} instance.");
 
         return true;
+    }
+
+    private static IEnumerable<object> GetEndpointMetadata(
+        AutomationDescriptor descriptor,
+        AutomationEndpointOptions endpointOptions)
+    {
+        if (descriptor.Metadata.TryGetValue(AutomationEndpointMetadata.EndpointDefaults, out var defaultsValue))
+        {
+            var defaults = defaultsValue as AutomationEndpointDefaults ??
+                throw new InvalidOperationException($"Automation metadata '{AutomationEndpointMetadata.EndpointDefaults}' must be an {nameof(AutomationEndpointDefaults)} instance.");
+
+            foreach (var item in defaults.Metadata)
+                yield return item;
+        }
+
+        foreach (var item in endpointOptions.Metadata)
+            yield return item;
     }
 
     private static async Task InvokeAsync(

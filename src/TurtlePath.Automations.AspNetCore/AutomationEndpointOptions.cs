@@ -13,12 +13,14 @@ public sealed record AutomationEndpointOptions
     /// <param name="name">The optional endpoint name.</param>
     /// <param name="bindingFactory">The optional factory used to project endpoint values into request values.</param>
     /// <param name="requestBinder">The optional binder used to complete the created request.</param>
+    /// <param name="metadata">The endpoint metadata applied to the generated endpoint.</param>
     public AutomationEndpointOptions(
         string route,
         string method = null,
         string name = null,
         Func<AutomationEndpointBindingContext, object> bindingFactory = null,
-        Action<object, AutomationEndpointBindingContext> requestBinder = null)
+        Action<object, AutomationEndpointBindingContext> requestBinder = null,
+        IReadOnlyCollection<object> metadata = null)
     {
         if (string.IsNullOrWhiteSpace(route))
             throw new ArgumentException("Route cannot be null or empty.", nameof(route));
@@ -28,6 +30,7 @@ public sealed record AutomationEndpointOptions
         Name = name;
         BindingFactory = bindingFactory;
         RequestBinder = requestBinder;
+        Metadata = metadata ?? [];
     }
 
     /// <summary>
@@ -54,4 +57,9 @@ public sealed record AutomationEndpointOptions
     /// Gets the optional binder used to complete the created request.
     /// </summary>
     public Action<object, AutomationEndpointBindingContext> RequestBinder { get; }
+
+    /// <summary>
+    /// Gets metadata applied to the generated endpoint.
+    /// </summary>
+    public IReadOnlyCollection<object> Metadata { get; }
 }

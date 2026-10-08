@@ -6,14 +6,23 @@ namespace TurtlePath.Automations.Profiles
     using TurtlePath.Models.Requests;
     using TurtlePath.Models.Responses;
 
-    internal sealed class EntityAutomationBuilder<TEntity, TKey> : IEntityAutomationBuilder<TEntity, TKey>
+    internal sealed class EntityAutomationBuilder<TEntity, TKey> : IEntityAutomationBuilder<TEntity, TKey>, IAutomationEntityMetadataBuilder
         where TEntity : class, IEntity<TKey>
     {
         private readonly AutomationDescriptorRegistry registry;
+        private readonly Dictionary<string, object> metadata = new(StringComparer.Ordinal);
 
         public EntityAutomationBuilder(AutomationDescriptorRegistry registry)
         {
             this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        }
+
+        public void SetMetadata(string key, object value)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentNullException(nameof(key));
+
+            metadata[key] = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public IEntityAutomationBuilder<TEntity, TKey> ToCreate<TCommand, TResponse>(
@@ -88,7 +97,7 @@ namespace TurtlePath.Automations.Profiles
             AutomationOperationKind operationKind,
             Action<IMutationAutomationBuilder<TRequest, TEntity, TKey>> configure)
         {
-            var builder = new MutationAutomationBuilder<TRequest, TEntity, TKey>();
+            var builder = new MutationAutomationBuilder<TRequest, TEntity, TKey>(metadata);
             configure?.Invoke(builder);
 
             registry.Add(builder.CreateDescriptor(
@@ -106,7 +115,7 @@ namespace TurtlePath.Automations.Profiles
             AutomationOperationKind operationKind,
             Action<IMutationAutomationBuilder<TRequest, TEntity, TKey>> configure)
         {
-            var builder = new MutationAutomationBuilder<TRequest, TEntity, TKey>();
+            var builder = new MutationAutomationBuilder<TRequest, TEntity, TKey>(metadata);
             configure?.Invoke(builder);
 
             registry.Add(builder.CreateDescriptor(
@@ -123,7 +132,7 @@ namespace TurtlePath.Automations.Profiles
             AutomationOperationKind operationKind,
             Action<IQueryAutomationBuilder<TQuery, TEntity, TKey>> configure)
         {
-            var builder = new QueryAutomationBuilder<TQuery, TEntity, TKey>();
+            var builder = new QueryAutomationBuilder<TQuery, TEntity, TKey>(metadata);
             configure?.Invoke(builder);
 
             registry.Add(builder.CreateDescriptor(

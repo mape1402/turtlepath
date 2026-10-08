@@ -13,6 +13,15 @@ namespace TurtlePath.Automations.Profiles
         private Type handlerType;
         private readonly Dictionary<string, object> metadata = new(StringComparer.Ordinal);
 
+        public QueryAutomationBuilder(IReadOnlyDictionary<string, object> metadataDefaults = null)
+        {
+            if (metadataDefaults is null)
+                return;
+
+            foreach (var item in metadataDefaults)
+                metadata[item.Key] = item.Value;
+        }
+
         public IQueryAutomationBuilder<TQuery, TEntity, TKey> GetKeyFrom(Expression<Func<TQuery, TKey>> keySelector)
         {
             this.keySelector = keySelector ?? throw new ArgumentNullException(nameof(keySelector));
