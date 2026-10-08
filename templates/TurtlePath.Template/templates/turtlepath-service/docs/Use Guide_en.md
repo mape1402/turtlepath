@@ -1403,7 +1403,8 @@ builder.For<Invoice>()
             endpoint => endpoint
                 .Name("CreateInvoice")
                 .Authorize("invoices.write")
-                .UseAttribute(() => new ProducesResponseTypeAttribute(StatusCodes.Status201Created))))
+                .ProducesResponseType<InvoiceResponse>(StatusCodes.Status201Created)
+                .UseAttribute<MyCustomEndpointAttribute>()))
     .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
         .Endpoint(
             "invoices/{invoiceId}",
@@ -1415,7 +1416,7 @@ builder.For<Invoice>()
                 })));
 ```
 
-Use `UseAttribute<T>()` or `UseAttribute(() => new MyAttribute(...))` for custom ASP.NET Core endpoint attributes, `Authorize(...)` for authorization attributes, and `AllowAnonymous()` when a generated endpoint must opt out. These settings apply only to generated automation endpoints, so hand-written controllers keep their own attributes.
+Use `ProducesResponseType(...)` for response declarations, `UseAttribute<T>()` or `UseAttribute(() => new MyAttribute(...))` for custom ASP.NET Core endpoint attributes, `Authorize(...)` for authorization attributes, and `AllowAnonymous()` when a generated endpoint must opt out. These settings apply only to generated automation endpoints, so hand-written controllers keep their own attributes.
 
 Keep hand-written controller actions for routes with custom OpenAPI policy or behavior that is clearer in code.
 

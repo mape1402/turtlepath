@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
@@ -149,6 +151,9 @@ public sealed class AutomationEndpointRouteBuilderTests
         Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers");
         Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers.custom");
         Assert.Contains(custom.Metadata.GetOrderedMetadata<SampleEndpointAttribute>(), item => item.Name == "custom");
+        Assert.Contains(custom.Metadata.GetOrderedMetadata<IProducesResponseTypeMetadata>(), item =>
+            item.StatusCode == StatusCodes.Status201Created &&
+            item.Type == typeof(CustomerResponse));
     }
 
     private static async Task<WebApplication> CreateAppAsync()
@@ -271,6 +276,7 @@ public sealed class AutomationEndpointRouteBuilderTests
                         endpoint => endpoint
                             .Name("SecuredCustomRouteCustomer")
                             .Authorize("customers.custom")
+                            .ProducesResponseType<CustomerResponse>(StatusCodes.Status201Created)
                             .UseAttribute(() => new SampleEndpointAttribute("custom"))));
         }
     }
