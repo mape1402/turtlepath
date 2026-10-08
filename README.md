@@ -1,12 +1,12 @@
 # TurtlePath
 
-![TurtlePath architecture banner](assets/turtlepath-readme-banner.png)
-
 [![Build](https://github.com/mape1402/turtlepath/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/mape1402/turtlepath/actions/workflows/build-and-release.yml)
 [![NuGet](https://img.shields.io/nuget/v/TurtlePath.svg)](https://www.nuget.org/packages/TurtlePath)
 [![Downloads](https://img.shields.io/nuget/dt/TurtlePath.svg)](https://www.nuget.org/packages/TurtlePath)
 [![Coverage](https://img.shields.io/badge/coverage-99.03%25-brightgreen)](#)
 [![License](https://img.shields.io/github/license/mape1402/turtlepath.svg)](LICENSE)
+
+![TurtlePath architecture banner](assets/turtlepath-readme-banner.png)
 
 TurtlePath is a reusable .NET library for building Pelican-based application handlers, automations, jobs, exception boundaries, templates, and testing helpers.
 
