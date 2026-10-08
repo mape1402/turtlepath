@@ -15,6 +15,15 @@ namespace TurtlePath.Automations.Profiles
         private readonly List<Expression<Func<TEntity, object>>> responseIncludeExpressions = [];
         private readonly Dictionary<string, object> metadata = new(StringComparer.Ordinal);
 
+        public MutationAutomationBuilder(IReadOnlyDictionary<string, object> metadataDefaults = null)
+        {
+            if (metadataDefaults is null)
+                return;
+
+            foreach (var item in metadataDefaults)
+                metadata[item.Key] = item.Value;
+        }
+
         public IMutationAutomationBuilder<TRequest, TEntity, TKey> GetKeyFrom(Expression<Func<TRequest, TKey>> keySelector)
         {
             this.keySelector = keySelector ?? throw new ArgumentNullException(nameof(keySelector));

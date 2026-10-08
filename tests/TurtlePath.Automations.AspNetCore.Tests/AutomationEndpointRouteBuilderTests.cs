@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -130,6 +131,25 @@ public sealed class AutomationEndpointRouteBuilderTests
             item.GroupName == "v1");
     }
 
+    [Fact]
+    public async Task MapTurtlePathAutomationEndpoints_applies_entity_and_endpoint_metadata()
+    {
+        await using var app = await CreateAppAsync();
+
+        var endpoints = app.Services
+            .GetRequiredService<IEnumerable<EndpointDataSource>>()
+            .SelectMany(source => source.Endpoints)
+            .OfType<RouteEndpoint>()
+            .ToList();
+
+        var create = Assert.Single(endpoints, item => item.RoutePattern.RawText == "api/v1/secured-customers");
+        var custom = Assert.Single(endpoints, item => item.RoutePattern.RawText == "api/v1/secured-customers/{customerId}/custom");
+
+        Assert.Contains(create.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers");
+        Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers");
+        Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers.custom");
+    }
+
     private static async Task<WebApplication> CreateAppAsync()
     {
         var builder = WebApplication.CreateBuilder();
@@ -148,6 +168,21 @@ public sealed class AutomationEndpointRouteBuilderTests
     }
 
     private sealed class Customer : BaseEntity
+    {
+        public string Name { get; set; }
+    }
+
+    private sealed class SecuredCustomer : BaseEntity
+    {
+        public string Name { get; set; }
+    }
+
+    public sealed class SecuredCreateCustomerCommand : IRequest<CustomerResponse>
+    {
+        public string Name { get; set; }
+    }
+
+    public sealed class SecuredUpdateCustomerCommand : BaseRequest, IRequest<CustomerResponse>
     {
         public string Name { get; set; }
     }
@@ -218,6 +253,23 @@ public sealed class AutomationEndpointRouteBuilderTests
                                 Id = context.GetRouteParam<CId>("customerId"),
                                 Source = context.GetQuery("source")
                             })));
+        }
+    }
+
+    private sealed class SecuredCustomerAutomationProfile : TurtlePathAutomationProfile
+    {
+        public override void Configure(ITurtlePathAutomationBuilder builder)
+        {
+            builder.For<SecuredCustomer>()
+                .Endpoints(endpoint => endpoint.Authorize("customers"))
+                .ToCreate<SecuredCreateCustomerCommand, CustomerResponse>(operation => operation
+                    .Endpoint("secured-customers", name: "SecuredCreateCustomer"))
+                .ToUpdate<SecuredUpdateCustomerCommand, CustomerResponse>(operation => operation
+                    .Endpoint(
+                        "secured-customers/{customerId}/custom",
+                        endpoint => endpoint
+                            .Name("SecuredCustomRouteCustomer")
+                            .Authorize("customers.custom")));
         }
     }
 

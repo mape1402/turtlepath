@@ -601,6 +601,17 @@ Automations generate concrete Pelican handlers with DynaBee and register them in
 
 Automation endpoints use conventions for simple routes, including copying `{id}` into the request `Id`. When an endpoint needs a different route parameter name or custom values from route values, query string, or headers, use endpoint bindings such as `Bind(context => new { Id = context.GetRouteParam<CId>("customerId") })` or `Bind((request, context) => request.Id = context.GetRouteParam<CId>("customerId"))`.
 
+Endpoint metadata can be configured per entity or per endpoint. Use entity-level defaults for controller-like metadata, then add or override individual endpoint metadata when a specific operation needs it:
+
+```csharp
+builder.For<Customer>()
+    .Endpoints(endpoint => endpoint.Authorize("customers"))
+    .ToCreate<CreateCustomerRequest, CustomerResponse>(operation => operation
+        .Endpoint("customers", endpoint => endpoint
+            .Name("CreateCustomer")
+            .Authorize("customers.write")));
+```
+
 ## Event Sourcing
 
 `TurtlePath.EventSourcing` connects TurtlePath command handlers to Krackend event sourcing through `IAfterSaveHook<TRequest, TEntity>`. The handler saves the entity first, then the hook resolves the Krackend stream, maps `request + entity` to one or more event payloads, and appends them to `IEventStore`.

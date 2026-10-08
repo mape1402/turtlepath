@@ -9,6 +9,30 @@ using TurtlePath.Domain.Contracts;
 public static class AspNetCoreAutomationBuilderExtensions
 {
     /// <summary>
+    /// Configures defaults inherited by ASP.NET Core endpoints generated for one automation entity.
+    /// </summary>
+    public static IEntityAutomationBuilder<TEntity, TKey> Endpoints<TEntity, TKey>(
+        this IEntityAutomationBuilder<TEntity, TKey> builder,
+        Action<AutomationEndpointDefaultsBuilder> configure)
+        where TEntity : class, IEntity<TKey>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (builder is not IAutomationEntityMetadataBuilder metadataBuilder)
+            throw new InvalidOperationException($"The supplied automation builder does not support entity-level metadata.");
+
+        var endpoint = new AutomationEndpointDefaultsBuilder();
+        configure(endpoint);
+
+        metadataBuilder.SetMetadata(
+            AutomationEndpointMetadata.EndpointDefaults,
+            endpoint.Build());
+
+        return builder;
+    }
+
+    /// <summary>
     /// Exposes a mutation automation request as an ASP.NET Core endpoint.
     /// </summary>
     public static IMutationAutomationBuilder<TRequest, TEntity, TKey> Endpoint<TRequest, TEntity, TKey>(

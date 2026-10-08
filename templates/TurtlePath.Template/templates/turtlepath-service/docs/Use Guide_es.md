@@ -1316,6 +1316,30 @@ builder.For<Invoice>()
                 })));
 ```
 
+La metadata de endpoints se puede configurar como default para todos los endpoints generados de una entidad, parecido a attributes de controller, y tambien en endpoints individuales:
+
+```csharp
+builder.For<Invoice>()
+    .Endpoints(endpoint => endpoint.Authorize("invoices"))
+    .ToCreate<CreateInvoiceRequest, InvoiceResponse>(mutation => mutation
+        .Endpoint(
+            "invoices",
+            endpoint => endpoint
+                .Name("CreateInvoice")
+                .Authorize("invoices.write")))
+    .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
+        .Endpoint(
+            "invoices/{invoiceId}",
+            endpoint => endpoint
+                .Name("GetInvoice")
+                .Bind(context => new
+                {
+                    Id = context.GetRouteParam<CId>("invoiceId")
+                })));
+```
+
+Usa `Metadata(...)` para metadata custom de ASP.NET Core, `Authorize(...)` para metadata de autorizacion y `AllowAnonymous()` cuando un endpoint generado deba salir del default. Esa configuracion solo aplica a endpoints generados por automation; los controllers escritos a mano conservan sus propios attributes.
+
 Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom o comportamiento mas claro en codigo.
 
 Agrega `TurtlePath.Automations.Pigeon` cuando una operacion tambien deba consumirse desde Pigeon:
