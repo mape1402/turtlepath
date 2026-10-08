@@ -27,12 +27,12 @@ By default, the generated project uses the TurtlePath package version tested wit
 To generate a project with a specific TurtlePath package version, pass:
 
 ```bash
-dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.10.0
+dotnet new turtlepath -n MyService --host api-consumer --turtlepath-version 1.11.0
 ```
 
 The generated solution centralizes TurtlePath package references through `TurtlePathVersion` in `Directory.Build.targets`.
 
-The current template release has been validated against TurtlePath `1.10.0`.
+The current template release has been validated against TurtlePath `1.11.0`.
 
 ## Validate A Generated Project
 

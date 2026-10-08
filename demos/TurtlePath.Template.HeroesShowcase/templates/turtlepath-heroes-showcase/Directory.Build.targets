@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
-    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.10.0</TurtlePathVersion>
+    <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.11.0</TurtlePathVersion>
     <TurtlePathRepositoryRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..\..\..\..'))</TurtlePathRepositoryRoot>
     <UseLocalTurtlePathProjects Condition="'$(UseLocalTurtlePathProjects)' == '' and Exists('$(TurtlePathRepositoryRoot)\src\TurtlePath.Automations.AspNetCore\TurtlePath.Automations.AspNetCore.csproj')">true</UseLocalTurtlePathProjects>
   </PropertyGroup>
