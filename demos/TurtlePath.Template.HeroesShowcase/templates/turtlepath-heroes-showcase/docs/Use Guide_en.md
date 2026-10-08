@@ -447,13 +447,18 @@ public sealed class CustomerAutomationProfile : AutomationProfile
 
 Register automation profiles from the API composition root when the service starts using automations.
 
-The Heroes demo also shows automation-declared entry points. `IncidentAutomationProfile` exposes the report incident operation as an HTTP endpoint under `api/v{version}/automation/incidents/report` and as a Pigeon consumer on `heroes.incidents.report`:
+The Heroes demo also shows automation-declared entry points. `IncidentAutomationProfile` exposes the incident collection under the normal public API route `api/v1/incidents`, while custom controller actions such as assignment and resolution stay under the same route family:
 
 ```csharp
 builder.For<Incident>()
     .ToCreate<ReportIncidentRequest, IncidentResponse>(operation => operation
-        .Endpoint("automation/incidents/report", name: "ReportIncidentAutomation")
-        .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"));
+        .Endpoint("incidents", name: "ReportIncident")
+        .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"))
+    .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
+        .Endpoint("incidents/{id}", name: "GetIncident"))
+    .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
+        .DefaultSort("-threat")
+        .Endpoint("incidents", name: "GetIncidents"));
 ```
 
 The API host maps automation endpoints with `MapTurtlePathAutomationEndpoints(...)`. When messaging is enabled, `AddAutomationConsumers(...)` registers Pigeon consume handlers that dispatch through Spider when available.

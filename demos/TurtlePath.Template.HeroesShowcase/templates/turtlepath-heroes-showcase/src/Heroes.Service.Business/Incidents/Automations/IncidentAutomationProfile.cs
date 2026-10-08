@@ -18,10 +18,12 @@ public sealed class IncidentAutomationProfile : TurtlePathAutomationProfile
     {
         builder.For<Incident>()
             .ToCreate<ReportIncidentRequest, IncidentResponse>(operation => operation
-                .Endpoint("automation/incidents/report", name: "ReportIncidentAutomation")
+                .Endpoint("incidents", name: "ReportIncident")
                 .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"))
             .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
-                .Endpoint("automation/incidents/{id}", name: "GetIncidentAutomation"))
-            .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query.DefaultSort("-threat"));
+                .Endpoint("incidents/{id}", name: "GetIncident"))
+            .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
+                .DefaultSort("-threat")
+                .Endpoint("incidents", name: "GetIncidents"));
     }
 }

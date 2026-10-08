@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,7 @@ public sealed class AutomationEndpointRouteBuilderTests
         await using var app = await CreateAppAsync();
         using var client = app.GetTestClient();
 
-        var response = await client.PostAsJsonAsync("/customers", new CreateCustomerCommand
+        var response = await client.PostAsJsonAsync("/api/v1/customers", new CreateCustomerCommand
         {
             Name = "mario"
         });
@@ -40,7 +41,7 @@ public sealed class AutomationEndpointRouteBuilderTests
         await using var app = await CreateAppAsync();
         using var client = app.GetTestClient();
 
-        var response = await client.PutAsJsonAsync("/customers/customer-42", new UpdateCustomerCommand
+        var response = await client.PutAsJsonAsync("/api/v1/customers/customer-42", new UpdateCustomerCommand
         {
             Name = "luigi"
         });
@@ -66,16 +67,40 @@ public sealed class AutomationEndpointRouteBuilderTests
         Assert.Equal("UpdateCustomer", options.Name);
     }
 
+    [Fact]
+    public async Task MapTurtlePathAutomationEndpoints_exposes_routes_to_api_explorer()
+    {
+        await using var app = await CreateAppAsync();
+
+        var descriptions = app.Services
+            .GetRequiredService<IApiDescriptionGroupCollectionProvider>()
+            .ApiDescriptionGroups
+            .Items
+            .SelectMany(group => group.Items)
+            .ToList();
+
+        Assert.Contains(descriptions, item =>
+            item.HttpMethod == "POST" &&
+            item.RelativePath == "api/v1/customers" &&
+            item.GroupName == "v1");
+        Assert.Contains(descriptions, item =>
+            item.HttpMethod == "PUT" &&
+            item.RelativePath == "api/v1/customers/{id}" &&
+            item.GroupName == "v1");
+    }
+
     private static async Task<WebApplication> CreateAppAsync()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
+        builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSingleton<CustomerSink>();
         builder.Services.AddPelican(typeof(AutomationEndpointRouteBuilderTests).Assembly);
 
         var app = builder.Build();
         app.MapTurtlePathAutomationEndpoints(
-            descriptors: AutomationDescriptorDiscovery.Discover(typeof(AutomationEndpointRouteBuilderTests).Assembly));
+            descriptors: AutomationDescriptorDiscovery.Discover(typeof(AutomationEndpointRouteBuilderTests).Assembly),
+            configure: options => options.RoutePrefix = "api/v1");
 
         await app.StartAsync();
         return app;

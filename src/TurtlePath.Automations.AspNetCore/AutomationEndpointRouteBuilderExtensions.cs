@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Pelican.Mediator;
@@ -60,7 +61,21 @@ public static class AutomationEndpointRouteBuilderExtensions
                 context => InvokeAsync(context, descriptor));
 
             builder.WithDisplayName(endpointOptions.Name ?? CreateEndpointName(descriptor));
-            builder.WithTags(GetFriendlyName(descriptor.EntityType));
+            builder.WithTags(GetEndpointTag(endpointOptions.Route, descriptor.EntityType));
+            builder.WithMetadata(typeof(AutomationEndpointRouteBuilderExtensions)
+                .GetMethod(nameof(OpenApiEndpoint), BindingFlags.NonPublic | BindingFlags.Static));
+
+            var groupName = GetOpenApiGroupName(options.RoutePrefix);
+            if (!string.IsNullOrWhiteSpace(groupName))
+                builder.WithGroupName(groupName);
+
+            if (RequiresBody(descriptor.OperationKind))
+                builder.WithMetadata(new AcceptsMetadata([ "application/json" ], descriptor.RequestType, false));
+
+            if (descriptor.HasResponse)
+                builder.WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status200OK, descriptor.ResponseType, [ "application/json" ]));
+            else
+                builder.WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status204NoContent, null, []));
 
             if (!string.IsNullOrWhiteSpace(endpointOptions.Name))
                 builder.WithName(endpointOptions.Name);
@@ -127,6 +142,9 @@ public static class AutomationEndpointRouteBuilderExtensions
         return request;
     }
 
+    private static Task OpenApiEndpoint(HttpContext context)
+        => Task.CompletedTask;
+
     private static System.Text.Json.JsonSerializerOptions ResolveJsonOptions(HttpContext context)
         => context.RequestServices.GetService<IOptions<Microsoft.AspNetCore.Mvc.JsonOptions>>()?.Value.JsonSerializerOptions ??
             context.RequestServices.GetService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>()?.Value.SerializerOptions;
@@ -151,6 +169,19 @@ public static class AutomationEndpointRouteBuilderExtensions
 
             if (constructor is not null)
                 return constructor.Invoke([ convertedId ]);
+        }
+
+        var pagedConstructor = requestType.GetConstructors()
+            .FirstOrDefault(item =>
+            {
+                var parameters = item.GetParameters();
+                return parameters.Length == 1 && string.Equals(parameters[0].ParameterType.Name, "PagedSettings", StringComparison.Ordinal);
+            });
+
+        if (pagedConstructor is not null)
+        {
+            var settingsType = pagedConstructor.GetParameters()[0].ParameterType;
+            return pagedConstructor.Invoke([ CreatePagedSettings(context, settingsType) ]);
         }
 
         return Activator.CreateInstance(requestType) ??
@@ -205,6 +236,16 @@ public static class AutomationEndpointRouteBuilderExtensions
         return Convert.ChangeType(value, targetType);
     }
 
+    private static object CreatePagedSettings(HttpContext context, Type settingsType)
+    {
+        var settings = Activator.CreateInstance(settingsType) ??
+            throw new InvalidOperationException($"Paged settings type '{settingsType.FullName}' must expose a public parameterless constructor.");
+
+        ApplyQueryValues(context, settings);
+
+        return settings;
+    }
+
     private static async Task<object> DispatchResponseRequestAsync<TRequest, TResponse>(
         IServiceProvider services,
         object request,
@@ -257,6 +298,22 @@ public static class AutomationEndpointRouteBuilderExtensions
 
     private static string CreateEndpointName(AutomationDescriptor descriptor)
         => $"{descriptor.OperationKind}{GetFriendlyName(descriptor.EntityType)}";
+
+    private static string GetEndpointTag(string route, Type entityType)
+    {
+        var segment = route?
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(item => !item.StartsWith('{'));
+
+        return string.IsNullOrWhiteSpace(segment)
+            ? GetFriendlyName(entityType)
+            : char.ToUpperInvariant(segment[0]) + segment[1..];
+    }
+
+    private static string GetOpenApiGroupName(string routePrefix)
+        => routePrefix?
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(item => item.Length > 1 && item[0] == 'v' && char.IsDigit(item[1]));
 
     private static string GetFriendlyName(Type type)
         => type.IsGenericType ? type.Name[..type.Name.IndexOf('`')] : type.Name;
