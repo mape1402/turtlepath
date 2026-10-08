@@ -61,14 +61,31 @@ public sealed class AutomationEndpointBuilder<TRequest>
     }
 
     /// <summary>
-    /// Adds ASP.NET Core endpoint metadata to the generated endpoint.
+    /// Adds an attribute to the generated endpoint.
     /// </summary>
-    public AutomationEndpointBuilder<TRequest> Metadata(params object[] metadata)
-    {
-        if (metadata is null)
-            throw new ArgumentNullException(nameof(metadata));
+    public AutomationEndpointBuilder<TRequest> UseAttribute<TAttribute>()
+        where TAttribute : Attribute, new()
+        => UseAttribute(new TAttribute());
 
-        this.metadata.AddRange(metadata.Where(item => item is not null));
+    /// <summary>
+    /// Adds an attribute to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> UseAttribute<TAttribute>(Func<TAttribute> attributeFactory)
+        where TAttribute : Attribute
+    {
+        ArgumentNullException.ThrowIfNull(attributeFactory);
+
+        return UseAttribute(attributeFactory());
+    }
+
+    /// <summary>
+    /// Adds an attribute to the generated endpoint.
+    /// </summary>
+    public AutomationEndpointBuilder<TRequest> UseAttribute(Attribute attribute)
+    {
+        ArgumentNullException.ThrowIfNull(attribute);
+
+        metadata.Add(attribute);
         return this;
     }
 

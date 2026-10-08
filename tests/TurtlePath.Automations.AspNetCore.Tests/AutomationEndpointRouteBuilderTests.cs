@@ -148,6 +148,7 @@ public sealed class AutomationEndpointRouteBuilderTests
         Assert.Contains(create.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers");
         Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers");
         Assert.Contains(custom.Metadata.GetOrderedMetadata<IAuthorizeData>(), item => item.Policy == "customers.custom");
+        Assert.Contains(custom.Metadata.GetOrderedMetadata<SampleEndpointAttribute>(), item => item.Name == "custom");
     }
 
     private static async Task<WebApplication> CreateAppAsync()
@@ -269,8 +270,19 @@ public sealed class AutomationEndpointRouteBuilderTests
                         "secured-customers/{customerId}/custom",
                         endpoint => endpoint
                             .Name("SecuredCustomRouteCustomer")
-                            .Authorize("customers.custom")));
+                            .Authorize("customers.custom")
+                            .UseAttribute(() => new SampleEndpointAttribute("custom"))));
         }
+    }
+
+    private sealed class SampleEndpointAttribute : Attribute
+    {
+        public SampleEndpointAttribute(string name)
+        {
+            Name = name;
+        }
+
+        public string Name { get; }
     }
 
     public sealed class CustomerSink

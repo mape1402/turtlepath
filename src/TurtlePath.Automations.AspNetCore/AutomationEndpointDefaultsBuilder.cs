@@ -10,14 +10,31 @@ public sealed class AutomationEndpointDefaultsBuilder
     private readonly List<object> metadata = [];
 
     /// <summary>
-    /// Adds endpoint metadata inherited by every generated endpoint for the entity.
+    /// Adds an attribute inherited by every generated endpoint for the entity.
     /// </summary>
-    public AutomationEndpointDefaultsBuilder Metadata(params object[] metadata)
-    {
-        if (metadata is null)
-            throw new ArgumentNullException(nameof(metadata));
+    public AutomationEndpointDefaultsBuilder UseAttribute<TAttribute>()
+        where TAttribute : Attribute, new()
+        => UseAttribute(new TAttribute());
 
-        this.metadata.AddRange(metadata.Where(item => item is not null));
+    /// <summary>
+    /// Adds an attribute inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder UseAttribute<TAttribute>(Func<TAttribute> attributeFactory)
+        where TAttribute : Attribute
+    {
+        ArgumentNullException.ThrowIfNull(attributeFactory);
+
+        return UseAttribute(attributeFactory());
+    }
+
+    /// <summary>
+    /// Adds an attribute inherited by every generated endpoint for the entity.
+    /// </summary>
+    public AutomationEndpointDefaultsBuilder UseAttribute(Attribute attribute)
+    {
+        ArgumentNullException.ThrowIfNull(attribute);
+
+        metadata.Add(attribute);
         return this;
     }
 

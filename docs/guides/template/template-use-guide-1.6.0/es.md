@@ -1316,7 +1316,7 @@ builder.For<Invoice>()
                 })));
 ```
 
-La metadata de endpoints se puede configurar como default para todos los endpoints generados de una entidad, parecido a attributes de controller, y tambien en endpoints individuales:
+Los attributes de endpoints se pueden configurar como default para todos los endpoints generados de una entidad, parecido a attributes de controller, y tambien en endpoints individuales:
 
 ```csharp
 builder.For<Invoice>()
@@ -1326,7 +1326,8 @@ builder.For<Invoice>()
             "invoices",
             endpoint => endpoint
                 .Name("CreateInvoice")
-                .Authorize("invoices.write")))
+                .Authorize("invoices.write")
+                .UseAttribute(() => new ProducesResponseTypeAttribute(StatusCodes.Status201Created))))
     .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
         .Endpoint(
             "invoices/{invoiceId}",
@@ -1338,7 +1339,7 @@ builder.For<Invoice>()
                 })));
 ```
 
-Usa `Metadata(...)` para metadata custom de ASP.NET Core, `Authorize(...)` para metadata de autorizacion y `AllowAnonymous()` cuando un endpoint generado deba salir del default. Esa configuracion solo aplica a endpoints generados por automation; los controllers escritos a mano conservan sus propios attributes.
+Usa `UseAttribute<T>()` o `UseAttribute(() => new MyAttribute(...))` para attributes custom de ASP.NET Core, `Authorize(...)` para attributes de autorizacion y `AllowAnonymous()` cuando un endpoint generado deba salir del default. Esa configuracion solo aplica a endpoints generados por automation; los controllers escritos a mano conservan sus propios attributes.
 
 Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom o comportamiento mas claro en codigo.
 
