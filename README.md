@@ -1,5 +1,7 @@
 # TurtlePath
 
+![TurtlePath architecture banner](assets/turtlepath-readme-banner.png)
+
 [![Build](https://github.com/mape1402/turtlepath/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/mape1402/turtlepath/actions/workflows/build-and-release.yml)
 [![NuGet](https://img.shields.io/nuget/v/TurtlePath.svg)](https://www.nuget.org/packages/TurtlePath)
 [![Downloads](https://img.shields.io/nuget/dt/TurtlePath.svg)](https://www.nuget.org/packages/TurtlePath)
