@@ -11,7 +11,7 @@ Documentation has its own release marker in `.docs.release` and its own GitHub A
 - Added the English and Spanish guide package version `1.6.0`.
 - Documented automation-declared ASP.NET Core endpoints and Pigeon consumers.
 - Documented automation endpoint bindings for routes that need custom request binding.
-- Documented automation endpoint metadata defaults and endpoint-level authorization configuration.
+- Documented automation endpoint attribute defaults and endpoint-level authorization configuration.
 - Updated the template-to-guide map so template version `1.10.0` uses guide version `1.6.0`.
 
 ## [docs-v1.5.1] - 2026-10-05

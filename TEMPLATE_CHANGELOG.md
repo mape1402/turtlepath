@@ -12,7 +12,7 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 - Wired generated API hosts to map automation-declared endpoints and register automation-declared Pigeon consumers.
 - Updated generated use guides with automation endpoint and Pigeon consumer examples.
 - Documented automation endpoint bindings for custom route, query, header, and body binding.
-- Documented automation endpoint metadata defaults and endpoint-level authorization configuration.
+- Documented automation endpoint attribute defaults and endpoint-level authorization configuration.
 
 ### Changed
 
