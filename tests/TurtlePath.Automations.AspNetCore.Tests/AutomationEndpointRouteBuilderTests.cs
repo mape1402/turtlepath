@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
@@ -55,7 +54,7 @@ public sealed class AutomationEndpointRouteBuilderTests
     }
 
     [Fact]
-    public async Task MapTurtlePathAutomationEndpoints_uses_custom_request_factory()
+    public async Task MapTurtlePathAutomationEndpoints_applies_request_binder_after_body_binding()
     {
         await using var app = await CreateAppAsync();
         using var client = app.GetTestClient();
@@ -77,6 +76,22 @@ public sealed class AutomationEndpointRouteBuilderTests
         Assert.Equal("peach", body.Name);
         Assert.Equal(CId.From("customer-99"), sink.LastId);
         Assert.Equal("route-factory", sink.LastSource);
+    }
+
+    [Fact]
+    public async Task MapTurtlePathAutomationEndpoints_uses_binding_values_to_create_query()
+    {
+        await using var app = await CreateAppAsync();
+        using var client = app.GetTestClient();
+
+        var response = await client.GetAsync("/api/v1/customers/customer-77/by-alt?source=query-binding");
+        var body = await response.Content.ReadFromJsonAsync<CustomerResponse>();
+        var sink = app.Services.GetRequiredService<CustomerSink>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("alt", body.Name);
+        Assert.Equal(CId.From("customer-77"), sink.LastId);
+        Assert.Equal("query-binding", sink.LastSource);
     }
 
     [Fact]
@@ -161,6 +176,19 @@ public sealed class AutomationEndpointRouteBuilderTests
         public string Source { get; set; }
     }
 
+    public sealed class GetCustomerByAltIdQuery : IRequest<CustomerResponse>
+    {
+        public GetCustomerByAltIdQuery(CId id, string source)
+        {
+            Id = id;
+            Source = source;
+        }
+
+        public CId Id { get; }
+
+        public string Source { get; }
+    }
+
     private sealed class CustomerAutomationProfile : TurtlePathAutomationProfile
     {
         public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -173,17 +201,23 @@ public sealed class AutomationEndpointRouteBuilderTests
                 .ToUpdate<CustomRouteCustomerCommand, CustomerResponse>(operation => operation
                     .Endpoint(
                         "customers/{customerId}/custom",
-                        name: "CustomRouteCustomer",
-                        requestFactory: async (context, cancellationToken) =>
-                        {
-                            var request = await context.Request.ReadFromJsonAsync<CustomRouteCustomerCommand>(
-                                cancellationToken: cancellationToken);
-
-                            request.Id = CId.From(context.Request.RouteValues["customerId"]?.ToString());
-                            request.Source = context.Request.Headers["X-Source"].ToString();
-
-                            return request;
-                        }));
+                        endpoint => endpoint
+                            .Name("CustomRouteCustomer")
+                            .Bind((request, context) =>
+                            {
+                                request.Id = context.GetRouteParam<CId>("customerId");
+                                request.Source = context.GetHeader("X-Source");
+                            })))
+                .ToGetById<GetCustomerByAltIdQuery, CustomerResponse>(operation => operation
+                    .Endpoint(
+                        "customers/{customerId}/by-alt",
+                        endpoint => endpoint
+                            .Name("GetCustomerByAltId")
+                            .Bind(context => new
+                            {
+                                Id = context.GetRouteParam<CId>("customerId"),
+                                Source = context.GetQuery("source")
+                            })));
         }
     }
 
@@ -256,6 +290,28 @@ public sealed class AutomationEndpointRouteBuilderTests
             {
                 Id = request.Id,
                 Name = request.Name
+            });
+        }
+    }
+
+    public sealed class GetCustomerByAltIdQueryHandler : IRequestHandler<GetCustomerByAltIdQuery, CustomerResponse>
+    {
+        private readonly CustomerSink sink;
+
+        public GetCustomerByAltIdQueryHandler(CustomerSink sink)
+        {
+            this.sink = sink;
+        }
+
+        public Task<CustomerResponse> Handle(GetCustomerByAltIdQuery request, CancellationToken cancellationToken = default)
+        {
+            sink.LastId = request.Id;
+            sink.LastSource = request.Source;
+
+            return Task.FromResult(new CustomerResponse
+            {
+                Id = request.Id,
+                Name = "alt"
             });
         }
     }

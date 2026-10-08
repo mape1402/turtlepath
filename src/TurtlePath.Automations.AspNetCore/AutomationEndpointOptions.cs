@@ -1,7 +1,5 @@
 namespace TurtlePath.Automations.AspNetCore;
 
-using Microsoft.AspNetCore.Http;
-
 /// <summary>
 /// Configures an ASP.NET Core endpoint generated from an automation descriptor.
 /// </summary>
@@ -13,12 +11,14 @@ public sealed record AutomationEndpointOptions
     /// <param name="route">The endpoint route template.</param>
     /// <param name="method">The HTTP method. When omitted, the method is inferred from the operation kind.</param>
     /// <param name="name">The optional endpoint name.</param>
-    /// <param name="requestFactory">The optional factory used to build the request from the HTTP context.</param>
+    /// <param name="bindingFactory">The optional factory used to project endpoint values into request values.</param>
+    /// <param name="requestBinder">The optional binder used to complete the created request.</param>
     public AutomationEndpointOptions(
         string route,
         string method = null,
         string name = null,
-        Func<HttpContext, CancellationToken, ValueTask<object>> requestFactory = null)
+        Func<AutomationEndpointBindingContext, object> bindingFactory = null,
+        Action<object, AutomationEndpointBindingContext> requestBinder = null)
     {
         if (string.IsNullOrWhiteSpace(route))
             throw new ArgumentException("Route cannot be null or empty.", nameof(route));
@@ -26,7 +26,8 @@ public sealed record AutomationEndpointOptions
         Route = route;
         Method = method;
         Name = name;
-        RequestFactory = requestFactory;
+        BindingFactory = bindingFactory;
+        RequestBinder = requestBinder;
     }
 
     /// <summary>
@@ -45,7 +46,12 @@ public sealed record AutomationEndpointOptions
     public string Name { get; }
 
     /// <summary>
-    /// Gets the optional factory used to build the request from the HTTP context.
+    /// Gets the optional factory used to project endpoint values into request values.
     /// </summary>
-    public Func<HttpContext, CancellationToken, ValueTask<object>> RequestFactory { get; }
+    public Func<AutomationEndpointBindingContext, object> BindingFactory { get; }
+
+    /// <summary>
+    /// Gets the optional binder used to complete the created request.
+    /// </summary>
+    public Action<object, AutomationEndpointBindingContext> RequestBinder { get; }
 }

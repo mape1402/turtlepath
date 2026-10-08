@@ -24,8 +24,12 @@ public sealed class IncidentAutomationProfile : TurtlePathAutomationProfile
             .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
                 .Endpoint(
                     "incidents/{incidentId}",
-                    context => new GetIncidentByIdQuery(CId.From(context.Request.RouteValues["incidentId"]?.ToString())),
-                    name: "GetIncident"))
+                    endpoint => endpoint
+                        .Name("GetIncident")
+                        .Bind(context => new
+                        {
+                            Id = context.GetRouteParam<CId>("incidentId")
+                        })))
             .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
                 .DefaultSort("-threat")
                 .Endpoint("incidents", name: "GetIncidents"));

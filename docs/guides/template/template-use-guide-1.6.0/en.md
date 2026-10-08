@@ -1361,24 +1361,35 @@ builder.For<Invoice>()
         .Endpoint("invoices/{id}", name: "UpdateInvoice"));
 ```
 
-The generated API maps those declarations with `MapTurtlePathAutomationEndpoints(...)`. For routes such as `invoices/{id}`, TurtlePath copies the route `id` into the request `Id` before dispatching the operation through Spider when available, or Pelican otherwise. When a route needs a different parameter name or custom input binding, pass a request factory and build the request from `HttpContext`:
+The generated API maps those declarations with `MapTurtlePathAutomationEndpoints(...)`. For routes such as `invoices/{id}`, TurtlePath copies the route `id` into the request `Id` before dispatching the operation through Spider when available, or Pelican otherwise. When a route needs a different parameter name, use endpoint bindings. Mutations keep automatic body binding and can complete the request after the body is read:
 
 ```csharp
 builder.For<Invoice>()
     .ToUpdate<UpdateInvoiceRequest, InvoiceResponse>(mutation => mutation
         .Endpoint(
             "invoices/{invoiceId}",
-            name: "UpdateInvoice",
-            requestFactory: async (context, cancellationToken) =>
-            {
-                var request = await context.Request.ReadFromJsonAsync<UpdateInvoiceRequest>(
-                    cancellationToken: cancellationToken);
+            endpoint => endpoint
+                .Name("UpdateInvoice")
+                .Bind((request, context) =>
+                {
+                    request.Id = context.GetRouteParam<CId>("invoiceId");
+                    request.Source = context.GetHeader("X-Source");
+                })));
+```
 
-                request.Id = CId.From(context.Request.RouteValues["invoiceId"]?.ToString());
-                request.Source = context.Request.Headers["X-Source"].ToString();
+Queries can project route, query, or header values into constructor or property values:
 
-                return request;
-            }));
+```csharp
+builder.For<Invoice>()
+    .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
+        .Endpoint(
+            "invoices/{invoiceId}",
+            endpoint => endpoint
+                .Name("GetInvoice")
+                .Bind(context => new
+                {
+                    Id = context.GetRouteParam<CId>("invoiceId")
+                })));
 ```
 
 Keep hand-written controller actions for routes with custom OpenAPI policy or behavior that is clearer in code.

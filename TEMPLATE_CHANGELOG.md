@@ -11,7 +11,7 @@ All notable changes to `TurtlePath.Template` will be documented in this file.
 - Added generated references for `TurtlePath.Automations.AspNetCore` and `TurtlePath.Automations.Pigeon`.
 - Wired generated API hosts to map automation-declared endpoints and register automation-declared Pigeon consumers.
 - Updated generated use guides with automation endpoint and Pigeon consumer examples.
-- Documented automation endpoint request factories for custom route, query, header, and body binding.
+- Documented automation endpoint bindings for custom route, query, header, and body binding.
 
 ### Changed
 
