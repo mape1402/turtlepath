@@ -455,13 +455,16 @@ builder.For<Incident>()
         .Endpoint("incidents", name: "ReportIncident")
         .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"))
     .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
-        .Endpoint("incidents/{id}", name: "GetIncident"))
+        .Endpoint(
+            "incidents/{incidentId}",
+            context => new GetIncidentByIdQuery(CId.From(context.Request.RouteValues["incidentId"]?.ToString())),
+            name: "GetIncident"))
     .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
         .DefaultSort("-threat")
         .Endpoint("incidents", name: "GetIncidents"));
 ```
 
-The API host maps automation endpoints with `MapTurtlePathAutomationEndpoints(...)`. When messaging is enabled, `AddAutomationConsumers(...)` registers Pigeon consume handlers that dispatch through Spider when available.
+The API host maps automation endpoints with `MapTurtlePathAutomationEndpoints(...)`. The `GetIncident` endpoint uses a request factory so the automation can keep the public route under `incidents/{incidentId}` and still build the query explicitly from the HTTP context. When messaging is enabled, `AddAutomationConsumers(...)` registers Pigeon consume handlers that dispatch through Spider when available.
 
 ### Attributes
 

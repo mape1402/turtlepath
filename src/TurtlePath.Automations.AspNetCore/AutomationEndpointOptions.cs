@@ -1,5 +1,7 @@
 namespace TurtlePath.Automations.AspNetCore;
 
+using Microsoft.AspNetCore.Http;
+
 /// <summary>
 /// Configures an ASP.NET Core endpoint generated from an automation descriptor.
 /// </summary>
@@ -11,7 +13,12 @@ public sealed record AutomationEndpointOptions
     /// <param name="route">The endpoint route template.</param>
     /// <param name="method">The HTTP method. When omitted, the method is inferred from the operation kind.</param>
     /// <param name="name">The optional endpoint name.</param>
-    public AutomationEndpointOptions(string route, string method = null, string name = null)
+    /// <param name="requestFactory">The optional factory used to build the request from the HTTP context.</param>
+    public AutomationEndpointOptions(
+        string route,
+        string method = null,
+        string name = null,
+        Func<HttpContext, CancellationToken, ValueTask<object>> requestFactory = null)
     {
         if (string.IsNullOrWhiteSpace(route))
             throw new ArgumentException("Route cannot be null or empty.", nameof(route));
@@ -19,6 +26,7 @@ public sealed record AutomationEndpointOptions
         Route = route;
         Method = method;
         Name = name;
+        RequestFactory = requestFactory;
     }
 
     /// <summary>
@@ -35,4 +43,9 @@ public sealed record AutomationEndpointOptions
     /// Gets the optional endpoint name.
     /// </summary>
     public string Name { get; }
+
+    /// <summary>
+    /// Gets the optional factory used to build the request from the HTTP context.
+    /// </summary>
+    public Func<HttpContext, CancellationToken, ValueTask<object>> RequestFactory { get; }
 }

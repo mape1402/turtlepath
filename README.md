@@ -599,6 +599,8 @@ public sealed class GetCatalogItemsQuery : GetManyQuery<CatalogItem, CatalogItem
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
 
+Automation endpoints use conventions for simple routes, including copying `{id}` into the request `Id`. When an endpoint needs a different route parameter name or custom binding from route values, query string, headers, or body, pass a request factory to `Endpoint(...)` and build the request from `HttpContext`.
+
 ## Event Sourcing
 
 `TurtlePath.EventSourcing` connects TurtlePath command handlers to Krackend event sourcing through `IAfterSaveHook<TRequest, TEntity>`. The handler saves the entity first, then the hook resolves the Krackend stream, maps `request + entity` to one or more event payloads, and appends them to `IEventStore`.

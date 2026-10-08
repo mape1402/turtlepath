@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
@@ -51,6 +52,31 @@ public sealed class AutomationEndpointRouteBuilderTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("luigi", body.Name);
         Assert.Equal(CId.From("customer-42"), app.Services.GetRequiredService<CustomerSink>().LastId);
+    }
+
+    [Fact]
+    public async Task MapTurtlePathAutomationEndpoints_uses_custom_request_factory()
+    {
+        await using var app = await CreateAppAsync();
+        using var client = app.GetTestClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/customers/customer-99/custom")
+        {
+            Content = JsonContent.Create(new CustomRouteCustomerCommand
+            {
+                Name = "peach"
+            })
+        };
+        request.Headers.Add("X-Source", "route-factory");
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadFromJsonAsync<CustomerResponse>();
+        var sink = app.Services.GetRequiredService<CustomerSink>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("peach", body.Name);
+        Assert.Equal(CId.From("customer-99"), sink.LastId);
+        Assert.Equal("route-factory", sink.LastSource);
     }
 
     [Fact]
@@ -128,6 +154,13 @@ public sealed class AutomationEndpointRouteBuilderTests
         public string Name { get; set; }
     }
 
+    public sealed class CustomRouteCustomerCommand : BaseRequest, IRequest<CustomerResponse>
+    {
+        public string Name { get; set; }
+
+        public string Source { get; set; }
+    }
+
     private sealed class CustomerAutomationProfile : TurtlePathAutomationProfile
     {
         public override void Configure(ITurtlePathAutomationBuilder builder)
@@ -136,7 +169,21 @@ public sealed class AutomationEndpointRouteBuilderTests
                 .ToCreate<CreateCustomerCommand, CustomerResponse>(operation => operation
                     .Endpoint("customers", name: "CreateCustomer"))
                 .ToUpdate<UpdateCustomerCommand, CustomerResponse>(operation => operation
-                    .Endpoint("customers/{id}", name: "UpdateCustomer"));
+                    .Endpoint("customers/{id}", name: "UpdateCustomer"))
+                .ToUpdate<CustomRouteCustomerCommand, CustomerResponse>(operation => operation
+                    .Endpoint(
+                        "customers/{customerId}/custom",
+                        name: "CustomRouteCustomer",
+                        requestFactory: async (context, cancellationToken) =>
+                        {
+                            var request = await context.Request.ReadFromJsonAsync<CustomRouteCustomerCommand>(
+                                cancellationToken: cancellationToken);
+
+                            request.Id = CId.From(context.Request.RouteValues["customerId"]?.ToString());
+                            request.Source = context.Request.Headers["X-Source"].ToString();
+
+                            return request;
+                        }));
         }
     }
 
@@ -145,6 +192,8 @@ public sealed class AutomationEndpointRouteBuilderTests
         public List<string> Names { get; } = [];
 
         public CId LastId { get; set; }
+
+        public string LastSource { get; set; }
     }
 
     public sealed class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerCommand, CustomerResponse>
@@ -180,6 +229,28 @@ public sealed class AutomationEndpointRouteBuilderTests
         public Task<CustomerResponse> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken = default)
         {
             sink.LastId = request.Id;
+
+            return Task.FromResult(new CustomerResponse
+            {
+                Id = request.Id,
+                Name = request.Name
+            });
+        }
+    }
+
+    public sealed class CustomRouteCustomerCommandHandler : IRequestHandler<CustomRouteCustomerCommand, CustomerResponse>
+    {
+        private readonly CustomerSink sink;
+
+        public CustomRouteCustomerCommandHandler(CustomerSink sink)
+        {
+            this.sink = sink;
+        }
+
+        public Task<CustomerResponse> Handle(CustomRouteCustomerCommand request, CancellationToken cancellationToken = default)
+        {
+            sink.LastId = request.Id;
+            sink.LastSource = request.Source;
 
             return Task.FromResult(new CustomerResponse
             {

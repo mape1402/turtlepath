@@ -58,7 +58,7 @@ public static class AutomationEndpointRouteBuilderExtensions
             var builder = endpoints.MapMethods(
                 route,
                 [ method ],
-                context => InvokeAsync(context, descriptor));
+                context => InvokeAsync(context, descriptor, endpointOptions));
 
             builder.WithDisplayName(endpointOptions.Name ?? CreateEndpointName(descriptor));
             builder.WithTags(GetEndpointTag(endpointOptions.Route, descriptor.EntityType));
@@ -100,9 +100,12 @@ public static class AutomationEndpointRouteBuilderExtensions
         return true;
     }
 
-    private static async Task InvokeAsync(HttpContext context, AutomationDescriptor descriptor)
+    private static async Task InvokeAsync(
+        HttpContext context,
+        AutomationDescriptor descriptor,
+        AutomationEndpointOptions endpointOptions)
     {
-        var request = await CreateRequestAsync(context, descriptor);
+        var request = await CreateRequestAsync(context, descriptor, endpointOptions);
         var cancellationToken = context.RequestAborted;
 
         if (descriptor.HasResponse)
@@ -124,8 +127,15 @@ public static class AutomationEndpointRouteBuilderExtensions
         context.Response.StatusCode = StatusCodes.Status204NoContent;
     }
 
-    private static async Task<object> CreateRequestAsync(HttpContext context, AutomationDescriptor descriptor)
+    private static async Task<object> CreateRequestAsync(
+        HttpContext context,
+        AutomationDescriptor descriptor,
+        AutomationEndpointOptions endpointOptions)
     {
+        if (endpointOptions.RequestFactory is not null)
+            return await endpointOptions.RequestFactory(context, context.RequestAborted) ??
+                throw new BadHttpRequestException($"Endpoint request factory returned null for {descriptor.RequestType.Name}.");
+
         var request = RequiresBody(descriptor.OperationKind)
             ? await context.Request.ReadFromJsonAsync(
                 descriptor.RequestType,
