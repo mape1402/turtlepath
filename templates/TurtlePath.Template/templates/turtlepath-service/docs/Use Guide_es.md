@@ -1285,7 +1285,27 @@ builder.For<Invoice>()
         .Endpoint("invoices/{id}", name: "UpdateInvoice"));
 ```
 
-El API generado mapea esas declaraciones con `MapTurtlePathAutomationEndpoints(...)`. Para rutas como `invoices/{id}`, TurtlePath copia el `id` de la ruta al `Id` del request antes de despachar la operacion por Spider cuando esta disponible, o por Pelican como fallback. Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom, binding custom o comportamiento mas claro en codigo.
+El API generado mapea esas declaraciones con `MapTurtlePathAutomationEndpoints(...)`. Para rutas como `invoices/{id}`, TurtlePath copia el `id` de la ruta al `Id` del request antes de despachar la operacion por Spider cuando esta disponible, o por Pelican como fallback. Cuando una ruta necesita otro nombre de parametro o binding custom, pasa una request factory y construye el request desde `HttpContext`:
+
+```csharp
+builder.For<Invoice>()
+    .ToUpdate<UpdateInvoiceRequest, InvoiceResponse>(mutation => mutation
+        .Endpoint(
+            "invoices/{invoiceId}",
+            name: "UpdateInvoice",
+            requestFactory: async (context, cancellationToken) =>
+            {
+                var request = await context.Request.ReadFromJsonAsync<UpdateInvoiceRequest>(
+                    cancellationToken: cancellationToken);
+
+                request.Id = CId.From(context.Request.RouteValues["invoiceId"]?.ToString());
+                request.Source = context.Request.Headers["X-Source"].ToString();
+
+                return request;
+            }));
+```
+
+Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom o comportamiento mas claro en codigo.
 
 Agrega `TurtlePath.Automations.Pigeon` cuando una operacion tambien deba consumirse desde Pigeon:
 

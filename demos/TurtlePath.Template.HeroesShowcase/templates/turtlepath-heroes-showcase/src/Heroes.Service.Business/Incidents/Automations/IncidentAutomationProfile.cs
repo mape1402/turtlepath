@@ -2,6 +2,7 @@
 using Heroes.Service.Business.Incidents.Models.Responses;
 using Heroes.Service.Business.Incidents.Queries;
 using Heroes.Service.Domain;
+using TurtlePath.Domain.Identifier;
 using TurtlePath.Automations.AspNetCore;
 using TurtlePath.Automations.Pigeon;
 using TurtlePath.Automations.Profiles;
@@ -21,7 +22,10 @@ public sealed class IncidentAutomationProfile : TurtlePathAutomationProfile
                 .Endpoint("incidents", name: "ReportIncident")
                 .Consume("heroes.incidents.report", "1.0.0", "heroes-automation"))
             .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
-                .Endpoint("incidents/{id}", name: "GetIncident"))
+                .Endpoint(
+                    "incidents/{incidentId}",
+                    context => new GetIncidentByIdQuery(CId.From(context.Request.RouteValues["incidentId"]?.ToString())),
+                    name: "GetIncident"))
             .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
                 .DefaultSort("-threat")
                 .Endpoint("incidents", name: "GetIncidents"));

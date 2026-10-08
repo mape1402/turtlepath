@@ -11,6 +11,7 @@ Template-specific changes are documented in `TEMPLATE_CHANGELOG.md`. TurtlePath 
 - Added `TurtlePath.Automations.AspNetCore` for automation-declared HTTP endpoints that dispatch through Spider when available and copy route `id` values into request models.
 - Added `TurtlePath.Automations.Pigeon` for automation-declared Pigeon consumers that register consume handlers and dispatch automation requests through Spider or Pelican.
 - Added public automation descriptor discovery and metadata extension points so integration packages can enrich automation operations without coupling those integrations to the automation core.
+- Added automation endpoint request factories so routes can build requests from the full ASP.NET Core `HttpContext` when default binding conventions are not enough.
 
 ### Changed
 

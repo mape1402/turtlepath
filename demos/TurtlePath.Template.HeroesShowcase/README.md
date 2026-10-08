@@ -31,7 +31,7 @@ The current demo template release has been validated against TurtlePath `1.10.0`
 The generated solution demonstrates:
 
 - TurtlePath automations for happy-path commands and queries.
-- Automation-declared HTTP endpoint and Pigeon consumer examples for the incident report flow.
+- Automation-declared HTTP endpoint and Pigeon consumer examples for the incident report flow, including custom endpoint request binding.
 - Custom command and query handlers for specialized workflows.
 - CId identifiers backed by ULID values.
 - Entity Framework Core with SQLite.

@@ -6,6 +6,7 @@
 
 - Added Heroes Showcase references for `TurtlePath.Automations.AspNetCore` and `TurtlePath.Automations.Pigeon`.
 - Added an incident report automation example that exposes both an HTTP endpoint and a Pigeon consumer from the automation profile.
+- Added a Heroes Showcase automation endpoint example that builds its query with a custom request factory.
 - Wired the Heroes API host to map automation-declared endpoints and register automation-declared Pigeon consumers.
 
 ### Changed
