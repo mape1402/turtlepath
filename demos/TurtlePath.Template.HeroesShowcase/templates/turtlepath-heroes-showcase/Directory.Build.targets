@@ -2,6 +2,8 @@
   <PropertyGroup>
     <TurtlePathVersion>TURTLEPATH_VERSION</TurtlePathVersion>
     <TurtlePathVersion Condition="'$(TurtlePathVersion)' == 'TURTLEPATH_&#x56;ERSION'">1.10.0</TurtlePathVersion>
+    <TurtlePathRepositoryRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..\..\..\..'))</TurtlePathRepositoryRoot>
+    <UseLocalTurtlePathProjects Condition="'$(UseLocalTurtlePathProjects)' == '' and Exists('$(TurtlePathRepositoryRoot)\src\TurtlePath.Automations.AspNetCore\TurtlePath.Automations.AspNetCore.csproj')">true</UseLocalTurtlePathProjects>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -50,6 +52,11 @@
     <PackageReference Update="TurtlePath.Testing" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Testing.EntityFrameworkCore" Version="$(TurtlePathVersion)" />
     <PackageReference Update="TurtlePath.Testing.Integration" Version="$(TurtlePathVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseLocalTurtlePathProjects)' == 'true'">
+    <PackageReference Remove="TurtlePath.Automations.AspNetCore" />
+    <ProjectReference Include="$(TurtlePathRepositoryRoot)\src\TurtlePath.Automations.AspNetCore\TurtlePath.Automations.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>
