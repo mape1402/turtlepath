@@ -599,7 +599,7 @@ public sealed class GetCatalogItemsQuery : GetManyQuery<CatalogItem, CatalogItem
 
 Automations generate concrete Pelican handlers with DynaBee and register them in DI. At runtime they execute the same TurtlePath handler base classes and steps used by manually written handlers.
 
-Automation endpoints use conventions for simple routes, including copying `{id}` into the request `Id`. When an endpoint needs a different route parameter name or custom binding from route values, query string, headers, or body, pass a request factory to `Endpoint(...)` and build the request from `HttpContext`.
+Automation endpoints use conventions for simple routes, including copying `{id}` into the request `Id`. When an endpoint needs a different route parameter name or custom values from route values, query string, or headers, use endpoint bindings such as `Bind(context => new { Id = context.GetRouteParam<CId>("customerId") })` or `Bind((request, context) => request.Id = context.GetRouteParam<CId>("customerId"))`.
 
 ## Event Sourcing
 

@@ -1285,24 +1285,35 @@ builder.For<Invoice>()
         .Endpoint("invoices/{id}", name: "UpdateInvoice"));
 ```
 
-El API generado mapea esas declaraciones con `MapTurtlePathAutomationEndpoints(...)`. Para rutas como `invoices/{id}`, TurtlePath copia el `id` de la ruta al `Id` del request antes de despachar la operacion por Spider cuando esta disponible, o por Pelican como fallback. Cuando una ruta necesita otro nombre de parametro o binding custom, pasa una request factory y construye el request desde `HttpContext`:
+El API generado mapea esas declaraciones con `MapTurtlePathAutomationEndpoints(...)`. Para rutas como `invoices/{id}`, TurtlePath copia el `id` de la ruta al `Id` del request antes de despachar la operacion por Spider cuando esta disponible, o por Pelican como fallback. Cuando una ruta necesita otro nombre de parametro, usa endpoint bindings. Las mutations conservan el binding automatico del body y pueden completar el request despues de leerlo:
 
 ```csharp
 builder.For<Invoice>()
     .ToUpdate<UpdateInvoiceRequest, InvoiceResponse>(mutation => mutation
         .Endpoint(
             "invoices/{invoiceId}",
-            name: "UpdateInvoice",
-            requestFactory: async (context, cancellationToken) =>
-            {
-                var request = await context.Request.ReadFromJsonAsync<UpdateInvoiceRequest>(
-                    cancellationToken: cancellationToken);
+            endpoint => endpoint
+                .Name("UpdateInvoice")
+                .Bind((request, context) =>
+                {
+                    request.Id = context.GetRouteParam<CId>("invoiceId");
+                    request.Source = context.GetHeader("X-Source");
+                })));
+```
 
-                request.Id = CId.From(context.Request.RouteValues["invoiceId"]?.ToString());
-                request.Source = context.Request.Headers["X-Source"].ToString();
+Las queries pueden proyectar valores de ruta, query string o headers hacia valores de constructor o propiedades:
 
-                return request;
-            }));
+```csharp
+builder.For<Invoice>()
+    .ToGetById<GetInvoiceByIdQuery, InvoiceResponse>(query => query
+        .Endpoint(
+            "invoices/{invoiceId}",
+            endpoint => endpoint
+                .Name("GetInvoice")
+                .Bind(context => new
+                {
+                    Id = context.GetRouteParam<CId>("invoiceId")
+                })));
 ```
 
 Manten actions manuales en controllers cuando una ruta necesite politica OpenAPI custom o comportamiento mas claro en codigo.

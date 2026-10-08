@@ -132,22 +132,23 @@ public static class AutomationEndpointRouteBuilderExtensions
         AutomationDescriptor descriptor,
         AutomationEndpointOptions endpointOptions)
     {
-        if (endpointOptions.RequestFactory is not null)
-            return await endpointOptions.RequestFactory(context, context.RequestAborted) ??
-                throw new BadHttpRequestException($"Endpoint request factory returned null for {descriptor.RequestType.Name}.");
+        var bindingContext = new AutomationEndpointBindingContext(context);
+        var bindingValues = endpointOptions.BindingFactory?.Invoke(bindingContext);
 
         var request = RequiresBody(descriptor.OperationKind)
             ? await context.Request.ReadFromJsonAsync(
                 descriptor.RequestType,
                 ResolveJsonOptions(context),
                 context.RequestAborted)
-            : CreateQueryRequest(context, descriptor.RequestType, descriptor.KeyType);
+            : CreateQueryRequest(context, descriptor.RequestType, descriptor.KeyType, bindingValues);
 
         if (request is null)
             throw new BadHttpRequestException($"Request body could not be read as {descriptor.RequestType.Name}.");
 
         ApplyRouteId(context, request, descriptor.KeyType);
+        ApplyBindingValues(request, bindingValues);
         ApplyQueryValues(context, request);
+        endpointOptions.RequestBinder?.Invoke(request, bindingContext);
 
         return request;
     }
@@ -165,8 +166,11 @@ public static class AutomationEndpointRouteBuilderExtensions
             AutomationOperationKind.Patch or
             AutomationOperationKind.Delete;
 
-    private static object CreateQueryRequest(HttpContext context, Type requestType, Type keyType)
+    private static object CreateQueryRequest(HttpContext context, Type requestType, Type keyType, object bindingValues)
     {
+        if (TryCreateFromBindingValues(requestType, bindingValues, out var boundRequest))
+            return boundRequest;
+
         if (context.Request.RouteValues.TryGetValue("id", out var idValue))
         {
             var convertedId = ConvertValue(idValue?.ToString(), keyType);
@@ -198,6 +202,47 @@ public static class AutomationEndpointRouteBuilderExtensions
             throw new InvalidOperationException($"Request type '{requestType.FullName}' must expose a public parameterless constructor or a constructor that receives the route id.");
     }
 
+    private static bool TryCreateFromBindingValues(Type requestType, object bindingValues, out object request)
+    {
+        request = null;
+
+        var values = ReadBindingValues(bindingValues);
+        if (values.Count == 0)
+            return false;
+
+        foreach (var constructor in requestType.GetConstructors().OrderByDescending(item => item.GetParameters().Length))
+        {
+            var parameters = constructor.GetParameters();
+            if (parameters.Length == 0)
+                continue;
+
+            var arguments = new object[parameters.Length];
+            var matched = true;
+
+            for (var index = 0; index < parameters.Length; index++)
+            {
+                var parameter = parameters[index];
+
+                if (!values.TryGetValue(parameter.Name ?? string.Empty, out var value) &&
+                    !(parameters.Length == 1 && values.Count == 1 && values.TryGetValue(values.First().Key, out value)))
+                {
+                    matched = false;
+                    break;
+                }
+
+                arguments[index] = ConvertValue(value, parameter.ParameterType);
+            }
+
+            if (!matched)
+                continue;
+
+            request = constructor.Invoke(arguments);
+            return true;
+        }
+
+        return false;
+    }
+
     private static void ApplyRouteId(HttpContext context, object request, Type keyType)
     {
         if (!context.Request.RouteValues.TryGetValue("id", out var idValue))
@@ -208,6 +253,26 @@ public static class AutomationEndpointRouteBuilderExtensions
             return;
 
         property.SetValue(request, ConvertValue(idValue?.ToString(), property.PropertyType == typeof(object) ? keyType : property.PropertyType));
+    }
+
+    private static void ApplyBindingValues(object request, object bindingValues)
+    {
+        var values = ReadBindingValues(bindingValues);
+        if (values.Count == 0)
+            return;
+
+        var properties = request.GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(item => item.CanWrite)
+            .ToDictionary(item => item.Name, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in values)
+        {
+            if (!properties.TryGetValue(item.Key, out var property))
+                continue;
+
+            property.SetValue(request, ConvertValue(item.Value, property.PropertyType));
+        }
     }
 
     private static void ApplyQueryValues(HttpContext context, object request)
@@ -223,6 +288,31 @@ public static class AutomationEndpointRouteBuilderExtensions
 
             property.SetValue(request, ConvertValue(value.ToString(), property.PropertyType));
         }
+    }
+
+    private static Dictionary<string, object> ReadBindingValues(object bindingValues)
+    {
+        if (bindingValues is null)
+            return [];
+
+        return bindingValues.GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(item => item.CanRead)
+            .ToDictionary(item => item.Name, item => item.GetValue(bindingValues), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static object ConvertValue(object value, Type targetType)
+    {
+        if (value is null)
+            return null;
+
+        var nullableType = Nullable.GetUnderlyingType(targetType);
+        var effectiveType = nullableType ?? targetType;
+
+        if (effectiveType.IsInstanceOfType(value))
+            return value;
+
+        return ConvertValue(value.ToString(), targetType);
     }
 
     private static object ConvertValue(string value, Type targetType)

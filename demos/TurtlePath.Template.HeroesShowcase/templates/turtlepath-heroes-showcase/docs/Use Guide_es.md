@@ -456,14 +456,18 @@ builder.For<Incident>()
     .ToGetById<GetIncidentByIdQuery, IncidentResponse>(operation => operation
         .Endpoint(
             "incidents/{incidentId}",
-            context => new GetIncidentByIdQuery(CId.From(context.Request.RouteValues["incidentId"]?.ToString())),
-            name: "GetIncident"))
+            endpoint => endpoint
+                .Name("GetIncident")
+                .Bind(context => new
+                {
+                    Id = context.GetRouteParam<CId>("incidentId")
+                })))
     .ToGetPaged<GetPagedIncidentsQuery, IncidentResponse>(query => query
         .DefaultSort("-threat")
         .Endpoint("incidents", name: "GetIncidents"));
 ```
 
-El host API mapea endpoints de automation con `MapTurtlePathAutomationEndpoints(...)`. El endpoint `GetIncident` usa una request factory para mantener la ruta publica bajo `incidents/{incidentId}` y aun asi construir el query explicitamente desde el HTTP context. Cuando messaging esta habilitado, `AddAutomationConsumers(...)` registra consume handlers de Pigeon que despachan por Spider cuando esta disponible.
+El host API mapea endpoints de automation con `MapTurtlePathAutomationEndpoints(...)`. El endpoint `GetIncident` usa endpoint binding para mantener la ruta publica bajo `incidents/{incidentId}` y aun asi mapear explicitamente el valor de ruta al query. Cuando messaging esta habilitado, `AddAutomationConsumers(...)` registra consume handlers de Pigeon que despachan por Spider cuando esta disponible.
 
 ### Attributes
 

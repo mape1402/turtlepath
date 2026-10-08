@@ -48,7 +48,7 @@ Transaction boundaries are registered through `TurtlePath.Spider.Transactions` u
 
 API/consumer services expose Spider architecture docs and runtime traces at `/_spider` in Development, including TurtlePath base command flows, concrete automation operations, and the transaction boundary.
 
-Automation profiles can declare HTTP endpoints with `Endpoint(...)` and Pigeon consumers with `Consume(...)`. The generated API maps endpoint declarations under the versioned API prefix and registers automation consumers when messaging is enabled. Endpoint declarations support a request factory for custom route, query, header, or body binding when the default `{id}` convention is not enough.
+Automation profiles can declare HTTP endpoints with `Endpoint(...)` and Pigeon consumers with `Consume(...)`. The generated API maps endpoint declarations under the versioned API prefix and registers automation consumers when messaging is enabled. Endpoint declarations support bindings for custom route, query, header, or body binding when the default `{id}` convention is not enough.
 
 The optional Pigeon integration uses Pigeon 4.0.2. When messaging is enabled, consumer throughput can be bounded with `ConfigureConsumerExecution`, using `MaxConcurrency` for parallel handler dispatch and `QueueCapacity` for the internal waiting queue. See the generated `docs/Use Guide_en.md` or `docs/Use Guide_es.md` for the complete configuration example.
 
